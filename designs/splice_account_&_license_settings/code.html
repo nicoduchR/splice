@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice - Paramètres</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22", // Matching the provided snippet base color
+                        "surface-dark": "#233648",    // Matching the provided snippet card color
+                        "text-secondary": "#92adc9",  // Matching the provided snippet text color
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for a more app-like feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #344c63; 
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display h-screen overflow-hidden flex flex-col">
+<!-- Top Header -->
+<header class="h-16 border-b border-[#233648] flex items-center justify-between px-6 bg-[#111a22] shrink-0 z-20">
+<div class="flex items-center gap-4">
+<!-- App Logo -->
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M44 11.2727C44 14.0109 39.8386 16.3957 33.69 17.6364C39.8386 18.877 44 21.2618 44 24C44 26.7382 39.8386 29.123 33.69 30.3636C39.8386 31.6043 44 33.9891 44 36.7273C44 40.7439 35.0457 44 24 44C12.9543 44 4 40.7439 4 36.7273C4 33.9891 8.16144 31.6043 14.31 30.3636C8.16144 29.123 4 26.7382 4 24C4 21.2618 8.16144 18.877 14.31 17.6364C8.16144 16.3957 4 14.0109 4 11.2727C4 7.25611 12.9543 4 24 4C35.0457 4 44 7.25611 44 11.2727Z" fill="currentColor"></path>
+</svg>
+</div>
+<h1 class="text-lg font-bold tracking-tight border-l border-[#233648] pl-4 ml-1">Paramètres</h1>
+</div>
+<!-- Right Side Header Controls -->
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-8 rounded-full hover:bg-[#233648] transition-colors text-text-secondary">
+<span class="material-symbols-outlined" style="font-size: 20px;">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold shadow-lg" data-alt="User avatar gradient">
+                JD
+            </div>
+</div>
+</header>
+<!-- Main Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 bg-[#111a22] border-r border-[#233648] flex flex-col py-6 px-3 gap-1 shrink-0">
+<!-- Active Item -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white group shadow-md shadow-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined filled" style="font-size: 22px; font-variation-settings: 'FILL' 1;">badge</span>
+<span class="text-sm font-medium">Licence</span>
+</a>
+<!-- Inactive Items -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">settings</span>
+<span class="text-sm font-medium">Général</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">raven</span>
+<span class="text-sm font-medium">Parakeet</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">info</span>
+<span class="text-sm font-medium">À propos</span>
+</a>
+<div class="mt-auto px-3">
+<p class="text-xs text-[#546b82]">Splice v4.2.0 (Build 8901)</p>
+</div>
+</aside>
+<!-- Content Area -->
+<main class="flex-1 overflow-y-auto bg-[#111a22] p-8 lg:p-12 relative">
+<div class="max-w-[960px] mx-auto flex flex-col h-full">
+<!-- Page Heading -->
+<div class="mb-8">
+<h2 class="text-white text-[32px] font-bold leading-tight tracking-tight mb-2">Compte &amp; Licence</h2>
+<p class="text-text-secondary text-sm font-normal">Gérez votre abonnement et les informations de votre compte professionnel.</p>
+</div>
+<!-- Main Card -->
+<div class="bg-surface-dark rounded-xl border border-[#344c63]/50 overflow-hidden shadow-xl shadow-black/20 mb-6">
+<!-- Status Header -->
+<div class="p-8 border-b border-[#344c63]/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-surface-dark to-[#1a2a3a]">
+<div>
+<p class="text-text-secondary text-sm font-medium uppercase tracking-wider mb-1">Statut de l'abonnement</p>
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-green-400 filled" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-2xl font-bold text-white tracking-tight">Splice Pro Actif</span>
+</div>
+</div>
+<a class="group flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#111a22] hover:bg-black/40 border border-[#344c63] text-primary text-sm font-semibold transition-all hover:pr-3" href="#">
+<span>Gérer l'abonnement</span>
+<span class="material-symbols-outlined text-lg transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+</a>
+</div>
+<!-- Details List -->
+<div class="p-8">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="flex flex-col gap-1.5">
+<span class="text-text-secondary text-xs font-medium uppercase tracking-wide">Compte</span>
+<span class="text-white text-base font-medium truncate" title="jean.dupont@studio-edit.com">jean.dupont@studio-edit.com</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<span class="text-text-secondary text-xs font-medium uppercase tracking-wide">Plan Actuel</span>
+<span class="text-white text-base font-medium">Pro Mensuel</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<span class="text-text-secondary text-xs font-medium uppercase tracking-wide">Prochaine facture</span>
+<span class="text-white text-base font-medium">24 Oct. 2023</span>
+</div>
+</div>
+<!-- Divider -->
+<div class="h-px w-full bg-[#344c63]/30 my-8"></div>
+<!-- Logout Action -->
+<div class="flex justify-start">
+<button class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition-colors opacity-90 hover:opacity-100">
+<span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
+                                Se déconnecter
+                            </button>
+</div>
+</div>
+</div>
+<!-- Footer Info Box -->
+<div class="bg-[#1a2632] border border-[#233648] rounded-lg p-4 flex gap-4 items-start max-w-2xl">
+<div class="p-2 bg-[#233648] rounded-md shrink-0 text-text-secondary">
+<span class="material-symbols-outlined block">wifi_off</span>
+</div>
+<div>
+<h4 class="text-white text-sm font-bold mb-1">Mode hors-ligne</h4>
+<p class="text-text-secondary text-sm leading-relaxed">
+                            Vous pouvez utiliser Splice hors-ligne pendant <span class="text-white font-medium">7 jours</span> avant qu'une reconnexion internet ne soit requise pour valider votre licence.
+                        </p>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

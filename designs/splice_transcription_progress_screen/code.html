@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Transcription Progress</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1580f9",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#1A1A1F", // Updated to user request
+                        "card-dark": "#27272F",
+                        "card-border": "#32323a"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        .shimmer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+            transform: skewX(-20deg) translateX(-150%);
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer {
+            100% { transform: skewX(-20deg) translateX(150%); }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-200 antialiased min-h-screen flex flex-col">
+<!-- Main Container -->
+<div class="flex-1 flex items-center justify-center p-4 sm:p-8">
+<!-- Transcription Card -->
+<div class="w-full max-w-[580px] bg-white dark:bg-card-dark rounded-lg shadow-2xl border border-gray-200 dark:border-card-border overflow-hidden flex flex-col">
+<!-- Video Thumbnail Section -->
+<div class="relative w-full aspect-video bg-gray-800 group">
+<div class="absolute inset-0 bg-cover bg-center opacity-80" data-alt="Corporate interview setting with two people talking in an office" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAQAYT_ZoMltsevibxAoJBEd5YPlH8cVZxpU0MsDlXD_ouCHWtebojNjt3tN5_Mrw7_JD1t_M4-h2an51R4SEEsqWG1s7A7k2Jk406pZ_TGtiDL1U7cguMCuQsLNoZXUllrVYskll1czUOvYNbLWyfcNQEqz3hhipQsWQ3HfE3kgtOP0uSTf9zdH6vlZSIghBhL5h_rb_LbP80ZBlO-c8-dquj54aKyDyls_6kIzgUmEpVtOKzibsnzZeJTo9rO9HVur0Wdw-dFFcV9');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<!-- Play Overlay (Visual Flourish) -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<div class="bg-black/40 rounded-full p-3 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white !text-4xl">play_arrow</span>
+</div>
+</div>
+<!-- Duration Badge -->
+<div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">
+                    01:23:45
+                </div>
+</div>
+<!-- Content Container -->
+<div class="p-6 flex flex-col gap-6">
+<!-- File Info -->
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary !text-2xl">movie</span>
+</div>
+<div class="flex flex-col overflow-hidden">
+<h2 class="text-gray-900 dark:text-white text-base font-semibold truncate">interview-client-final.mp4</h2>
+<span class="text-gray-500 dark:text-gray-400 text-xs">Video • 4.2 GB • Last modified today</span>
+</div>
+</div>
+<!-- Divider -->
+<div class="h-px w-full bg-gray-200 dark:bg-card-border"></div>
+<!-- Progress Section -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2 text-primary animate-pulse-slow">
+<span class="material-symbols-outlined !text-xl">psychology</span>
+<span class="text-sm font-medium tracking-wide">Transcription en cours...</span>
+</div>
+<span class="text-gray-900 dark:text-white text-sm font-bold">78%</span>
+</div>
+<!-- Progress Bar -->
+<div class="relative h-2.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-300 ease-out" style="width: 78%;">
+<div class="shimmer"></div>
+</div>
+</div>
+<!-- Technical Metadata -->
+<div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+<div class="flex gap-2 items-center">
+<span>Parakeet TDT</span>
+<span class="w-1 h-1 rounded-full bg-gray-500"></span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined !text-[14px]">memory</span>
+                                CPU
+                            </span>
+</div>
+<span class="font-medium text-primary">~2 secondes restantes</span>
+</div>
+</div>
+<!-- Privacy Footer Box -->
+<div class="mt-2 bg-gray-100 dark:bg-[#1f1f25] border border-gray-200 dark:border-card-border rounded-lg p-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 !text-xl shrink-0 mt-0.5">lock</span>
+<div class="flex flex-col">
+<p class="text-xs text-gray-600 dark:text-gray-300 font-medium">Transcription locale et sécurisée</p>
+<p class="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">Aucune donnée ne quitte votre appareil. Le traitement est effectué entièrement hors ligne.</p>
+</div>
+</div>
+<!-- Action Buttons (Optional but common in this context) -->
+<div class="flex justify-center pt-2">
+<button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white text-sm font-medium transition-colors px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5">
+                        Annuler
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

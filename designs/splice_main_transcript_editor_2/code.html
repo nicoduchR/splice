@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Editor with Active Highlights</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0D7EFF",
+                        "background-dark": "#1A1A1F",
+                        "panel-dark": "#25252D",
+                        "border-dark": "#33333E",
+                        "text-muted": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1A1A1F; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #33333E; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4B4B59; 
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-white">
+<header class="h-16 shrink-0 flex items-center justify-between px-6 border-b border-border-dark bg-background-dark z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-white">
+<div class="size-8 text-primary">
+<svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M39.475 21.6262C40.358 21.4363 40.6863 21.5589 40.7581 21.5934C40.7876 21.655 40.8547 21.857 40.8082 22.3336C40.7408 23.0255 40.4502 24.0046 39.8572 25.2301C38.6799 27.6631 36.5085 30.6631 33.5858 33.5858C30.6631 36.5085 27.6632 38.6799 25.2301 39.8572C24.0046 40.4502 23.0255 40.7407 22.3336 40.8082C21.8571 40.8547 21.6551 40.7875 21.5934 40.7581C21.5589 40.6863 21.4363 40.358 21.6262 39.475C21.8562 38.4054 22.4689 36.9657 23.5038 35.2817C24.7575 33.2417 26.5497 30.9744 28.7621 28.762C30.9744 26.5497 33.2417 24.7574 35.2817 23.5037C36.9657 22.4689 38.4054 21.8562 39.475 21.6262ZM4.41189 29.2403L18.7597 43.5881C19.8813 44.7097 21.4027 44.9179 22.7217 44.7893C24.0585 44.659 25.5148 44.1631 26.9723 43.4579C29.9052 42.0387 33.2618 39.5667 36.4142 36.4142C39.5667 33.2618 42.0387 29.9052 43.4579 26.9723C44.1631 25.5148 44.659 24.0585 44.7893 22.7217C44.9179 21.4027 44.7097 19.8813 43.5881 18.7597L29.2403 4.41187C27.8527 3.02428 25.8765 3.02573 24.2861 3.36776C22.6081 3.72863 20.7334 4.58419 18.8396 5.74801C16.4978 7.18716 13.9881 9.18353 11.5858 11.5858C9.18354 13.988 7.18717 16.4978 5.74802 18.8396C4.58421 20.7334 3.72865 22.6081 3.36778 24.2861C3.02574 25.8765 3.02429 27.8527 4.41189 29.2403Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h1 class="text-xl font-bold tracking-tight">Splice</h1>
+</div>
+<div class="h-6 w-px bg-border-dark mx-2"></div>
+<div class="flex items-center gap-2 text-text-muted hover:text-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-lg">movie</span>
+<span class="text-sm font-medium">interview-client-final.mp4</span>
+</div>
+</div>
+<div>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer">
+<span class="material-symbols-outlined text-[18px]">content_cut</span>
+                Générer les cuts
+            </button>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<section class="flex flex-col w-[60%] border-r border-border-dark bg-background-dark relative">
+<div class="flex items-center justify-between px-8 py-3 bg-background-dark/95 backdrop-blur-sm sticky top-0 z-10 border-b border-border-dark">
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-panel-dark border border-border-dark rounded-full shadow-sm">
+<span class="size-2 rounded-full bg-[#FFD93D]"></span>
+<span class="text-xs font-medium text-gray-300">3 passages surlignés • 12min 30s</span>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded transition-colors" title="Undo">
+<span class="material-symbols-outlined text-[20px]">undo</span>
+</button>
+<button class="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded transition-colors" title="Redo">
+<span class="material-symbols-outlined text-[20px]">redo</span>
+</button>
+<div class="h-4 w-px bg-border-dark mx-1"></div>
+<button class="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded transition-colors" title="Search">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-8 pb-32">
+<div class="flex flex-col gap-8 max-w-3xl mx-auto">
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:00:12]</span>
+</div>
+<div class="flex-1">
+<p class="text-[16px] leading-7 text-gray-300 group-hover:text-white transition-colors">
+                                Bonjour à tous, merci d'être venus aujourd'hui pour cette réunion importante. L'objectif de notre échange est de valider les axes principaux de la communication pour le prochain trimestre.
+                            </p>
+</div>
+</div>
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:00:42]</span>
+</div>
+<div class="flex-1 p-4 -ml-4 -my-2 border-l-[3px] border-[#FFD93D] bg-[#FFD93D30] rounded-r-lg">
+<p class="text-[16px] leading-7 text-white">
+                                Nous allons discuter de la nouvelle stratégie marketing pour Q3 et comment nous pouvons l'améliorer. C'est un pivot essentiel pour notre croissance annuelle.
+                            </p>
+</div>
+</div>
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:01:05]</span>
+</div>
+<div class="flex-1">
+<p class="text-[16px] leading-7 text-gray-300 group-hover:text-white transition-colors">
+                                Comme vous le savez, les chiffres ont été très encourageants le trimestre dernier, mais nous observons un ralentissement sur le segment B2B. Il faut adresser ce point sans attendre.
+                            </p>
+</div>
+</div>
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:02:18]</span>
+</div>
+<div class="flex-1 p-4 -ml-4 -my-2 border-l-[3px] border-[#FFD93D] bg-[#FFD93D30] rounded-r-lg">
+<p class="text-[16px] leading-7 text-white">
+                                Cependant, nous devons rester vigilants face à la concurrence croissante sur le marché. Plusieurs acteurs émergents proposent des solutions low-cost qui pourraient fragiliser notre positionnement premium.
+                            </p>
+</div>
+</div>
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:03:45]</span>
+</div>
+<div class="flex-1">
+<p class="text-[16px] leading-7 text-gray-300 group-hover:text-white transition-colors">
+                                Je laisse la parole à notre directeur commercial pour les détails techniques. Marc, si tu veux bien prendre le relais sur la partie acquisition.
+                            </p>
+</div>
+</div>
+<div class="group flex gap-6">
+<div class="shrink-0 w-24 pt-1">
+<span class="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">[00:04:20]</span>
+</div>
+<div class="flex-1 p-4 -ml-4 -my-2 border-l-[3px] border-[#FFD93D] bg-[#FFD93D30] rounded-r-lg">
+<p class="text-[16px] leading-7 text-white">
+                                Merci. Alors, concrètement, nous avons identifié trois leviers majeurs. Le premier, c'est l'optimisation de nos campagnes programmatiques. Le ROI actuel n'est pas suffisant.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background-dark to-transparent pointer-events-none"></div>
+</section>
+<section class="flex flex-col w-[40%] bg-panel-dark border-l border-border-dark shadow-2xl z-10">
+<div class="flex-1 p-8 flex flex-col justify-center gap-6">
+<div class="w-full aspect-video bg-black rounded-lg relative overflow-hidden group shadow-lg ring-1 ring-white/5">
+<div class="absolute inset-0 bg-cover bg-center opacity-80" data-alt="Interview video scene showing a professional speaking in an office environment" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC9nLwXXIOyIAi8m9hIy7BL1XfgxF0kjgLRSwUhXtNf15srNC2lPdtV42SobBM_vtKIwEWdbOdq-fUoDpJEKuH-da5ZqstgHgvejNvQ5zpJQqtYPlOzdf-oOTPKE3Wv5F_EGpFALSryjlhXbf0k_WaVC-CWKZQyKlDkz-hftKQ0maf-BxlEg18ys--qM3d4N_tsBR2qpTlVvAYZcfKhpesqbBjd3R5eAlpdIThbSLd5JZlCaj7dpJFdSPC5DmzkeK7N_cEzm0DT0VLU');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="flex items-center justify-center size-20 rounded-full bg-primary text-white shadow-2xl hover:scale-105 transition-transform cursor-pointer group-active:scale-95">
+<span class="material-symbols-outlined text-[40px] ml-1">play_arrow</span>
+</button>
+</div>
+<div class="absolute top-4 right-4 bg-black/50 backdrop-blur px-2 py-1 rounded text-xs font-medium text-white/80">
+                        HD 1080p
+                    </div>
+</div>
+<div class="flex flex-col gap-4 px-2">
+<div class="group/scrubber relative h-6 flex items-center cursor-pointer">
+<div class="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[35%] rounded-full relative"></div>
+</div>
+<div class="absolute inset-x-0 h-full opacity-0"></div>
+<div class="absolute left-[35%] top-1/2 -translate-y-1/2 size-4 bg-white rounded-full shadow border-2 border-primary -ml-2 hover:scale-125 transition-transform"></div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-baseline gap-1">
+<span class="text-white text-xl font-mono font-medium">00:00:42<span class="text-sm text-text-muted">.12</span></span>
+<span class="text-text-muted text-sm font-mono">/ 00:15:00</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-muted hover:text-white transition-colors">
+<span class="material-symbols-outlined">skip_previous</span>
+</button>
+<button class="text-white hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-3xl">play_circle</span>
+</button>
+<button class="text-text-muted hover:text-white transition-colors">
+<span class="material-symbols-outlined">skip_next</span>
+</button>
+<div class="w-px h-6 bg-border-dark mx-2"></div>
+<div class="flex items-center gap-2 group/volume">
+<span class="material-symbols-outlined text-text-muted text-sm">volume_up</span>
+<div class="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full w-[70%] bg-text-muted group-hover/volume:bg-white transition-colors"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-border-dark bg-[#1F1F26] text-xs text-text-muted flex justify-between items-center">
+<div class="flex gap-4">
+<span><kbd class="bg-white/10 px-1.5 py-0.5 rounded font-sans text-[10px] mr-1">Space</kbd> Play/Pause</span>
+<span><kbd class="bg-white/10 px-1.5 py-0.5 rounded font-sans text-[10px] mr-1">Tab</kbd> Skip silence</span>
+</div>
+<span>v2.4.1 (Beta)</span>
+</div>
+</section>
+</main>
+</body></html>

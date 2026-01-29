@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Transcription Engine Download</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1580f9",
+                        "background-light": "#f5f7f8",
+                        // Modified to match user request #1A1A1F while keeping variable name
+                        "background-dark": "#1A1A1F", 
+                        "card-dark": "#232429",
+                        "surface-dark": "#2A2B32",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom styles for specific component needs not covered by Tailwind utilities */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4">
+<!-- Modal Card Container -->
+<div class="relative w-full max-w-[520px] flex flex-col rounded-xl bg-white dark:bg-card-dark shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-gray-200 dark:border-white/5 overflow-hidden">
+<!-- Content Wrapper -->
+<div class="p-8 md:p-10 flex flex-col items-center">
+<!-- Icon Section -->
+<div class="mb-6 flex items-center justify-center p-4 rounded-full bg-primary/10 dark:bg-primary/20">
+<span class="material-symbols-outlined text-primary" style="font-size: 48px;">cloud_download</span>
+</div>
+<!-- Heading -->
+<h1 class="text-center text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-8 leading-snug">
+                Téléchargement du moteur de transcription
+            </h1>
+<!-- Progress Details -->
+<div class="w-full flex flex-col gap-3 mb-2">
+<!-- Label & Percentage Row -->
+<div class="flex justify-between items-end">
+<p class="text-base font-medium text-gray-700 dark:text-gray-200">
+                        Téléchargement en cours...
+                    </p>
+<p class="text-base font-bold text-primary tabular-nums">
+                        47%
+                    </p>
+</div>
+<!-- Progress Bar Component -->
+<!-- 8px height with 47% fill -->
+<div class="w-full h-2 rounded-full bg-gray-200 dark:bg-surface-dark overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-300 ease-out" style="width: 47%;"></div>
+</div>
+<!-- Speed Indicator -->
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    12.5 MB/s
+                </p>
+</div>
+<!-- Meta Information (Time) -->
+<div class="mt-8 mb-4 w-full flex justify-center">
+<p class="text-sm font-normal text-gray-500 dark:text-gray-400 text-center">
+                    ~30 secondes restant
+                </p>
+</div>
+<!-- Action Button (Secondary) -->
+<div class="w-full flex justify-center">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-6 bg-transparent hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm font-semibold leading-normal transition-colors duration-200">
+<span class="truncate">Annuler</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Export Success</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#54c41c",
+              "background-light": "#f6f8f6",
+              "background-dark": "#162111",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="relative flex min-h-screen w-full flex-col bg-[#1A1A1F] items-center justify-center p-4 font-display overflow-hidden selection:bg-primary/30 selection:text-white">
+<!-- Background blurred elements for depth -->
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[128px] pointer-events-none"></div>
+<div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/10 rounded-full blur-[96px] pointer-events-none"></div>
+<!-- Main Modal Card -->
+<div class="relative z-10 w-full max-w-[540px] bg-[#27272D] rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/5 flex flex-col overflow-hidden">
+<!-- Header Section -->
+<div class="pt-10 px-8 flex flex-col items-center text-center">
+<!-- Animated Checkmark Container -->
+<div class="mb-5 rounded-full bg-primary/10 p-4 ring-1 ring-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[48px]" data-icon="check_circle">check_circle</span>
+</div>
+<h1 class="text-3xl font-bold text-white tracking-tight mb-2">Export terminé !</h1>
+<!-- Success Alert Box -->
+<div class="mt-4 w-full bg-primary/10 border border-primary/20 rounded-lg p-4 flex gap-3 text-left items-start">
+<span class="material-symbols-outlined text-primary shrink-0 text-[20px] mt-0.5" data-icon="check">check</span>
+<p class="text-[#a5c695] text-sm leading-relaxed font-normal">
+                    Votre vidéo a été exportée avec succès et est prête à être partagée avec votre équipe.
+                </p>
+</div>
+</div>
+<!-- File Info Section -->
+<div class="px-8 py-6">
+<div class="bg-[#1A1A1F] rounded-lg p-4 flex items-center gap-4 border border-white/5 group transition-colors hover:border-white/10">
+<!-- File Icon -->
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#304625] text-white group-hover:bg-primary group-hover:text-[#172112] transition-colors">
+<span class="material-symbols-outlined" data-icon="movie">movie</span>
+</div>
+<!-- File Meta -->
+<div class="flex flex-col min-w-0 flex-1">
+<p class="text-white text-base font-medium leading-normal truncate mb-1">interview-client-final_edited.mp4</p>
+<div class="flex items-center gap-2 text-[#a5c695] text-xs font-mono">
+<span>487 MB</span>
+<span class="text-white/20">•</span>
+<span>04:12</span>
+<span class="text-white/20">•</span>
+<span class="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold text-[10px] tracking-wide border border-primary/20">4K</span>
+</div>
+</div>
+</div>
+<!-- Path Input Group -->
+<div class="mt-4">
+<label class="block text-xs font-medium text-gray-400 mb-2 ml-1 uppercase tracking-wider">Emplacement</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-gray-500 text-[20px]" data-icon="folder">folder</span>
+</div>
+<input class="block w-full rounded-lg border border-[#3F3F46] bg-[#1A1A1F] py-3 pl-10 pr-12 text-sm text-gray-300 focus:border-primary focus:ring-1 focus:ring-primary font-mono truncate transition-all" readonly="" type="text" value="/Users/Admin/Movies/Splice/Exports/2023/Clients/interview-client-final_edited.mp4"/>
+<button class="absolute inset-y-1 right-1 flex items-center justify-center rounded-md px-2 text-primary hover:bg-primary/10 transition-colors" title="Copier le chemin">
+<span class="material-symbols-outlined text-[20px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="px-8 pb-8 flex flex-col gap-3 sm:flex-row">
+<button class="flex-1 rounded-lg bg-primary px-5 py-3.5 text-base font-bold text-[#172112] hover:bg-[#46a317] hover:shadow-[0_0_20px_rgba(84,196,28,0.3)] transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]" data-icon="folder_open">folder_open</span>
+                Afficher dans le Finder
+            </button>
+<button class="flex-1 rounded-lg bg-white/5 px-5 py-3.5 text-base font-bold text-white hover:bg-white/10 border border-white/5 transition-colors flex items-center justify-center transform active:scale-[0.98]">
+                Nouvelle vidéo
+            </button>
+</div>
+<!-- Footer Badge -->
+<div class="bg-[#1A1A1F]/50 border-t border-white/5 py-3 flex justify-center backdrop-blur-sm">
+<div class="flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1 ring-1 ring-primary/10">
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="bolt">bolt</span>
+<p class="text-xs font-medium text-[#a5c695]">
+                    Temps gagné grâce à Splice : <span class="text-primary font-bold">1h 10min</span>
+</p>
+</div>
+</div>
+</div>
+</body></html>

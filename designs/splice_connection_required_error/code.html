@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Connection Error</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#1A1A1F", // Dark professional background requested
+                        "surface-dark": "#24242A", // Slightly lighter for modal
+                        "surface-inner": "#2F2F38", // For inner boxes
+                        "danger": "#FF4D4F",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen flex items-center justify-center p-4">
+<!-- Modal Container -->
+<div class="w-full max-w-[480px] bg-white dark:bg-surface-dark rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+<!-- Header Section -->
+<div class="flex flex-col items-center pt-10 pb-6 px-8 text-center">
+<!-- Icon -->
+<div class="mb-6 flex items-center justify-center w-20 h-20 rounded-full bg-red-50 dark:bg-[#FF4D4F]/10">
+<span class="material-symbols-outlined text-[#FF4D4F]" style="font-size: 56px;">wifi_off</span>
+</div>
+<!-- Headline -->
+<h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                Connexion requise
+            </h1>
+</div>
+<!-- Content Body -->
+<div class="px-8 pb-8 flex flex-col gap-6">
+<!-- Error Alert Box -->
+<div class="bg-red-50 dark:bg-[#FF4D4F]/10 border border-red-200 dark:border-[#FF4D4F] rounded-lg p-4 flex gap-3 items-start">
+<span class="material-symbols-outlined text-[#FF4D4F] shrink-0 mt-0.5 text-[20px]">info</span>
+<p class="text-sm text-red-800 dark:text-red-200 font-medium leading-snug">
+                    Une connexion internet est requise pour télécharger le moteur de rendu Parakeet.
+                </p>
+</div>
+<!-- Requirements Checklist -->
+<div class="bg-slate-50 dark:bg-surface-inner rounded-lg p-5 border border-slate-100 dark:border-slate-700/50">
+<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 pl-1">Prérequis système</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-default group">
+<div class="relative flex items-center justify-center">
+<!-- Custom Checkbox appearance since standard ones are hard to style perfectly across browsers without plugins -->
+<input checked="" class="peer h-5 w-5 cursor-default appearance-none rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:border-primary checked:bg-primary transition-all" disabled="" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none text-[16px]">check</span>
+</div>
+<span class="text-sm text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Connexion internet stable</span>
+</label>
+<label class="flex items-center gap-3 cursor-default group">
+<div class="relative flex items-center justify-center">
+<input checked="" class="peer h-5 w-5 cursor-default appearance-none rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:border-primary checked:bg-primary transition-all" disabled="" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none text-[16px]">check</span>
+</div>
+<span class="text-sm text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">500MB d'espace disque libre</span>
+</label>
+</div>
+</div>
+<!-- Buttons -->
+<div class="flex flex-col gap-3 mt-2">
+<button class="w-full flex items-center justify-center h-12 rounded-lg bg-primary hover:bg-blue-600 text-white font-semibold text-sm tracking-wide transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-surface-dark shadow-lg shadow-blue-900/20">
+                    Réessayer
+                </button>
+<button class="w-full flex items-center justify-center h-12 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark">
+                    Quitter
+                </button>
+</div>
+<!-- Footer Note -->
+<p class="text-center text-xs text-slate-400 dark:text-slate-500">
+                Une fois installé, Splice fonctionne 100% hors ligne.
+            </p>
+</div>
+</div>
+</body></html>

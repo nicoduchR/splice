@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Video Processing Failure Error</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "error": "#FF4D4F",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "modal-bg": "#27272F", // slightly elevated dark grey
+                        "page-bg": "#1A1A1F", // requested dark primary background
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {"DEFAULT": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display antialiased">
+<div class="relative flex min-h-screen w-full flex-col bg-page-bg dark text-white overflow-hidden">
+<!-- Optional blurred background elements to suggest depth/overlay over the app -->
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&amp;w=2564&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-10 blur-xl pointer-events-none" data-alt="Abstract dark blurred video timeline background"></div>
+<div class="absolute inset-0 bg-page-bg/90 backdrop-blur-sm z-0"></div>
+<div class="layout-container relative z-10 flex h-full grow flex-col items-center justify-center p-4">
+<!-- Modal Card -->
+<div class="w-full max-w-[520px] rounded-lg bg-modal-bg shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-[#3A3A42] flex flex-col overflow-hidden animate-[fadeIn_0.3s_ease-out_forwards]">
+<!-- Header Section: Icon + Title -->
+<div class="flex flex-col items-center pt-10 pb-6 px-8 text-center">
+<div class="mb-5 flex items-center justify-center rounded-full bg-error/10 p-4 ring-1 ring-error/20">
+<span class="material-symbols-outlined text-error text-[40px]" style="font-size: 40px;">warning</span>
+</div>
+<h1 class="text-2xl font-bold leading-tight tracking-tight text-white mb-2">Échec du traitement</h1>
+<p class="text-gray-400 text-sm leading-normal">Le processus d'exportation a rencontré une erreur inattendue et a été interrompu.</p>
+</div>
+<!-- Content Body -->
+<div class="px-8 flex flex-col gap-6">
+<!-- Error Box -->
+<div class="rounded-lg border border-error/30 bg-error/5 p-4 flex gap-3 items-start">
+<span class="material-symbols-outlined text-error mt-0.5" style="font-size: 20px;">error</span>
+<div class="flex flex-col gap-1">
+<p class="text-white text-sm font-semibold">Erreur d'exportation critique</p>
+<p class="text-gray-300 text-sm leading-relaxed">Une erreur est survenue lors de l'exportation de votre séquence "Projet_Final_V2.mp4".</p>
+</div>
+</div>
+<!-- Troubleshooting Suggestions -->
+<div class="flex flex-col gap-3">
+<p class="text-xs font-semibold uppercase tracking-wider text-gray-500 pl-1">Suggestions de résolution</p>
+<div class="rounded-lg bg-[#32323a] p-4">
+<ul class="flex flex-col gap-3 text-sm text-gray-300">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5" style="font-size: 16px;">check_circle</span>
+<span>Vérifiez que vous disposez de suffisamment d'espace disque (min. 4 Go requis).</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5" style="font-size: 16px;">check_circle</span>
+<span>Assurez-vous que le fichier source n'est pas corrompu ou déplacé.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5" style="font-size: 16px;">check_circle</span>
+<span>Essayez de réduire la résolution de sortie ou de changer le codec.</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Technical Details Accordion -->
+<details class="group rounded-lg border border-[#3A3A42] bg-[#1F1F25] open:bg-[#1A1A1F] transition-colors duration-200">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 select-none">
+<span class="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Détails techniques</span>
+<span class="material-symbols-outlined text-gray-500 transition-transform group-open:rotate-180" style="font-size: 20px;">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-0 border-t border-[#3A3A42]/50 group-open:border-[#3A3A42]">
+<div class="mt-3 font-mono text-xs text-red-300/80 bg-black/30 p-3 rounded border border-white/5 overflow-x-auto">
+                            Error Code: 0x800403<br/>
+                            Status: Render buffer overflow at frame 1402<br/>
+                            Module: module_render_engine.cpp:450<br/>
+                            Timestamp: 2023-10-27T14:30:22Z
+                        </div>
+<div class="mt-2 flex justify-end">
+<button class="text-[11px] text-gray-500 hover:text-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span> Copier le journal
+                             </button>
+</div>
+</div>
+</details>
+</div>
+<!-- Footer / Actions -->
+<div class="p-8 pt-8 flex flex-col gap-4">
+<div class="flex flex-col sm:flex-row gap-3">
+<button class="flex-1 order-2 sm:order-1 h-11 items-center justify-center rounded-lg border border-[#3A3A42] hover:bg-[#3A3A42] hover:border-[#4A4A55] bg-transparent text-white text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500/50">
+                        Choisir un autre fichier
+                    </button>
+<button class="flex-1 order-1 sm:order-2 h-11 items-center justify-center rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-lg shadow-primary/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        Réessayer
+                    </button>
+</div>
+<a class="mx-auto text-sm text-primary hover:text-primary/80 font-medium transition-colors flex items-center gap-1 mt-2" href="#">
+                    Contacter le support <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+</body></html>

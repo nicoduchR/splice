@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice - Éditeur Vidéo par Texte</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#1A1A1F",
+                        "surface-dark": "#27272E", 
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1A1A1F; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444; 
+        }
+        
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(39, 39, 46, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display antialiased selection:bg-primary selection:text-white overflow-x-hidden">
+<!-- Header -->
+<header class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#1A1A1F]/80 backdrop-blur-md">
+<div class="mx-auto max-w-[1280px] px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded bg-primary text-white">
+<span class="material-symbols-outlined text-xl font-bold">content_cut</span>
+</div>
+<span class="text-xl font-bold tracking-tight">Splice</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium text-gray-300 hover:text-white transition-colors" href="#">Fonctionnalités</a>
+<a class="text-sm font-medium text-gray-300 hover:text-white transition-colors" href="#">Tarifs</a>
+<a class="text-sm font-medium text-gray-300 hover:text-white transition-colors" href="#">Tutoriels</a>
+</nav>
+<div class="flex items-center gap-4">
+<a class="hidden sm:block text-sm font-medium text-gray-300 hover:text-white transition-colors" href="#">Connexion</a>
+<button class="bg-primary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(19,127,236,0.3)] hover:shadow-[0_0_20px_rgba(19,127,236,0.5)]">
+                    Télécharger
+                </button>
+</div>
+</div>
+</header>
+<!-- Hero Section -->
+<section class="relative pt-32 pb-20 px-6 overflow-hidden">
+<!-- Background Glow -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none opacity-40"></div>
+<div class="mx-auto max-w-[1100px] flex flex-col items-center text-center relative z-10">
+<div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 mb-6">
+<span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="text-xs font-medium text-gray-300">Nouveau : Moteur IA Parakeet 2.0</span>
+</div>
+<h1 class="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6 text-white max-w-4xl">
+                Découpez vos vidéos en <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-primary">sélectionnant du texte</span>
+</h1>
+<p class="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 leading-relaxed font-body">
+                L'éditeur vidéo professionnel qui fonctionne comme un traitement de texte. Rapide, précis et sécurisé par une IA qui tourne 100% en local sur votre machine.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 mb-16 w-full justify-center">
+<button class="bg-primary hover:bg-blue-600 text-white h-12 px-8 rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 min-w-[200px] shadow-lg shadow-primary/25">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                    Télécharger pour Mac
+                </button>
+<button class="bg-surface-dark border border-white/10 hover:border-white/30 text-white h-12 px-8 rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 min-w-[200px]">
+<span class="material-symbols-outlined text-[20px] filled">play_circle</span>
+                    Voir la démo
+                </button>
+</div>
+<!-- App Mockup -->
+<div class="relative w-full max-w-5xl group perspective-1000">
+<div class="relative rounded-xl border border-white/10 bg-[#1e1e24] shadow-2xl overflow-hidden transition-transform duration-700 hover:scale-[1.01]">
+<!-- Window Controls -->
+<div class="h-10 bg-[#27272E] border-b border-white/5 flex items-center px-4 gap-2">
+<div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+<div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+<div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+<div class="ml-4 text-xs text-gray-500 font-mono">Splice - project_v1.spl</div>
+</div>
+<!-- App Interface Placeholder Image -->
+<div class="relative aspect-[16/10] bg-[#111] w-full bg-cover bg-center" data-alt="Screenshot of Splice video editing interface showing text transcription and timeline" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBW8QsdJC033CX0a5VKBXQ_pcnDm3a2Zral19pX9Xh_TOYIU1B8RerVou0pG7o2kLrnwfVvHB1U7J7BwX892p3Hcqf5x41B22K2W6yubVmD3kDihVHN6bUj1u46TjgwWYyz0oQdkWNQD4lCIy3UMyObOv5wythFt3KnkScOi97Hh1wEZknKmK8kkXeSHq00U7fVXPTG-6O0UjiVQ4GtJfKTYH9b6UD-Famnm6hWoIeWiKB54Q3advOU-iIQ-VV00D0HPaaWORQYKiy_');">
+<!-- Overlay simulating UI -->
+<div class="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent opacity-60"></div>
+<!-- Floating UI Elements Simulation -->
+<div class="absolute top-8 left-8 bottom-8 w-1/3 glass-panel rounded-lg p-6 hidden md:flex flex-col gap-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary">text_fields</span>
+<span class="text-sm font-bold text-white">Transcription</span>
+</div>
+<div class="space-y-2 font-mono text-sm text-gray-400">
+<p>00:01 <span class="text-white">Bonjour à tous et bienvenue</span></p>
+<p>00:04 <span class="bg-primary/30 text-white px-1 rounded">dans ce nouveau tutoriel vidéo.</span></p>
+<p>00:08 <span class="text-gray-600 line-through decoration-red-500">Euh, je voulais dire...</span></p>
+<p>00:12 <span class="text-white">Aujourd'hui nous allons voir</span></p>
+<p>00:15 <span class="text-white">comment optimiser votre workflow.</span></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Comparison Section -->
+<section class="py-24 px-6 bg-[#15151a]">
+<div class="mx-auto max-w-[1100px]">
+<div class="text-center mb-12">
+<h2 class="text-3xl md:text-4xl font-bold mb-4">Montage traditionnel vs Splice</h2>
+<p class="text-gray-400">Pourquoi perdre des heures quand on peut y passer des minutes ?</p>
+</div>
+<div class="grid md:grid-cols-2 gap-8">
+<!-- Old Way -->
+<div class="bg-[#1e1e24] border border-white/5 rounded-2xl p-8 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl">history</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+<span class="material-symbols-outlined">close</span>
+</div>
+<h3 class="text-xl font-bold">L'ancienne méthode</h3>
+</div>
+<ul class="space-y-4 text-gray-400 font-body">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-red-500 mt-1 text-sm">radio_button_unchecked</span>
+<span>Écouter toute la vidéo en temps réel</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-red-500 mt-1 text-sm">radio_button_unchecked</span>
+<span>Couper manuellement les silences</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-red-500 mt-1 text-sm">radio_button_unchecked</span>
+<span>Naviguer à l'aveugle sur la timeline</span>
+</li>
+</ul>
+</div>
+<!-- Visual representation of complex timeline -->
+<div class="mt-8 h-24 bg-[#111] rounded border border-white/5 flex flex-col justify-center gap-2 p-2 opacity-50 grayscale">
+<div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden flex">
+<div class="w-1/4 bg-gray-600"></div><div class="w-1/6 bg-transparent"></div><div class="w-1/2 bg-gray-600"></div>
+</div>
+<div class="w-full h-2 bg-gray-700 rounded-full flex">
+<div class="w-1/3 bg-gray-500"></div><div class="w-1/3 bg-transparent"></div><div class="w-1/3 bg-gray-500"></div>
+</div>
+<div class="w-3/4 h-2 bg-gray-700 rounded-full"></div>
+</div>
+</div>
+<!-- Splice Way -->
+<div class="bg-surface-dark border border-primary/20 rounded-2xl p-8 relative overflow-hidden group shadow-lg shadow-primary/5">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-primary">speed</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">check</span>
+</div>
+<h3 class="text-xl font-bold text-white">Avec Splice</h3>
+</div>
+<ul class="space-y-4 text-gray-300 font-body">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1 text-sm">check_circle</span>
+<span>Transcription IA instantanée</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1 text-sm">check_circle</span>
+<span>Suppression des mots = Coupe vidéo</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1 text-sm">check_circle</span>
+<span>Recherche par mots-clés</span>
+</li>
+</ul>
+</div>
+<!-- Visual representation of text editing -->
+<div class="mt-8 h-24 bg-[#111] rounded border border-primary/20 p-4 font-mono text-xs text-gray-500 leading-relaxed relative">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-pulse"></div>
+<p>Ceci est <span class="bg-red-900/50 text-red-300 line-through">mauvais</span> <span class="bg-primary/30 text-white px-1 rounded">le futur du montage</span> vidéo.</p>
+<p>Plus besoin de chercher <span class="text-gray-700">...</span> les coupes.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Features Grid -->
+<section class="py-24 px-6 relative">
+<div class="mx-auto max-w-[1100px]">
+<div class="mb-16">
+<h2 class="text-3xl md:text-5xl font-bold mb-6 max-w-2xl">Conçu pour les monteurs <br class="hidden md:block"/>exigeants</h2>
+<p class="text-gray-400 text-lg max-w-2xl">Une suite d'outils puissants pour accélérer votre workflow sans compromis sur la qualité de votre rendu final.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">content_cut</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">Découpage par texte</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Supprimez un mot dans le texte, il disparaît de la vidéo. C'est aussi intuitif que d'éditer un document Word.</p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">memory</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">IA Locale (Parakeet)</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Transcription ultra-rapide directement sur votre machine grâce au moteur neural Parakeet TDT. Aucun upload requis.</p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">security</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">Confidentialité totale</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Vos fichiers ne quittent jamais votre ordinateur. Sécurité maximale pour vos rushes confidentiels.</p>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">graphic_eq</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">Suppression des silences</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Détectez et supprimez automatiquement les 'euh', les pauses et les silences gênants en un seul clic.</p>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">ios_share</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">Export XML Multi-piste</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Commencez sur Splice, finissez ailleurs. Exportez directement vers Premiere Pro, DaVinci Resolve ou Final Cut.</p>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-dark border border-white/5 p-6 rounded-xl hover:border-primary/50 transition-colors group">
+<div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-white mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">search</span>
+</div>
+<h3 class="text-xl font-bold mb-2 text-white">Recherche instantanée</h3>
+<p class="text-gray-400 text-sm leading-relaxed">Retrouvez n'importe quel moment de la vidéo en cherchant un mot clé, comme une recherche Google dans vos vidéos.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Large CTA Section -->
+<section class="py-24 px-6 border-t border-white/5 bg-gradient-to-b from-background-dark to-[#131318]">
+<div class="mx-auto max-w-[800px] text-center flex flex-col items-center">
+<h2 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight">Prêt à monter 10x plus vite ?</h2>
+<p class="text-xl text-gray-400 mb-10 max-w-2xl font-body">Rejoignez des milliers de créateurs et professionnels qui ont déjà adopté le montage par le texte.</p>
+<button class="bg-primary hover:bg-blue-600 text-white text-lg h-16 px-10 rounded-xl font-bold transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/40 flex items-center gap-3">
+<span class="material-symbols-outlined">download</span>
+                Télécharger Splice maintenant
+            </button>
+<p class="mt-6 text-sm text-gray-500">Disponible pour macOS et Windows. Essai gratuit illimité.</p>
+</div>
+</section>
+<!-- Footer -->
+<footer class="py-12 px-6 border-t border-white/5 bg-[#111]">
+<div class="mx-auto max-w-[1100px] flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-gray-400">
+<span class="material-symbols-outlined">content_cut</span>
+<span class="font-bold text-white">Splice</span>
+<span class="text-sm">© 2023 Splice Inc.</span>
+</div>
+<div class="flex gap-6">
+<a class="text-sm text-gray-500 hover:text-white transition-colors" href="#">Twitter</a>
+<a class="text-sm text-gray-500 hover:text-white transition-colors" href="#">LinkedIn</a>
+<a class="text-sm text-gray-500 hover:text-white transition-colors" href="#">Discord</a>
+</div>
+</div>
+</footer>
+</body></html>

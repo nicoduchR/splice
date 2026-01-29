@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Pro Subscription Modal</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922", // Main app background
+                        "surface-dark": "#1a2632", // Modal background
+                        "card-dark": "#23303e", // Inner cards
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem", // rounded-md approx
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom scrollbar for strictly webkit browsers if needed, though hidden overflow is likely for modal */
+        body {
+            font-family: 'Inter', "Noto Sans", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4">
+<!-- Overlay Background (simulated app background behind) -->
+<div class="fixed inset-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&amp;w=1974&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-20 pointer-events-none" data-alt="Abstract dark video editing timeline interface background"></div>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-[#000000] bg-opacity-85 backdrop-blur-sm p-4">
+<!-- Modal Container -->
+<div class="relative w-full max-w-[520px] flex flex-col rounded-xl bg-surface-dark shadow-2xl border border-white/10 overflow-hidden">
+<!-- Close Button (Absolute) -->
+<button class="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined !text-[24px]">close</span>
+</button>
+<!-- Modal Content -->
+<div class="flex flex-col items-center px-8 pt-10 pb-8">
+<!-- Icon: Orange Lock -->
+<div class="flex items-center justify-center w-20 h-20 rounded-full bg-[#ff6b00]/10 mb-6">
+<span class="material-symbols-outlined !text-[56px] text-[#ff6b00]">lock</span>
+</div>
+<!-- Headline -->
+<h1 class="text-white font-display text-3xl font-bold leading-tight text-center mb-2">
+                    Débloquez l'export
+                </h1>
+<!-- Body Text -->
+<p class="text-gray-400 font-display text-base font-normal leading-relaxed text-center max-w-sm mb-8">
+                    Passez à la version Pro pour finaliser votre chef-d'œuvre et profitez d'avantages exclusifs.
+                </p>
+<!-- Benefits Stack -->
+<div class="w-full flex flex-col gap-3 mb-8">
+<!-- Item 1 -->
+<div class="flex items-center p-3 rounded-lg bg-card-dark border border-white/5 hover:border-primary/30 transition-colors group">
+<div class="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20 text-green-500 mr-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[16px] font-bold">check</span>
+</div>
+<span class="text-gray-200 font-medium">Export illimité en 4K</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center p-3 rounded-lg bg-card-dark border border-white/5 hover:border-primary/30 transition-colors group">
+<div class="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20 text-green-500 mr-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[16px] font-bold">check</span>
+</div>
+<span class="text-gray-200 font-medium">Vidéos de toutes durées</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center p-3 rounded-lg bg-card-dark border border-white/5 hover:border-primary/30 transition-colors group">
+<div class="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20 text-green-500 mr-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[16px] font-bold">check</span>
+</div>
+<span class="text-gray-200 font-medium">Pas de filigrane</span>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center p-3 rounded-lg bg-card-dark border border-white/5 hover:border-primary/30 transition-colors group">
+<div class="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20 text-green-500 mr-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[16px] font-bold">check</span>
+</div>
+<span class="text-gray-200 font-medium">Accès à la banque audio premium</span>
+</div>
+</div>
+<!-- Pricing -->
+<div class="text-center mb-6">
+<div class="text-white text-[32px] font-bold leading-none tracking-tight">15€ <span class="text-lg font-medium text-gray-400 ml-1">/mois</span></div>
+<p class="text-xs text-gray-500 mt-2 font-medium uppercase tracking-wide">Annulable à tout moment</p>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-lg py-3.5 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:scale-[1.01] active:scale-[0.99] mb-4 flex items-center justify-center gap-2">
+<span>Souscrire à Splice Pro</span>
+<span class="material-symbols-outlined !text-[20px]">arrow_forward</span>
+</button>
+<!-- Secondary Action -->
+<button class="text-gray-500 hover:text-white text-sm font-medium transition-colors hover:underline decoration-gray-600 underline-offset-4">
+                    Continuer sans exporter
+                </button>
+</div>
+<!-- Decorative gradient bottom border -->
+<div class="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+</div>
+</div>
+</body></html>

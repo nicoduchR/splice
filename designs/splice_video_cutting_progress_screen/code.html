@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Splice Video Cutting Progress</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#1580f9",
+              "background-light": "#f5f7f8",
+              "background-dark": "#0f1823", // Default theme dark
+              "app-bg": "#1A1A1F", // User requested specific bg
+              "card-bg": "#222229", // User requested specific card bg
+              "stats-bg": "#2F2F38", // User requested specific stats bg
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: "Space Grotesk", sans-serif;
+        }
+        /* Custom scrollbar for technical feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1A1A1F;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2F2F38;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f4b;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-app-bg min-h-screen flex items-center justify-center p-4">
+<!-- Main Card Container -->
+<div class="w-full max-w-[580px] bg-white dark:bg-card-bg rounded-2xl shadow-2xl border border-gray-200 dark:border-white/5 overflow-hidden relative">
+<!-- Ambient Background Glow (Subtle) -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-primary/5 blur-3xl rounded-full pointer-events-none"></div>
+<div class="p-8 md:p-10 relative z-10 flex flex-col items-center text-center">
+<!-- Header Icon -->
+<div class="mb-6 relative group">
+<div class="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-50 group-hover:opacity-75 transition-opacity duration-700"></div>
+<span class="material-symbols-outlined text-primary text-[48px] relative z-10 drop-shadow-[0_0_15px_rgba(21,128,249,0.5)]">content_cut</span>
+</div>
+<!-- Headline -->
+<h2 class="text-gray-900 dark:text-white font-display font-bold text-3xl tracking-tight mb-8">
+                Génération des cuts
+            </h2>
+<!-- Stats Box -->
+<div class="w-full bg-gray-100 dark:bg-stats-bg rounded-xl p-6 grid grid-cols-3 divide-x divide-gray-300 dark:divide-white/10 mb-10 border border-gray-200 dark:border-white/5">
+<!-- Stat 1: Segments -->
+<div class="flex flex-col items-center justify-center px-2">
+<span class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-2">Segments</span>
+<span class="text-gray-900 dark:text-white text-xl md:text-2xl font-bold">3</span>
+</div>
+<!-- Stat 2: Final Duration -->
+<div class="flex flex-col items-center justify-center px-2">
+<span class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-2">Durée finale</span>
+<span class="text-gray-900 dark:text-white text-xl md:text-2xl font-bold whitespace-nowrap">12<span class="text-sm font-normal ml-0.5 opacity-70">min</span> 30<span class="text-sm font-normal ml-0.5 opacity-70">s</span></span>
+</div>
+<!-- Stat 3: Reduction -->
+<div class="flex flex-col items-center justify-center px-2">
+<span class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-2">Gain</span>
+<div class="flex items-center gap-1">
+<span class="text-gray-900 dark:text-white text-xl md:text-2xl font-bold">85%</span>
+<span class="material-symbols-outlined text-emerald-500 text-sm font-bold">trending_up</span>
+</div>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="w-full flex flex-col gap-3 text-left mb-8">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<div class="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full"></div>
+<span class="text-gray-700 dark:text-gray-200 font-medium text-base">Traitement en cours...</span>
+</div>
+<span class="text-primary font-bold text-lg font-mono">64%</span>
+</div>
+<!-- Progress Bar -->
+<div class="h-2 w-full bg-gray-200 dark:bg-[#15151a] rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[64%] shadow-[0_0_10px_rgba(21,128,249,0.4)] relative overflow-hidden">
+<!-- Shimmer effect overlay -->
+<div class="absolute inset-0 bg-white/20 w-full h-full -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
+</div>
+</div>
+<!-- Technical Subtext -->
+<div class="flex justify-between items-center text-xs text-gray-400 dark:text-gray-500 mt-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+<span class="font-mono tracking-tight">FFmpeg • Découpage précis</span>
+</div>
+<span class="font-mono">frame 1402/2190</span>
+</div>
+</div>
+<!-- Footer Info Box -->
+<div class="w-full pt-6 border-t border-gray-200 dark:border-white/10 flex items-start gap-3 text-left">
+<span class="material-symbols-outlined text-primary/80 dark:text-primary text-[20px] shrink-0 mt-0.5">info</span>
+<p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                    Marge automatique de <span class="text-gray-900 dark:text-gray-200 font-semibold">0.1s</span> ajoutée pour des transitions naturelles.
+                </p>
+</div>
+</div>
+</div>
+<!-- Tailwind Keyframes for shimmer animation -->
+<style>
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</body></html>
