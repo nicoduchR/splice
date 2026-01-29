@@ -1,0 +1,50 @@
+{
+  "name": "Colorful Architecture Theme",
+  "description": "Vibrant color scheme for technical architecture diagrams",
+  "colors": {
+    "backend_rust": {
+      "fill": "#e1bee7",
+      "stroke": "#7b1fa2",
+      "description": "Purple tones for Rust backend components"
+    },
+    "frontend_react": {
+      "fill": "#ffccbc",
+      "stroke": "#e64a19",
+      "description": "Coral tones for React frontend components"
+    },
+    "database": {
+      "fill": "#c5e1a5",
+      "stroke": "#558b2f",
+      "description": "Lime tones for database components"
+    },
+    "external_service": {
+      "fill": "#b3e5fc",
+      "stroke": "#0277bd",
+      "description": "Cyan tones for external services"
+    },
+    "api": {
+      "fill": "#fff9c4",
+      "stroke": "#f57f17",
+      "description": "Yellow tones for API/Backend services"
+    },
+    "text": {
+      "fill": "transparent",
+      "stroke": "#1e1e1e",
+      "description": "Dark text for readability"
+    },
+    "arrow": {
+      "stroke": "#424242",
+      "description": "Dark gray for connections"
+    },
+    "label": {
+      "stroke": "#616161",
+      "description": "Medium gray for labels"
+    }
+  },
+  "styles": {
+    "strokeWidth": 2,
+    "roughness": 0,
+    "fontSize": 16,
+    "fontFamily": 1
+  }
+}
