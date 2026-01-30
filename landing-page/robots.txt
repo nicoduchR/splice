@@ -1,0 +1,6 @@
+# Splicely Landing Page - Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://landing-page-vert-ten-24.vercel.app/sitemap.xml
