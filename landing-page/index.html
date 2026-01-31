@@ -387,6 +387,7 @@
 </div>
 
 <!-- DataFast Analytics Integration (Story 0.3) -->
+<!-- Meta Pixel Integration (Story 0.4) -->
 <script>
 // DataFast Analytics Configuration
 const DATAFAST_CONFIG = {
@@ -394,7 +395,12 @@ const DATAFAST_CONFIG = {
   domain: 'splicely.io'
 };
 
-// Check consent on page load and conditionally load DataFast
+// Meta Pixel Configuration (Story 0.4)
+const META_PIXEL_CONFIG = {
+  pixelId: 'PIXEL_ID'  // REPLACE with actual Pixel ID from Meta Events Manager
+};
+
+// Check consent on page load and conditionally load DataFast + Meta Pixel
 window.addEventListener('DOMContentLoaded', function() {
   const consent = localStorage.getItem('analytics_consent');
 
@@ -402,8 +408,9 @@ window.addEventListener('DOMContentLoaded', function() {
     // No preference stored, show banner
     document.getElementById('gdpr-banner').style.display = 'block';
   } else if (consent === 'accepted') {
-    // User accepted, load DataFast
-    loadDataFast();
+    // User accepted, load DataFast and Meta Pixel
+    loadDataFast();       // Story 0.3
+    loadMetaPixel();      // Story 0.4 - NEW
   }
   // If declined, don't load anything
 });
@@ -411,7 +418,8 @@ window.addEventListener('DOMContentLoaded', function() {
 function acceptAnalytics() {
   localStorage.setItem('analytics_consent', 'accepted');
   document.getElementById('gdpr-banner').style.display = 'none';
-  loadDataFast();
+  loadDataFast();         // Story 0.3
+  loadMetaPixel();        // Story 0.4 - NEW
 }
 
 function declineAnalytics() {
@@ -446,6 +454,34 @@ function loadDataFast() {
   };
 
   document.head.appendChild(script);
+}
+
+// Meta Pixel Loading Function (Story 0.4)
+function loadMetaPixel() {
+  // Dynamically inject Meta Pixel ONLY after consent
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+
+  fbq('init', META_PIXEL_CONFIG.pixelId);
+  fbq('track', 'PageView');
+}
+
+// Meta Lead Event Tracking (Story 0.4)
+function trackMetaLead() {
+  if (typeof fbq !== 'undefined') {
+    fbq('track', 'Lead', {
+      content_name: 'Beta Waitlist Signup',
+      content_category: 'Waitlist',
+      value: 1.00,
+      currency: 'USD'
+    });
+  }
 }
 
 // Scroll Depth Tracking (25%, 50%, 75%, 100%)
@@ -535,14 +571,18 @@ function openTallyForm(location) {
             hiddenFields: {
                 source: location
             },
-            // Track email submission in DataFast when form is submitted (Story 0.3)
+            // Track email submission in DataFast and Meta Pixel when form is submitted
             onSubmit: (payload) => {
+                // Story 0.3: DataFast tracking
                 if (window.df) {
                     window.df('event', 'email_submitted', {
                         source: location,
                         form_language: lang
                     });
                 }
+
+                // Story 0.4: Meta Pixel Lead event - NEW
+                trackMetaLead();
             },
             // Add fallback tracking if onSubmit doesn't fire
             onClose: (payload) => {
