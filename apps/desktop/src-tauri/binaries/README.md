@@ -62,10 +62,18 @@ chmod +x ffmpeg-* ffprobe-*
 ## Fichiers requis
 
 ### macOS (Story 1.8)
-- ✅ `ffmpeg-aarch64-apple-darwin` (macOS Apple Silicon)
-- ✅ `ffprobe-aarch64-apple-darwin` (macOS Apple Silicon)
-- ✅ `ffmpeg-x86_64-apple-darwin` (macOS Intel)
-- ✅ `ffprobe-x86_64-apple-darwin` (macOS Intel)
+
+**Architecture-specific binaries (utilisés par Tauri):**
+- ✅ `ffmpeg-aarch64-apple-darwin` (macOS Apple Silicon, 43MB)
+- ✅ `ffprobe-aarch64-apple-darwin` (macOS Apple Silicon, 43MB)
+- ✅ `ffmpeg-x86_64-apple-darwin` (macOS Intel, 75MB)
+- ✅ `ffprobe-x86_64-apple-darwin` (macOS Intel, 75MB)
+
+**Universal binaries (créés par bundle-ffmpeg.sh, optionnels):**
+- ✅ `ffmpeg-universal-apple-darwin` (arm64 + x86_64, 119MB)
+- ✅ `ffprobe-universal-apple-darwin` (arm64 + x86_64, 119MB)
+
+> **Note:** Tauri utilise les binaries architecture-specific listés dans `tauri.conf.json`. Les universal binaries sont créés automatiquement par `bundle-ffmpeg.sh` mais ne sont pas nécessaires pour le build Tauri. Ils peuvent être utiles pour tests manuels.
 
 ### Windows (Story 1.9 - À venir)
 - ❌ `ffmpeg-x86_64-pc-windows-msvc.exe` (Windows x64)

@@ -37,7 +37,7 @@ jobs:
         run: ./scripts/bundle-ffmpeg.sh
 
       - name: Import Apple Developer certificate
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        if: ${{ secrets.APPLE_CERTIFICATE }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -74,7 +74,7 @@ jobs:
           pnpm tauri build --target universal-apple-darwin
 
       - name: Code sign app bundle
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        if: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           echo "🔏 Signing app bundle..."
           APP_PATH="apps/desktop/src-tauri/target/release/bundle/macos/Splice.app"
@@ -86,7 +86,7 @@ jobs:
           echo "✅ App signed successfully"
 
       - name: Notarize app
-        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_APP_PASSWORD != '' }}
+        if: ${{ secrets.APPLE_ID && secrets.APPLE_APP_PASSWORD }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -131,6 +131,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean up keychain
-        if: always() && secrets.APPLE_CERTIFICATE != ''
+        if: always() && secrets.APPLE_CERTIFICATE
         run: |
           security delete-keychain temp.keychain || true

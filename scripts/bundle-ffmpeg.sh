@@ -37,6 +37,19 @@ echo "📋 Verifying architectures..."
 lipo -info ffmpeg-arm64
 lipo -info ffmpeg-x64
 
+# Validate correct architectures
+if ! lipo -info ffmpeg-arm64 | grep -q "arm64"; then
+  echo "❌ Error: ffmpeg-arm64 is not arm64 architecture!"
+  exit 1
+fi
+
+if ! lipo -info ffmpeg-x64 | grep -q "x86_64"; then
+  echo "❌ Error: ffmpeg-x64 is not x86_64 architecture!"
+  exit 1
+fi
+
+echo "✅ Architecture validation passed"
+
 echo "🗑️  Removing old binaries..."
 cd "$BINARIES_DIR"
 rm -f ffmpeg-aarch64-apple-darwin ffprobe-aarch64-apple-darwin

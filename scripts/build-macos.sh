@@ -56,11 +56,14 @@ done
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
-echo "📦 Step 1: Bundle FFmpeg binaries..."
+STEP=1
+
+echo "📦 Step $STEP: Bundle FFmpeg binaries..."
 ./scripts/bundle-ffmpeg.sh
 
+STEP=$((STEP + 1))
 echo ""
-echo "🔨 Step 2: Building Tauri app for target: $TARGET"
+echo "🔨 Step $STEP: Building Tauri app for target: $TARGET"
 pnpm --filter @splice/desktop tauri build --target "$TARGET"
 
 APP_PATH="apps/desktop/src-tauri/target/release/bundle/macos/Splice.app"
@@ -74,8 +77,9 @@ fi
 echo "✅ Build successful: $APP_PATH"
 
 if [ "$SIGN" = true ]; then
+  STEP=$((STEP + 1))
   echo ""
-  echo "🔏 Step 3: Signing app bundle..."
+  echo "🔏 Step $STEP: Signing app bundle..."
 
   # Check if Developer ID certificate is available
   if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
@@ -106,8 +110,9 @@ if [ "$SIGN" = true ]; then
 fi
 
 if [ "$NOTARIZE" = true ]; then
+  STEP=$((STEP + 1))
   echo ""
-  echo "📝 Step 4: Notarizing app with Apple..."
+  echo "📝 Step $STEP: Notarizing app with Apple..."
 
   # Check for required environment variables
   if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then

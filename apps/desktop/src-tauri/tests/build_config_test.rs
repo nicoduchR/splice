@@ -159,15 +159,22 @@ fn test_external_bin_config_includes_both_architectures() {
     let config_content = fs::read_to_string(config_path)
         .expect("Failed to read tauri.conf.json");
 
-    // Tauri automatically appends target triple to binary names
-    // So we just need to check for base names
+    // Verify all architecture-specific binaries are listed
     assert!(
-        config_content.contains("binaries/ffmpeg"),
-        "Config should include ffmpeg binary"
+        config_content.contains("binaries/ffmpeg-aarch64-apple-darwin"),
+        "Config should include ffmpeg aarch64 binary"
     );
     assert!(
-        config_content.contains("binaries/ffprobe"),
-        "Config should include ffprobe binary"
+        config_content.contains("binaries/ffprobe-aarch64-apple-darwin"),
+        "Config should include ffprobe aarch64 binary"
+    );
+    assert!(
+        config_content.contains("binaries/ffmpeg-x86_64-apple-darwin"),
+        "Config should include ffmpeg x86_64 binary"
+    );
+    assert!(
+        config_content.contains("binaries/ffprobe-x86_64-apple-darwin"),
+        "Config should include ffprobe x86_64 binary"
     );
 }
 

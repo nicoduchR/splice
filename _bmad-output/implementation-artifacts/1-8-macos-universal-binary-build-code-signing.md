@@ -24,7 +24,7 @@ Afin que les utilisateurs sur Mac Intel et Apple Silicon puissent installer et e
 **And** app notarisée via le service de notarisation Apple
 **And** le fichier `.dmg` résultant est installable sans avertissements Gatekeeper
 **And** l'app fonctionne sur Mac Intel et Apple Silicon
-**And** les builds sont stockés dans `src-tauri/target/release/bundle/dmg/`
+**And** les builds sont stockés dans `apps/desktop/src-tauri/target/release/bundle/dmg/`
 
 ## Tasks / Subtasks
 
@@ -69,7 +69,8 @@ Afin que les utilisateurs sur Mac Intel et Apple Silicon puissent installer et e
 - [x] Build et test Universal Binary local (AC: app runs on both architectures)
   - [x] Build pour aarch64: pnpm tauri build --target aarch64-apple-darwin (script ready)
   - [x] Build pour x86_64: pnpm tauri build --target x86_64-apple-darwin (script ready)
-  - [x] Créer Universal Binary avec lipo (Tauri gère automatiquement avec --target universal-apple-darwin)
+  - [x] Créer Universal Binary app avec Tauri: pnpm tauri build --target universal-apple-darwin (automatique)
+  - [x] Créer Universal Binary FFmpeg avec lipo pour tests optionnels (bundle-ffmpeg.sh)
   - [x] Tester .dmg installation sur Mac Apple Silicon (ready to test when built)
   - [x] Tester .dmg installation sur Mac Intel (ready to test when built)
   - [x] Vérifier absence warnings Gatekeeper (requires signing, scripts ready)
@@ -837,30 +838,32 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 ### Completion Notes List
 
-✅ **Configuration complète pour macOS Universal Binary**
-- Tauri configuré pour supporter arm64 + x86_64
+✅ **Configuration pour macOS Universal Binary**
+- Tauri configuré pour supporter arm64 + x86_64 avec externalBin corrigés
 - FFmpeg binaries téléchargés et vérifiés pour les deux architectures
-- Bundle configuration prête pour distribution
+- Bundle configuration incluant les 4 binaries architecture-spécifiques
+- Binaries universal créés pour tests optionnels
 
 ✅ **Infrastructure de signature et notarization**
-- Scripts de code signing créés et testés
-- Workflow CI/CD complet avec intégration Apple Developer
-- Documentation exhaustive pour setup manuel et automatique
+- Scripts de code signing créés avec validation syntaxique
+- Workflow CI/CD avec conditionals GitHub Secrets corrigés
+- Documentation complète pour setup manuel et automatique
 
 ✅ **Automation et développement**
-- Script local ./scripts/build-macos.sh avec options flexibles
+- Script local ./scripts/build-macos.sh avec numérotation dynamique des steps
 - GitHub Actions workflow pour builds automatiques sur tags
-- Tests d'intégration pour validation de configuration
+- Tests d'intégration validant la configuration réelle (binaries architecture-spécifiques)
+- Validation architecture FFmpeg dans bundle-ffmpeg.sh
 
-⚠️ **Note importante:** Les tests d'exécution finale (build, signature, notarization) nécessitent:
-1. Apple Developer Program membership
-2. Developer ID Application certificate
+⚠️ **Tests end-to-end non exécutés:** Les tests d'exécution finale (build réel, signature, notarization) nécessitent:
+1. Apple Developer Program membership ($99/an)
+2. Developer ID Application certificate installé
 3. App-Specific Password pour notarization
 
-Tous les scripts et workflows sont prêts et fonctionnels. L'utilisateur peut:
-- Builder sans signature: `./scripts/build-macos.sh`
-- Builder avec signature: `./scripts/build-macos.sh --sign` (nécessite certificat)
-- Builder et notariser: `./scripts/build-macos.sh --notarize` (nécessite credentials Apple)
+**Status:** Scripts et configuration prêts et validés syntaxiquement. Tests unitaires passent. Build production non testé car nécessite credentials Apple Developer (non disponibles pendant développement). L'utilisateur devra:
+- Tester build sans signature: `./scripts/build-macos.sh`
+- Configurer certificat Apple Developer pour signature
+- Tester build complet: `./scripts/build-macos.sh --notarize`
 
 ### File List
 
@@ -888,4 +891,9 @@ Tous les scripts et workflows sont prêts et fonctionnels. L'utilisateur peut:
 - apps/desktop/src-tauri/binaries/ffprobe-aarch64-apple-darwin (arm64, 43MB)
 - apps/desktop/src-tauri/binaries/ffmpeg-x86_64-apple-darwin (x64, 75MB)
 - apps/desktop/src-tauri/binaries/ffprobe-x86_64-apple-darwin (x64, 75MB)
+- apps/desktop/src-tauri/binaries/ffmpeg-universal-apple-darwin (universal, 119MB, optionnel)
+- apps/desktop/src-tauri/binaries/ffprobe-universal-apple-darwin (universal, 119MB, optionnel)
+
+**Autres fichiers:**
+- BUILD-CHEATSHEET.md (cheatsheet pour builds rapides)
 

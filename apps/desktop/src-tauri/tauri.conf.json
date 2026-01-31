@@ -20,8 +20,10 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/ffmpeg",
-      "binaries/ffprobe"
+      "binaries/ffmpeg-aarch64-apple-darwin",
+      "binaries/ffprobe-aarch64-apple-darwin",
+      "binaries/ffmpeg-x86_64-apple-darwin",
+      "binaries/ffprobe-x86_64-apple-darwin"
     ],
     "macOS": {
       "minimumSystemVersion": "13.0",
