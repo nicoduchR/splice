@@ -40,7 +40,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-0: in-progress
   0-1-landing-page-deployment: done
-  0-2-email-collection-setup-with-tally-so: backlog
+  0-2-email-collection-setup-with-tally-so: in-progress
   0-3-datafast-analytics-integration: backlog
   0-4-meta-ads-campaign-launch: backlog
   0-5-ab-testing-campaign-optimization: backlog

@@ -18,6 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tally.so Embed Script -->
+<script async src="https://tally.so/widgets/embed.js"></script>
 <!-- CDN Failure Detection -->
 <script>
   setTimeout(function() {
@@ -102,7 +104,7 @@
             <span id="flag-display">🇬🇧</span>
         </button>
         <a class="hidden sm:block text-sm font-medium text-gray-300 hover:text-white transition-colors" href="#" data-i18n="nav-login">Login</a>
-        <button class="bg-primary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(19,127,236,0.3)] hover:shadow-[0_0_20px_rgba(19,127,236,0.5)]" data-i18n="btn-download" data-track="cta_click" data-track-location="header">
+        <button class="bg-primary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(19,127,236,0.3)] hover:shadow-[0_0_20px_rgba(19,127,236,0.5)]" data-i18n="btn-download" data-track="cta_click" data-track-location="header" onclick="openTallyForm('header')">
             Download
         </button>
     </div>
@@ -125,7 +127,7 @@
         The professional video editor that works like a word processor. Fast, precise, and secured by AI running 100% locally on your machine.
     </p>
     <div class="flex flex-col sm:flex-row gap-4 mb-16 w-full justify-center">
-        <button class="bg-primary hover:bg-blue-600 text-white h-12 px-8 rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 min-w-[200px] shadow-lg shadow-primary/25" data-track="cta_click" data-track-location="hero">
+        <button class="bg-primary hover:bg-blue-600 text-white h-12 px-8 rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 min-w-[200px] shadow-lg shadow-primary/25" data-track="cta_click" data-track-location="hero" onclick="openTallyForm('hero')">
             <span class="material-symbols-outlined text-[20px]">download</span>
             <span data-i18n="hero-btn-download">Download for Mac</span>
         </button>
@@ -317,7 +319,7 @@
 <div class="mx-auto max-w-[800px] text-center flex flex-col items-center">
     <h2 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight" data-i18n="cta-title">Ready to edit 10x faster?</h2>
     <p class="text-xl text-gray-400 mb-10 max-w-2xl font-body" data-i18n="cta-subtitle">Join thousands of creators and professionals who have already adopted text-based editing.</p>
-    <button class="bg-primary hover:bg-blue-600 text-white text-lg h-16 px-10 rounded-xl font-bold transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/40 flex items-center gap-3" data-track="cta_click" data-track-location="final_cta">
+    <button class="bg-primary hover:bg-blue-600 text-white text-lg h-16 px-10 rounded-xl font-bold transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/40 flex items-center gap-3" data-track="cta_click" data-track-location="final_cta" onclick="openTallyForm('final_cta')">
         <span class="material-symbols-outlined">download</span>
         <span data-i18n="cta-button">Download Splicely now</span>
     </button>
@@ -343,6 +345,50 @@
 
 <!-- Analytics Placeholder (Story 0.3: DataFast Integration) -->
 <!-- Analytics script will be inserted here -->
+
+<!-- Tally.so Form Integration Script -->
+<script>
+// Form IDs for bilingual support
+const TALLY_FORMS = {
+    fr: 'FORM_FR_PLACEHOLDER',  // Replace with actual French form ID
+    en: 'FORM_EN_PLACEHOLDER'   // Replace with actual English form ID
+};
+
+/**
+ * Opens the appropriate Tally.so form based on current language
+ * @param {string} location - CTA location for tracking (header, hero, final_cta)
+ */
+function openTallyForm(location) {
+    // Get current language from page state
+    const lang = currentLang || 'en';
+    const formId = TALLY_FORMS[lang];
+
+    // Open Tally popup with configuration
+    if (typeof Tally !== 'undefined' && Tally.openPopup) {
+        Tally.openPopup(formId, {
+            layout: 'modal',
+            width: 500,
+            autoClose: 3000,  // Auto-close 3s after successful submission
+            hideTitle: false,
+            overlay: true,
+            emoji: {
+                text: '📧',
+                animation: 'wave'
+            },
+            // Hidden field to track which CTA was clicked (for future analytics)
+            hiddenFields: {
+                source: location
+            }
+        });
+    } else {
+        // Fallback if Tally script hasn't loaded yet
+        console.error('Tally.so script not loaded yet. Please try again.');
+        alert(lang === 'fr'
+            ? 'Le formulaire est en cours de chargement. Veuillez réessayer dans un instant.'
+            : 'Form is loading. Please try again in a moment.');
+    }
+}
+</script>
 
 <!-- i18n Script -->
 <script>
