@@ -1,0 +1,136 @@
+name: Build macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Bundle FFmpeg binaries
+        run: ./scripts/bundle-ffmpeg.sh
+
+      - name: Import Apple Developer certificate
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "🔐 Importing Apple Developer certificate..."
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+
+          # Create temporary keychain
+          security create-keychain -p actions temp.keychain
+          security default-keychain -s temp.keychain
+          security unlock-keychain -p actions temp.keychain
+
+          # Import certificate
+          security import certificate.p12 -k temp.keychain \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+
+          # Allow codesign to access the certificate
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k actions temp.keychain
+
+          # Clean up certificate file
+          rm certificate.p12
+          echo "✅ Certificate imported successfully"
+
+      - name: Build Tauri app (Universal Binary)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "🔨 Building Universal Binary for macOS..."
+          pnpm tauri build --target universal-apple-darwin
+
+      - name: Code sign app bundle
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        run: |
+          echo "🔏 Signing app bundle..."
+          APP_PATH="apps/desktop/src-tauri/target/release/bundle/macos/Splice.app"
+
+          codesign --force --deep --sign "Developer ID Application" "$APP_PATH"
+
+          # Verify signature
+          codesign --verify --deep --strict "$APP_PATH"
+          echo "✅ App signed successfully"
+
+      - name: Notarize app
+        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_APP_PASSWORD != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "📝 Notarizing app with Apple..."
+          APP_PATH="apps/desktop/src-tauri/target/release/bundle/macos/Splice.app"
+
+          # Create ZIP for notarization
+          ditto -c -k --keepParent "$APP_PATH" Splice.zip
+
+          # Submit for notarization
+          xcrun notarytool submit Splice.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Staple notarization ticket
+          xcrun stapler staple "$APP_PATH"
+
+          # Verify notarization
+          spctl --assess --verbose "$APP_PATH"
+
+          echo "✅ App notarized successfully"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Splice-macOS-Universal
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up keychain
+        if: always() && secrets.APPLE_CERTIFICATE != ''
+        run: |
+          security delete-keychain temp.keychain || true
