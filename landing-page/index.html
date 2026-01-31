@@ -343,15 +343,105 @@
 </div>
 </footer>
 
-<!-- Analytics Placeholder (Story 0.3: DataFast Integration) -->
-<!-- Analytics script will be inserted here -->
+<!-- GDPR Consent Banner (Story 0.3: DataFast Analytics) -->
+<div id="gdpr-banner" style="display: none;" class="fixed bottom-0 left-0 right-0 bg-surface-dark border-t border-gray-700 p-4 z-50">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <p class="text-sm text-gray-300">
+      <span data-i18n="gdpr-message">We use analytics to improve your experience. We do not sell your data.</span>
+    </p>
+    <div class="flex gap-3">
+      <button onclick="acceptAnalytics()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+        <span data-i18n="gdpr-accept">Accept</span>
+      </button>
+      <button onclick="declineAnalytics()" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+        <span data-i18n="gdpr-decline">Decline</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DataFast Analytics Integration (Story 0.3) -->
+<script>
+// DataFast Analytics Configuration
+const DATAFAST_CONFIG = {
+  websiteId: 'dfid_PLACEHOLDER', // TODO: Replace with real DataFast website ID after account creation
+  domain: 'landing-page-vert-ten-24.vercel.app'
+};
+
+// Check consent on page load and conditionally load DataFast
+window.addEventListener('DOMContentLoaded', function() {
+  const consent = localStorage.getItem('analytics_consent');
+
+  if (consent === null) {
+    // No preference stored, show banner
+    document.getElementById('gdpr-banner').style.display = 'block';
+  } else if (consent === 'accepted') {
+    // User accepted, load DataFast
+    loadDataFast();
+  }
+  // If declined, don't load anything
+});
+
+function acceptAnalytics() {
+  localStorage.setItem('analytics_consent', 'accepted');
+  document.getElementById('gdpr-banner').style.display = 'none';
+  loadDataFast();
+}
+
+function declineAnalytics() {
+  localStorage.setItem('analytics_consent', 'declined');
+  document.getElementById('gdpr-banner').style.display = 'none';
+}
+
+function loadDataFast() {
+  // Dynamically inject DataFast script ONLY after consent
+  const script = document.createElement('script');
+  script.defer = true;
+  script.setAttribute('data-website-id', DATAFAST_CONFIG.websiteId);
+  script.setAttribute('data-domain', DATAFAST_CONFIG.domain);
+  script.src = 'https://datafa.st/js/script.js';
+  document.head.appendChild(script);
+}
+
+// Scroll Depth Tracking (25%, 50%, 75%, 100%)
+let scrollDepthTracked = {
+  '25': false,
+  '50': false,
+  '75': false,
+  '100': false
+};
+
+window.addEventListener('scroll', function() {
+  // Only track if DataFast is loaded
+  if (typeof window.df === 'undefined') return;
+
+  const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+
+  if (scrollPercent >= 25 && !scrollDepthTracked['25']) {
+    window.df('event', 'scroll_depth', { depth: '25%' });
+    scrollDepthTracked['25'] = true;
+  }
+  if (scrollPercent >= 50 && !scrollDepthTracked['50']) {
+    window.df('event', 'scroll_depth', { depth: '50%' });
+    scrollDepthTracked['50'] = true;
+  }
+  if (scrollPercent >= 75 && !scrollDepthTracked['75']) {
+    window.df('event', 'scroll_depth', { depth: '75%' });
+    scrollDepthTracked['75'] = true;
+  }
+  if (scrollPercent >= 100 && !scrollDepthTracked['100']) {
+    window.df('event', 'scroll_depth', { depth: '100%' });
+    scrollDepthTracked['100'] = true;
+  }
+});
+</script>
 
 <!-- Tally.so Form Integration Script -->
 <script>
 // Form IDs for bilingual support
 const TALLY_FORMS = {
-    fr: 'FORM_FR_PLACEHOLDER',  // Replace with actual French form ID
-    en: 'FORM_EN_PLACEHOLDER'   // Replace with actual English form ID
+    fr: 'xXYJ1r',  // French form: https://tally.so/r/xXYJ1r
+    en: 'Y5a4K5'   // English form: https://tally.so/r/Y5a4K5
 };
 
 /**
@@ -359,6 +449,13 @@ const TALLY_FORMS = {
  * @param {string} location - CTA location for tracking (header, hero, final_cta)
  */
 function openTallyForm(location) {
+    // Track CTA click in DataFast (Story 0.3)
+    if (window.df) {
+        window.df('event', 'cta_click', {
+            source: location
+        });
+    }
+
     // Get current language from page state
     const lang = currentLang || 'en';
     const formId = TALLY_FORMS[lang];
@@ -378,6 +475,16 @@ function openTallyForm(location) {
             // Hidden field to track which CTA was clicked (for future analytics)
             hiddenFields: {
                 source: location
+            },
+            // Track email submission in DataFast when form is submitted (Story 0.3)
+            onSubmit: (payload) => {
+                if (window.df) {
+                    window.df('event', 'email_submitted', {
+                        source: location,
+                        form_language: lang
+                    });
+                }
+                console.log('Email submitted and tracked:', location);
             }
         });
     } else {
@@ -433,7 +540,10 @@ const translations = {
         'cta-title': 'Ready to edit 10x faster?',
         'cta-subtitle': 'Join thousands of creators and professionals who have already adopted text-based editing.',
         'cta-button': 'Download Splicely now',
-        'cta-platforms': 'Available for macOS and Windows. Unlimited free trial.'
+        'cta-platforms': 'Available for macOS and Windows. Unlimited free trial.',
+        'gdpr-message': 'We use analytics to improve your experience. We do not sell your data.',
+        'gdpr-accept': 'Accept',
+        'gdpr-decline': 'Decline'
     },
     fr: {
         'nav-features': 'Fonctionnalités',
@@ -475,7 +585,10 @@ const translations = {
         'cta-title': 'Prêt à monter 10x plus vite ?',
         'cta-subtitle': 'Rejoignez des milliers de créateurs et professionnels qui ont déjà adopté le montage par le texte.',
         'cta-button': 'Télécharger Splicely maintenant',
-        'cta-platforms': 'Disponible pour macOS et Windows. Essai gratuit illimité.'
+        'cta-platforms': 'Disponible pour macOS et Windows. Essai gratuit illimité.',
+        'gdpr-message': 'Nous utilisons des analytics pour améliorer votre expérience. Nous ne vendons pas vos données.',
+        'gdpr-accept': 'Accepter',
+        'gdpr-decline': 'Refuser'
     }
 };
 
