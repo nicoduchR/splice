@@ -31,6 +31,7 @@ export function VideoImport({ className }: VideoImportProps) {
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [validatingFilePath, setValidatingFilePath] = useState<string | null>(null);
 
   // Open error dialog when error occurs
   useEffect(() => {
@@ -41,9 +42,12 @@ export function VideoImport({ className }: VideoImportProps) {
 
   const performImport = useCallback(async (filePath: string) => {
     try {
+      setValidatingFilePath(filePath);
       await importVideo(filePath);
+      setValidatingFilePath(null);
       toast.success('Vidéo importée avec succès');
     } catch (err) {
+      setValidatingFilePath(null);
       // Error dialog will be shown automatically via useEffect
       console.error('Import error:', err);
     }
@@ -121,6 +125,7 @@ export function VideoImport({ className }: VideoImportProps) {
           onBrowseFiles={handleBrowseFiles}
           isValidating={isImporting}
           error={null}
+          validatingFilePath={validatingFilePath}
         />
       </div>
 

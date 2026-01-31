@@ -8,6 +8,7 @@ interface DropZoneProps {
   onBrowseFiles: () => void;
   isValidating: boolean;
   error: string | null;
+  validatingFilePath?: string | null;
 }
 
 export const DropZone = React.memo(({
@@ -15,8 +16,16 @@ export const DropZone = React.memo(({
   onBrowseFiles,
   isValidating,
   error,
+  validatingFilePath,
 }: DropZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Extract filename from path
+  const getFileName = (filePath: string | null | undefined): string => {
+    if (!filePath) return 'Fichier vidéo';
+    const parts = filePath.split(/[\\/]/);
+    return parts[parts.length - 1] || 'Fichier vidéo';
+  };
 
   // Listen to Tauri file drop events
   useEffect(() => {
@@ -75,12 +84,37 @@ export const DropZone = React.memo(({
     };
   }, [onFileSelected]);
 
-  // Validating state
+  // Validating state - Display file info during validation
   if (isValidating) {
+    const fileName = getFileName(validatingFilePath);
+
     return (
-      <div className="w-full rounded-2xl border-2 border-dashed border-[#35353F] bg-[#161f2b] p-12 sm:p-20 flex flex-col items-center gap-8">
-        <div className="animate-spin h-16 w-16 border-4 border-primary border-t-transparent rounded-full" />
-        <p className="text-white font-semibold text-lg">Vérification du format...</p>
+      <div className="w-full max-w-[480px] bg-[#25252D] rounded-xl border border-[#35353F] p-12 flex flex-col items-center shadow-2xl">
+        {/* Spinner */}
+        <div className="mb-6">
+          <svg className="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+          </svg>
+        </div>
+
+        {/* File name */}
+        <h3 className="text-white font-bold text-lg text-center mb-1">
+          {fileName}
+        </h3>
+
+        {/* File metadata - Will be populated after validation */}
+        <p className="text-slate-400 text-sm font-medium text-center mb-10">
+          Analyse en cours...
+        </p>
+
+        {/* Progress indicator */}
+        <div className="flex flex-col items-center gap-3 w-full">
+          <span className="text-slate-300 text-sm font-medium">Vérification du format...</span>
+          <div className="h-1 w-[200px] bg-slate-600/30 rounded-full overflow-hidden">
+            <div className="h-full bg-primary w-2/3 rounded-full animate-pulse"></div>
+          </div>
+        </div>
       </div>
     );
   }
