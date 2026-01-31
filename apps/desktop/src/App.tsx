@@ -1,17 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useVideoStore } from './stores/video-store';
+import { useTranscriptStore } from './stores/transcript-store';
 import { VideoImport } from './components/video-import';
 import { TopBar } from './components/layout';
-import { Toaster } from './components/ui/sonner';
+import { Toaster, toast } from './components/ui/sonner';
 import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
 import { ModelDownloadDialog } from './components/model-download';
+import { TranscriptionProgressDialog } from './components/transcription';
 import { useModelDownload } from './hooks/use-model-download';
+import { listen } from '@tauri-apps/api/event';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
   const loadAllProjects = useVideoStore(s => s.loadAllProjects);
   const [showComponentsDemo, setShowComponentsDemo] = useState(false);
+
+  // Transcription state
+  const isTranscribing = useTranscriptStore(s => s.isTranscribing);
+  const transcriptionProgress = useTranscriptStore(s => s.transcriptionProgress);
+  const updateTranscriptionProgress = useTranscriptStore(s => s.updateTranscriptionProgress);
+  const completeTranscription = useTranscriptStore(s => s.completeTranscription);
+  const cancelTranscription = useTranscriptStore(s => s.cancelTranscription);
 
   // Model download management
   const {
@@ -30,6 +40,74 @@ function App() {
       loadAllProjects();
     }
   }, [loadAllProjects]);
+
+  // Listen to transcription events
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+      return;
+    }
+
+    // Listen for transcription progress events
+    const unlistenProgress = listen<{
+      video_id: string;
+      stage: string;
+      progress: number;
+      message: string;
+    }>('transcription:progress', (event) => {
+      const { progress, stage, message } = event.payload;
+      updateTranscriptionProgress(progress, stage, message);
+    });
+
+    // Listen for transcription completion
+    const unlistenCompleted = listen<{
+      text: string;
+      words: any[];
+      language: string;
+      confidence?: number;
+    }>('transcription:completed', async (event) => {
+      if (currentProject) {
+        try {
+          await completeTranscription(event.payload, currentProject.id);
+
+          // Show success toast
+          const wordCount = event.payload.words.length;
+          toast.success('Transcript généré avec succès!', {
+            description: `${wordCount} mots détectés`,
+            duration: 5000,
+          });
+        } catch (error) {
+          console.error('Failed to save transcript:', error);
+          toast.error('Erreur lors de la sauvegarde du transcript', {
+            description: error as string,
+          });
+        }
+      }
+    });
+
+    // Listen for transcription errors
+    const unlistenError = listen<{ message: string }>(
+      'transcription:error',
+      (event) => {
+        console.error('Transcription error:', event.payload.message);
+
+        // Show error toast
+        toast.error('Erreur de transcription', {
+          description: event.payload.message,
+          duration: Infinity, // Keep until manually dismissed
+          action: {
+            label: 'Fermer',
+            onClick: () => {},
+          },
+        });
+      }
+    );
+
+    return () => {
+      unlistenProgress.then((fn) => fn());
+      unlistenCompleted.then((fn) => fn());
+      unlistenError.then((fn) => fn());
+    };
+  }, [updateTranscriptionProgress, completeTranscription, currentProject]);
 
   // Loading screen while checking model status
   if (isChecking) {
@@ -168,6 +246,21 @@ function App() {
         onCancel={cancelDownload}
         onRetry={retryDownload}
       />
+
+      {/* Transcription Progress Dialog */}
+      {currentProject && (
+        <TranscriptionProgressDialog
+          isOpen={isTranscribing}
+          progress={transcriptionProgress}
+          videoInfo={{
+            id: currentProject.id,
+            file_name: currentProject.file_name,
+            duration_seconds: currentProject.duration_seconds,
+            file_size_bytes: currentProject.file_size_bytes,
+          }}
+          onCancel={cancelTranscription}
+        />
+      )}
     </>
   );
 }

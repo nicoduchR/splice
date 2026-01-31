@@ -1,14 +1,30 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { invoke } from '@tauri-apps/api/core';
 import type { Transcript, TranscriptWord } from '@splice/types/generated';
+
+interface TranscriptionProgress {
+  video_id: string;
+  stage: 'extracting' | 'loading' | 'transcribing' | 'completed';
+  progress: number; // 0.0 to 1.0
+  message: string;
+}
+
+interface TranscriptionResult {
+  text: string;
+  words: TranscriptWord[];
+  language: string;
+  confidence?: number;
+}
 
 interface TranscriptStore {
   // State
   transcript: Transcript | null;
   selectedWordIndices: number[];
   isTranscribing: boolean;
-  transcriptionProgress: number;
+  transcriptionProgress: TranscriptionProgress;
   error: string | null;
+  currentVideoId: string | null;
 
   // Actions
   setTranscript: (transcript: Transcript | null) => void;
@@ -16,6 +32,10 @@ interface TranscriptStore {
   setSelection: (startIndex: number, endIndex: number) => void;
   clearSelection: () => void;
   setTranscribing: (isTranscribing: boolean, progress?: number) => void;
+  startTranscription: (videoId: string, videoPath: string) => Promise<void>;
+  updateTranscriptionProgress: (progress: number, stage: string, message: string) => void;
+  cancelTranscription: () => Promise<void>;
+  completeTranscription: (result: TranscriptionResult, projectId: string) => Promise<void>;
 }
 
 export const useTranscriptStore = create<TranscriptStore>()(
@@ -24,8 +44,14 @@ export const useTranscriptStore = create<TranscriptStore>()(
       transcript: null,
       selectedWordIndices: [],
       isTranscribing: false,
-      transcriptionProgress: 0,
+      transcriptionProgress: {
+        video_id: '',
+        stage: 'extracting',
+        progress: 0,
+        message: '',
+      },
       error: null,
+      currentVideoId: null,
 
       setTranscript: (transcript) => {
         set({ transcript, error: null });
@@ -62,7 +88,111 @@ export const useTranscriptStore = create<TranscriptStore>()(
       },
 
       setTranscribing: (isTranscribing, progress = 0) => {
-        set({ isTranscribing, transcriptionProgress: progress });
+        set({
+          isTranscribing,
+          transcriptionProgress: {
+            video_id: get().currentVideoId || '',
+            stage: 'transcribing',
+            progress: progress,
+            message: 'Transcription en cours...',
+          }
+        });
+      },
+
+      // Démarrer la transcription
+      startTranscription: async (videoId: string, videoPath: string) => {
+        set({
+          isTranscribing: true,
+          currentVideoId: videoId,
+          transcriptionProgress: {
+            video_id: videoId,
+            stage: 'extracting',
+            progress: 0,
+            message: 'Démarrage de la transcription...',
+          },
+          error: null,
+        });
+
+        try {
+          // La commande Tauri va émettre des événements de progression
+          await invoke('transcribe_video', {
+            videoId,
+            videoPath,
+          });
+        } catch (error) {
+          set({
+            error: error as string,
+            isTranscribing: false,
+          });
+          throw error;
+        }
+      },
+
+      // Mettre à jour la progression
+      updateTranscriptionProgress: (progress: number, stage: string, message: string) => {
+        set({
+          transcriptionProgress: {
+            video_id: get().currentVideoId || '',
+            stage: stage as TranscriptionProgress['stage'],
+            progress,
+            message,
+          },
+        });
+      },
+
+      // Annuler la transcription
+      cancelTranscription: async () => {
+        const { currentVideoId } = get();
+        if (!currentVideoId) return;
+
+        try {
+          await invoke('cancel_transcription', {
+            videoId: currentVideoId,
+          });
+
+          set({
+            isTranscribing: false,
+            currentVideoId: null,
+            transcriptionProgress: {
+              video_id: '',
+              stage: 'extracting',
+              progress: 0,
+              message: '',
+            },
+          });
+        } catch (error) {
+          console.error('Failed to cancel transcription:', error);
+        }
+      },
+
+      // Compléter la transcription
+      completeTranscription: async (result: TranscriptionResult, projectId: string) => {
+        try {
+          // Sauvegarder le transcript dans la base de données
+          const savedTranscript = await invoke('save_transcript', {
+            transcriptResult: result,
+            projectId,
+          });
+
+          set({
+            transcript: savedTranscript as Transcript,
+            isTranscribing: false,
+            currentVideoId: null,
+            transcriptionProgress: {
+              video_id: '',
+              stage: 'completed',
+              progress: 1.0,
+              message: 'Transcription terminée!',
+            },
+            error: null,
+          });
+        } catch (error) {
+          set({
+            error: error as string,
+            isTranscribing: false,
+          });
+          throw error;
+        }
       },
     }),
     { name: 'TranscriptStore' }

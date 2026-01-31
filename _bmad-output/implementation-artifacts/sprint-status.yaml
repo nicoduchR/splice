@@ -61,13 +61,10 @@ development_status:
   epic-2: in-progress
   2-1-parakeet-model-download-infrastructure: done  # Code review: 8/13 issues fixed. Remaining: real checksums, E2E testing
   2-2-transcription-backend-integration: done  # Code review: 22/22 issues fixed (10 HIGH, 8 MEDIUM, 4 LOW). All ACs satisfied: confidence scores, security, performance RTF, validations. Documented: cancellation limitation (Story 2.4+), memory limits (2.3GB for 2h video)
-  2-3-transcript-data-storage: review  # Core persistence implemented: SQLite schema, repositories, use cases, Tauri commands. Auto-save (NFR25) and crash recovery (NFR26) deferred to Story 2.4+ (complexity vs MVP value).
-  2-4-transcription-ui-progress-tracking: backlog
+  2-3-transcript-data-storage: done  # Core persistence implemented: SQLite schema, repositories, use cases, Tauri commands. Auto-save (NFR25) and crash recovery (NFR26) deferred to Story 2.4+ (complexity vs MVP value).
+  2-4-transcription-ui-progress-tracking: review  # Core UI implemented: modal, progress tracking, cancellation. Toast success/error. Adaptive display (>10min: bar, <10min: spinner). Tests created.
   2-5-transcript-display-editor-component: backlog
   epic-2-retrospective: optional
-
-  # Tech Debt / Code Quality
-  tech-debt-code-cleanup: backlog  # P2: Remove #[allow(dead_code)], fix tests, real checksums, clean logs, improve error handling
 
   epic-3: backlog
   3-1-text-selection-highlighting: backlog
@@ -122,4 +119,6 @@ development_status:
   10-2-screen-reader-support-with-aria: backlog
   10-3-high-contrast-color-independence: backlog
   10-4-responsive-text-scalability: backlog
+  tech-debt-code-cleanup: backlog  # P2: Remove #[allow(dead_code)], fix tests, real checksums, clean logs, improve error handling
   epic-10-retrospective: optional
+  # Tech Debt / Code Quality

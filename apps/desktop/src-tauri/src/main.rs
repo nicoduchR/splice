@@ -43,6 +43,7 @@ async fn main() {
             model_commands::download_parakeet_model,
             model_commands::cancel_model_download,
             transcription_commands::transcribe_video,
+            transcription_commands::cancel_transcription,
             transcription_commands::save_transcript,
             transcription_commands::get_transcript,
         ])

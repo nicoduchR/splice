@@ -2,6 +2,7 @@ use tauri::{AppHandle, Emitter, State};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::entities::transcription::TranscriptionResult;
 use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
 use crate::domain::repositories::TranscriptRepository;
@@ -44,12 +45,17 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     video_id: String,
     video_path: String,
     app_handle: AppHandle<R>,
+    app_state: State<'_, AppState>,
 ) -> Result<TranscriptionResult, String> {
     tracing::info!(
         event = "transcribe_video_command",
         video_id = %video_id,
         video_path = %video_path,
     );
+
+    // Create and store cancellation flag
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    app_state.set_cancel_flag(video_id.clone(), cancel_flag.clone());
 
     // Validation: Check video_id is not empty
     if video_id.trim().is_empty() {
@@ -101,9 +107,23 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     )
     .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
 
+    // Check for cancellation before extraction
+    if cancel_flag.load(Ordering::Relaxed) {
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
+
     AudioExtractor::extract_audio(&PathBuf::from(&video_path), &audio_path)
         .await
         .map_err(|e| format!("Erreur d'extraction audio: {}", e))?;
+
+    // Check for cancellation after extraction
+    if cancel_flag.load(Ordering::Relaxed) {
+        // Cleanup extracted audio file
+        let _ = tokio::fs::remove_file(&audio_path).await;
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
 
     // Stage 2: Load audio (40%)
     emit_progress(
@@ -114,6 +134,13 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         "Chargement de l'audio en mémoire...",
     )
     .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
+
+    // Check for cancellation before loading
+    if cancel_flag.load(Ordering::Relaxed) {
+        let _ = tokio::fs::remove_file(&audio_path).await;
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
 
     let (audio_samples, sample_rate, channels) =
         AudioExtractor::load_wav_as_f32(&audio_path)
@@ -126,6 +153,13 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         channels = channels,
     );
 
+    // Check for cancellation after loading
+    if cancel_flag.load(Ordering::Relaxed) {
+        let _ = tokio::fs::remove_file(&audio_path).await;
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
+
     // Stage 3: Transcription (60%)
     emit_progress(
         &app_handle,
@@ -136,11 +170,30 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     )
     .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
 
+    // Check for cancellation before transcription
+    if cancel_flag.load(Ordering::Relaxed) {
+        let _ = tokio::fs::remove_file(&audio_path).await;
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
+
     let service = ParakeetTranscriptionService;
     let result = service
         .transcribe_audio(audio_samples, sample_rate, channels, video_id.clone())
         .await
-        .map_err(|e| format!("Erreur de transcription: {}", e))?;
+        .map_err(|e| {
+            // Cleanup on error
+            let _ = std::fs::remove_file(&audio_path);
+            app_state.remove_cancel_flag(&video_id);
+            format!("Erreur de transcription: {}", e)
+        })?;
+
+    // Check for cancellation after transcription
+    if cancel_flag.load(Ordering::Relaxed) {
+        let _ = tokio::fs::remove_file(&audio_path).await;
+        app_state.remove_cancel_flag(&video_id);
+        return Err("Transcription annulée par l'utilisateur".to_string());
+    }
 
     // Stage 4: Completed (100%)
     emit_progress(
@@ -170,6 +223,9 @@ pub async fn transcribe_video<R: tauri::Runtime>(
             audio_path = %audio_path.display(),
         );
     }
+
+    // Remove cancellation flag on successful completion
+    app_state.remove_cancel_flag(&video_id);
 
     Ok(result)
 }
@@ -329,6 +385,57 @@ pub async fn get_transcript(
         transcript,
         words,
     }))
+}
+
+/// Cancel an ongoing transcription
+///
+/// Sets the cancellation flag for the specified video ID, which will
+/// cause the transcription to abort at the next checkpoint.
+///
+/// # Arguments
+/// * `video_id` - The video ID of the transcription to cancel
+/// * `app_state` - The application state (injected by Tauri)
+///
+/// # Returns
+/// * `Ok(())` - Cancellation flag set successfully
+/// * `Err(String)` - Error message in French
+#[tauri::command]
+pub async fn cancel_transcription(
+    video_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<(), String> {
+    tracing::info!(
+        event = "cancel_transcription_command",
+        video_id = %video_id,
+    );
+
+    // Validation: Check video_id is not empty
+    if video_id.trim().is_empty() {
+        return Err("L'identifiant vidéo ne peut pas être vide".to_string());
+    }
+
+    // Get the cancellation flag
+    if let Some(flag) = app_state.get_cancel_flag(&video_id) {
+        // Set the flag to signal cancellation
+        flag.store(true, Ordering::Relaxed);
+
+        tracing::info!(
+            event = "cancel_transcription_flagged",
+            video_id = %video_id,
+        );
+
+        Ok(())
+    } else {
+        // No active transcription found
+        tracing::warn!(
+            event = "cancel_transcription_not_found",
+            video_id = %video_id,
+            "No active transcription found for this video ID"
+        );
+
+        // Return Ok anyway since the desired state (no transcription running) is achieved
+        Ok(())
+    }
 }
 
 /// Clean up old temporary audio files on app startup
