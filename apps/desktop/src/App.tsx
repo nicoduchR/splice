@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useVideoStore } from './stores/video-store';
 import { VideoImport } from './components/video-import';
 import { TopBar } from './components/layout';
 import { Toaster } from './components/ui/sonner';
+import { ComponentsDemo } from './pages/ComponentsDemo';
+import { Button } from './components/ui/button';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
   const loadAllProjects = useVideoStore(s => s.loadAllProjects);
+  const [showComponentsDemo, setShowComponentsDemo] = useState(false);
 
   // Load all projects on mount
   useEffect(() => {
@@ -16,10 +19,39 @@ function App() {
     }
   }, [loadAllProjects]);
 
+  // Show components demo if toggled
+  if (showComponentsDemo) {
+    return (
+      <div className="min-h-screen flex flex-col overflow-hidden">
+        <div className="p-4 bg-panel-dark border-b border-border-dark flex items-center justify-between">
+          <h2 className="text-white font-semibold">Design System Demo</h2>
+          <Button variant="outline" onClick={() => setShowComponentsDemo(false)}>
+            Retour à l'app
+          </Button>
+        </div>
+        <ComponentsDemo />
+        <Toaster />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col overflow-hidden">
       <TopBar />
       <Toaster />
+
+      {/* Dev: Toggle Components Demo */}
+      <div className="absolute top-4 right-4 z-50">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowComponentsDemo(true)}
+          className="text-xs bg-background/50 backdrop-blur-sm hover:bg-background/80"
+        >
+          <span className="material-symbols-outlined text-sm">palette</span>
+          Demo
+        </Button>
+      </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 relative">
         {/* Abstract Background Gradient for depth */}

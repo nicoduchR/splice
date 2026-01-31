@@ -6,9 +6,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#1580f9', // Splice Blue from design
+        // PRIMARY: Bleu utilisé dans designs réels
+        primary: '#1580f9',
+
+        // BACKGROUNDS: Dark mode par défaut
         'background-light': '#f5f7f8',
-        'background-dark': '#0f1823',
+        'background-dark': '#1A1A1F',
+        'panel-dark': '#27272D',
+        'card-dark': '#27272F',
+
+        // BORDERS: Subtils
+        'border-dark': '#33333E',
+
+        // TEXT: Hiérarchie
+        'text-muted': '#9CA3AF',
+
+        // SEMANTIC (designs réels)
+        success: '#54c41c',   // Vert pour success states
+        error: '#FF4D4F',     // Rouge pour errors
+        warning: '#f59e0b',   // Orange pour warnings
+
+        // Shadcn/ui CSS variables
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -48,6 +66,7 @@ export default {
       },
       fontFamily: {
         display: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       screens: {
         'desktop': '1280px',

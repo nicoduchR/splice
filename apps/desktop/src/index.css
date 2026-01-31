@@ -75,3 +75,19 @@
   }
 }
 
+@layer utilities {
+  /* Shimmer animation for progress bars */
+  @keyframes shimmer {
+    0% {
+      transform: skewX(-20deg) translateX(-150%);
+    }
+    100% {
+      transform: skewX(-20deg) translateX(150%);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+  }
+}
+
