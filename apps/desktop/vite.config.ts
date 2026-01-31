@@ -29,4 +29,14 @@ export default defineConfig({
       "@splice/utils": path.resolve(__dirname, "../../packages/utils/src"),
     },
   },
+
+  // Prevent vite from obscuring rust errors
+  build: {
+    // Tauri uses Chromium on Windows and WebKit on macOS and Linux
+    target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
+    // Don't minify for debug builds
+    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+    // Produce sourcemaps for debug builds
+    sourcemap: !!process.env.TAURI_DEBUG,
+  },
 })

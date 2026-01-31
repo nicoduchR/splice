@@ -1,3 +1,4 @@
+use crate::application::use_cases::ImportVideoUseCase;
 use crate::domain::entities::VideoProject;
 use crate::infrastructure::config::app_state::AppState;
 use tauri::State;
@@ -32,17 +33,16 @@ pub fn load_all_projects(
         .map_err(|e| e.to_string())
 }
 
-/// Import video command - placeholder for Story 1.4 implementation
-/// Story 1.3 only sets up state management, actual video import is Story 1.4
+/// Import video command - Story 1.5 implementation with FFmpeg validation
 #[tauri::command]
-pub fn import_video(
+pub async fn import_video(
+    app: tauri::AppHandle,
     file_path: String,
-    _state: State<AppState>
+    state: State<'_, AppState>,
 ) -> Result<VideoProject, String> {
-    // TODO: Story 1.4 - Implement actual video import with FFmpeg
-    // For now, return error indicating feature not yet implemented
-    Err(format!(
-        "Video import not yet implemented. Story 1.4 will add FFmpeg integration. File: {}",
-        file_path
-    ))
+    let use_case = ImportVideoUseCase::new(state.video_repository.clone());
+    use_case
+        .execute(&app, &file_path)
+        .await
+        .map_err(|e| e.to_string())
 }

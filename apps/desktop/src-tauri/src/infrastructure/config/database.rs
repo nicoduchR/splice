@@ -47,12 +47,13 @@ pub async fn init_database() -> Result<SqlitePool, Box<dyn std::error::Error>> {
     if let Some(parent) = db_path.parent() {
         if !parent.exists() {
             info!("Creating database directory: {:?}", parent);
-            tokio::fs::create_dir_all(parent).await?;
+            std::fs::create_dir_all(parent)?;
         }
     }
 
     // Connect to database
-    let connection_string = format!("sqlite:{}", db_path.display());
+    // mode=rwc: read-write-create (creates file if it doesn't exist)
+    let connection_string = format!("sqlite:{}?mode=rwc", db_path.display());
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
         .connect(&connection_string)

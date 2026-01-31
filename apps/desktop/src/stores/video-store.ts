@@ -11,6 +11,7 @@ interface VideoStore {
   isImporting: boolean;
   importProgress: number;
   error: string | null;
+  isDragOver: boolean;
 
   // Actions
   importVideo: (filePath: string) => Promise<void>;
@@ -18,6 +19,7 @@ interface VideoStore {
   selectProject: (projectId: string) => void;
   clearProject: () => void;
   setError: (error: string | null) => void;
+  setDragOver: (isDragOver: boolean) => void;
 }
 
 // Convention: préfixe "use" + nom domaine + "Store"
@@ -30,16 +32,15 @@ export const useVideoStore = create<VideoStore>()(
       isImporting: false,
       importProgress: 0,
       error: null,
+      isDragOver: false,
 
       // Actions métier explicites (pas de setters génériques)
       importVideo: async (filePath) => {
         set({ isImporting: true, importProgress: 0, error: null });
 
         try {
+          // import_video use case already saves to SQLite, no need to save again
           const project = await invoke<VideoProject>('import_video', { filePath });
-
-          // Sauvegarder en SQLite
-          await invoke('save_video_project', { project });
 
           set({
             currentProject: project,
@@ -78,6 +79,10 @@ export const useVideoStore = create<VideoStore>()(
 
       setError: (error) => {
         set({ error });
+      },
+
+      setDragOver: (isDragOver) => {
+        set({ isDragOver });
       },
     }),
     { name: 'VideoStore' } // DevTools label

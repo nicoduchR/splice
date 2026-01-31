@@ -1,0 +1,5 @@
+# Mark all video files as binary to prevent Git from trying to diff them
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.avi binary

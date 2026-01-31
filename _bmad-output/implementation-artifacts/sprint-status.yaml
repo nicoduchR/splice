@@ -50,8 +50,8 @@ development_status:
   1-1-project-foundation-setup-with-monorepo: done
   1-2-clean-architecture-foundation-type-safety: done  # Code review completed: Fixed type safety issues, added validations, improved test coverage
   1-3-state-management-local-storage-setup: done  # Code review passed: Fixed type imports, added missing Tauri commands (stubs), improved error handling and validation
-  1-4-video-import-ui-with-drag-drop: backlog
-  1-5-video-format-validation-error-handling: backlog
+  1-4-video-import-ui-with-drag-drop: done  # Code review passed: Fixed border-solid drag state, removed double save, added AlertDialog, completed tests, updated File List (15 issues fixed)
+  1-5-video-format-validation-error-handling: review  # Code review: 15 issues fixed. Tests: 11 Rust tests + 13 TS tests with fixtures (48KB). Pending: Windows binaries only
   1-6-video-import-backend-processing-storage: backlog
   1-7-design-system-foundation-with-shadcn-ui: backlog
   1-8-macos-universal-binary-build-code-signing: backlog

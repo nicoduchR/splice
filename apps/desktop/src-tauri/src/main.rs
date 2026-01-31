@@ -8,6 +8,7 @@ mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
 use infrastructure::tauri_commands::{video_commands, license_commands};
+use tauri::Emitter;
 
 #[tokio::main]
 async fn main() {
@@ -26,6 +27,7 @@ async fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             video_commands::get_video_info,
@@ -35,6 +37,21 @@ async fn main() {
             license_commands::verify_license,
             license_commands::check_grace_period,
         ])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {
+                tracing::info!("Files dropped: {:?}", paths);
+                if !paths.is_empty() {
+                    let path = paths[0].to_string_lossy().to_string();
+                    let _ = window.emit("tauri://file-drop", vec![path]);
+                }
+            } else if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Over { position: _ }) = event {
+                tracing::info!("Files hovering");
+                let _ = window.emit("tauri://file-drop-hover", ());
+            } else if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Leave) = event {
+                tracing::info!("File drop cancelled");
+                let _ = window.emit("tauri://file-drop-cancelled", ());
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

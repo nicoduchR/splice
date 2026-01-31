@@ -8,6 +8,7 @@
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
+  "plugins": {},
   "bundle": {
     "active": true,
     "targets": "all",
@@ -17,14 +18,21 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/ffmpeg-aarch64-apple-darwin",
+      "binaries/ffprobe-aarch64-apple-darwin"
     ]
   },
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Splice",
-        "width": 800,
-        "height": 600
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
       }
     ],
     "security": {

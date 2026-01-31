@@ -1,0 +1,11 @@
+# Ignorer tous les fichiers vidéo générés
+*.mp4
+*.mov
+*.avi
+*.webm
+*.mkv
+
+# Garder uniquement le README et les scripts
+!README.md
+!generate-test-videos.sh
+!.gitignore
