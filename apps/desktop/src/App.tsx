@@ -33,11 +33,77 @@ function App() {
             <VideoImport />
           </div>
         ) : (
-          <div className="text-white relative z-10">
-            <h1 className="text-2xl font-bold mb-4">Projet chargé</h1>
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <p className="mb-2"><strong>Fichier:</strong> {currentProject.file_name}</p>
-              <p><strong>Chemin:</strong> {currentProject.file_path}</p>
+          <div className="text-white relative z-10 w-full max-w-2xl">
+            <h1 className="text-3xl font-bold mb-6 text-center">Projet chargé</h1>
+            <div className="bg-[#25252D] p-8 rounded-xl border border-[#35353F] shadow-2xl">
+              <div className="space-y-4">
+                {/* File name */}
+                <div>
+                  <p className="text-slate-400 text-sm mb-1">Fichier</p>
+                  <p className="text-white font-semibold text-lg">{currentProject.file_name}</p>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <p className="text-slate-400 text-sm mb-1">Durée</p>
+                  <p className="text-white font-medium">
+                    {(() => {
+                      const totalSeconds = Math.floor(currentProject.duration_seconds);
+                      const hours = Math.floor(totalSeconds / 3600);
+                      const minutes = Math.floor((totalSeconds % 3600) / 60);
+                      const seconds = totalSeconds % 60;
+                      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    })()}
+                  </p>
+                </div>
+
+                {/* Resolution */}
+                {currentProject.width && currentProject.height && (
+                  <div>
+                    <p className="text-slate-400 text-sm mb-1">Résolution</p>
+                    <p className="text-white font-medium">
+                      {currentProject.width} × {currentProject.height}
+                      {currentProject.width === 3840 && currentProject.height === 2160 && (
+                        <span className="ml-2 text-primary text-sm">(4K UHD)</span>
+                      )}
+                      {currentProject.width === 1920 && currentProject.height === 1080 && (
+                        <span className="ml-2 text-primary text-sm">(Full HD)</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* File size */}
+                {currentProject.file_size_bytes && (
+                  <div>
+                    <p className="text-slate-400 text-sm mb-1">Taille</p>
+                    <p className="text-white font-medium">
+                      {(currentProject.file_size_bytes / (1024 ** 3)).toFixed(2)} GB
+                    </p>
+                  </div>
+                )}
+
+                {/* Codec */}
+                {currentProject.codec && (
+                  <div>
+                    <p className="text-slate-400 text-sm mb-1">Codec</p>
+                    <p className="text-white font-medium uppercase">{currentProject.codec}</p>
+                  </div>
+                )}
+
+                {/* File path */}
+                <div className="pt-4 border-t border-slate-700">
+                  <p className="text-slate-400 text-sm mb-1">Chemin</p>
+                  <p className="text-slate-300 text-sm break-all">{currentProject.file_path}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Next steps placeholder */}
+            <div className="mt-6 text-center">
+              <p className="text-slate-400 text-sm">
+                Prochaine étape: Transcription (Story 2.1+)
+              </p>
             </div>
           </div>
         )}
