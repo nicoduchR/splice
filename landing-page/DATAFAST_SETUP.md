@@ -4,7 +4,7 @@ This guide explains how to configure DataFast analytics for the Splicely landing
 
 ## Prerequisites
 
-- Landing page deployed on Vercel: https://landing-page-vert-ten-24.vercel.app
+- Landing page deployed on Vercel: https://splicely.io
 - Story 0.3 implementation completed (GDPR banner, tracking code integrated)
 
 ## Step 1: Create DataFast Account
@@ -19,7 +19,7 @@ This guide explains how to configure DataFast analytics for the Splicely landing
 2. Click "Add Website" or "New Site"
 3. Enter the following details:
    - **Website Name**: Splicely Landing Page
-   - **Domain**: `landing-page-vert-ten-24.vercel.app`
+   - **Domain**: `splicely.io`
    - **Timezone**: Your preferred timezone (e.g., Europe/Paris)
 4. Click "Create" or "Save"
 
@@ -38,7 +38,7 @@ After creating the website, DataFast will provide a unique **Website ID** (also 
 ```javascript
 const DATAFAST_CONFIG = {
   websiteId: 'dfid_PLACEHOLDER', // TODO: Replace with real DataFast website ID
-  domain: 'landing-page-vert-ten-24.vercel.app'
+  domain: 'splicely.io'
 };
 ```
 
@@ -47,7 +47,7 @@ const DATAFAST_CONFIG = {
 ```javascript
 const DATAFAST_CONFIG = {
   websiteId: 'dfid_a1b2c3d4e5f6g7h8', // ✅ Your real DataFast Website ID
-  domain: 'landing-page-vert-ten-24.vercel.app'
+  domain: 'splicely.io'
 };
 ```
 
@@ -68,7 +68,7 @@ Wait for deployment to complete. Vercel will provide a production URL confirmati
 
 ### Test Page Views
 
-1. Visit your landing page: https://landing-page-vert-ten-24.vercel.app
+1. Visit your landing page: https://splicely.io
 2. Accept the analytics consent banner when it appears
 3. Wait 10-15 seconds
 4. Check DataFast dashboard → Should show 1 page view

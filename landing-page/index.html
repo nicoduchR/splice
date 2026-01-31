@@ -80,6 +80,19 @@
     .lang-switcher:hover {
         opacity: 0.8;
     }
+
+    /* Screen reader only (accessibility) */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
 </style>
 </head>
 <body class="bg-background-dark text-white font-display antialiased selection:bg-primary selection:text-white overflow-x-hidden">
@@ -344,16 +357,29 @@
 </footer>
 
 <!-- GDPR Consent Banner (Story 0.3: DataFast Analytics) -->
-<div id="gdpr-banner" style="display: none;" class="fixed bottom-0 left-0 right-0 bg-surface-dark border-t border-gray-700 p-4 z-50">
+<div id="gdpr-banner"
+     role="dialog"
+     aria-labelledby="gdpr-title"
+     aria-describedby="gdpr-description"
+     aria-live="polite"
+     style="display: none;"
+     class="fixed bottom-0 left-0 right-0 bg-surface-dark border-t border-gray-700 p-4 z-50">
   <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-    <p class="text-sm text-gray-300">
-      <span data-i18n="gdpr-message">We use analytics to improve your experience. We do not sell your data.</span>
-    </p>
+    <div>
+      <h2 id="gdpr-title" class="sr-only">Cookie Consent</h2>
+      <p id="gdpr-description" class="text-sm text-gray-300">
+        <span data-i18n="gdpr-message">We use analytics to improve your experience. We do not sell your data.</span>
+      </p>
+    </div>
     <div class="flex gap-3">
-      <button onclick="acceptAnalytics()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+      <button onclick="acceptAnalytics()"
+              aria-label="Accept analytics cookies"
+              class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-dark">
         <span data-i18n="gdpr-accept">Accept</span>
       </button>
-      <button onclick="declineAnalytics()" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+      <button onclick="declineAnalytics()"
+              aria-label="Decline analytics cookies"
+              class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-surface-dark">
         <span data-i18n="gdpr-decline">Decline</span>
       </button>
     </div>
@@ -364,8 +390,8 @@
 <script>
 // DataFast Analytics Configuration
 const DATAFAST_CONFIG = {
-  websiteId: 'dfid_PLACEHOLDER', // TODO: Replace with real DataFast website ID after account creation
-  domain: 'landing-page-vert-ten-24.vercel.app'
+  websiteId: 'dfid_Bjjh3VrB94GwjHmBlw7s3',
+  domain: 'splicely.io'
 };
 
 // Check consent on page load and conditionally load DataFast
@@ -400,6 +426,25 @@ function loadDataFast() {
   script.setAttribute('data-website-id', DATAFAST_CONFIG.websiteId);
   script.setAttribute('data-domain', DATAFAST_CONFIG.domain);
   script.src = 'https://datafa.st/js/script.js';
+
+  // Add timeout to handle slow CDN
+  const timeout = setTimeout(() => {
+    if (typeof window.df === 'undefined') {
+      console.warn('DataFast script load timeout after 10s - analytics may be unavailable');
+    }
+  }, 10000);
+
+  // Handle successful load
+  script.onload = () => {
+    clearTimeout(timeout);
+  };
+
+  // Handle load errors gracefully
+  script.onerror = (error) => {
+    clearTimeout(timeout);
+    console.warn('DataFast script failed to load - analytics disabled (ad blocker or CDN issue)');
+  };
+
   document.head.appendChild(script);
 }
 
@@ -415,7 +460,20 @@ window.addEventListener('scroll', function() {
   // Only track if DataFast is loaded
   if (typeof window.df === 'undefined') return;
 
-  const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+  // Calculate total scrollable height
+  const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+  // Handle pages with no scrollable content (e.g., very short pages or large viewports)
+  if (totalHeight <= 0) {
+    // Page fits in viewport, consider it 100% viewed
+    if (!scrollDepthTracked['100']) {
+      window.df('event', 'scroll_depth', { depth: '100%' });
+      scrollDepthTracked['100'] = true;
+    }
+    return;
+  }
+
+  const scrollPercent = Math.round((window.scrollY / totalHeight) * 100);
 
   if (scrollPercent >= 25 && !scrollDepthTracked['25']) {
     window.df('event', 'scroll_depth', { depth: '25%' });
@@ -449,19 +507,20 @@ const TALLY_FORMS = {
  * @param {string} location - CTA location for tracking (header, hero, final_cta)
  */
 function openTallyForm(location) {
-    // Track CTA click in DataFast (Story 0.3)
-    if (window.df) {
-        window.df('event', 'cta_click', {
-            source: location
-        });
-    }
-
     // Get current language from page state
     const lang = currentLang || 'en';
     const formId = TALLY_FORMS[lang];
 
-    // Open Tally popup with configuration
+    // Check if Tally is available BEFORE tracking
     if (typeof Tally !== 'undefined' && Tally.openPopup) {
+        // Track CTA click ONLY if form will actually open
+        if (window.df) {
+            window.df('event', 'cta_click', {
+                source: location
+            });
+        }
+
+        // Open Tally popup with configuration
         Tally.openPopup(formId, {
             layout: 'modal',
             width: 500,
@@ -484,11 +543,33 @@ function openTallyForm(location) {
                         form_language: lang
                     });
                 }
-                console.log('Email submitted and tracked:', location);
+            },
+            // Add fallback tracking if onSubmit doesn't fire
+            onClose: (payload) => {
+                // Payload exists only if form was submitted successfully
+                if (payload && payload.responseId && window.df) {
+                    // Backup tracking in case onSubmit failed
+                    setTimeout(() => {
+                        if (window.df) {
+                            window.df('event', 'email_submitted_fallback', {
+                                source: location,
+                                form_language: lang
+                            });
+                        }
+                    }, 100);
+                }
             }
         });
     } else {
-        // Fallback if Tally script hasn't loaded yet
+        // Tally not loaded - track error event instead of false CTA click
+        if (window.df) {
+            window.df('event', 'cta_error', {
+                source: location,
+                reason: 'tally_not_loaded'
+            });
+        }
+
+        // Fallback message to user
         console.error('Tally.so script not loaded yet. Please try again.');
         alert(lang === 'fr'
             ? 'Le formulaire est en cours de chargement. Veuillez réessayer dans un instant.'
