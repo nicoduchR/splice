@@ -564,6 +564,44 @@ pub async fn cancel_transcription(
     }
 }
 
+/// Preload the Parakeet model in background
+///
+/// This command loads the Parakeet model into memory during app startup
+/// to avoid the 5-10 second delay on first transcription.
+///
+/// It runs in a background thread to not block the UI.
+#[tauri::command]
+pub async fn preload_parakeet_model<R: tauri::Runtime>(
+    app_handle: AppHandle<R>,
+) -> Result<(), String> {
+    tracing::info!(event = "preload_model_started");
+
+    // Emit event to notify frontend
+    let _ = app_handle.emit("model:loading", serde_json::json!({}));
+
+    // Preload in blocking task to avoid blocking async runtime
+    match tokio::task::spawn_blocking(|| ParakeetTranscriptionService::preload_model()).await {
+        Ok(Ok(())) => {
+            tracing::info!(event = "preload_model_success");
+            let _ = app_handle.emit("model:ready", serde_json::json!({}));
+            Ok(())
+        }
+        Ok(Err(e)) => {
+            let error_msg = format!("Échec du préchargement du modèle: {}", e);
+            tracing::error!(event = "preload_model_failed", error = %e);
+            let _ = app_handle.emit("model:error", serde_json::json!({
+                "message": error_msg.clone()
+            }));
+            Err(error_msg)
+        }
+        Err(e) => {
+            let error_msg = format!("Tâche de préchargement paniquée: {}", e);
+            tracing::error!(event = "preload_model_task_failed", error = %e);
+            Err(error_msg)
+        }
+    }
+}
+
 /// Clean up old temporary audio files on app startup
 /// This prevents temp directory from accumulating orphaned WAV files
 pub fn cleanup_temp_directory() {

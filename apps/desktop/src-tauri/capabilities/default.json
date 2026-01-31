@@ -11,8 +11,12 @@
     "core:event:default",
     "core:event:allow-listen",
     "core:event:allow-emit",
+    "core:path:default",
+    "core:path:allow-resolve",
+    "core:path:allow-normalize",
     "dialog:allow-open",
     "dialog:default",
     "dialog:allow-save"
-  ]
+  ],
+  "platforms": ["macOS", "windows", "linux"]
 }

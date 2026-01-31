@@ -13,6 +13,13 @@ static MODEL: OnceCell<Arc<Mutex<ParakeetTDT>>> = OnceCell::new();
 pub struct ParakeetTranscriptionService;
 
 impl ParakeetTranscriptionService {
+    /// Preload the Parakeet model in the background
+    /// This is called at app startup to avoid latency on first transcription
+    pub fn preload_model() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Self::get_model()?;
+        Ok(())
+    }
+
     /// Get or initialize the Parakeet model (lazy loading, thread-safe singleton)
     /// Model is loaded once and reused for all transcriptions (2 GB RAM)
     fn get_model() -> Result<Arc<Mutex<ParakeetTDT>>, Box<dyn std::error::Error + Send + Sync>> {

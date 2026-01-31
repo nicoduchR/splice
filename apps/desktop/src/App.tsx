@@ -11,6 +11,7 @@ import { ModelDownloadDialog } from './components/model-download';
 import { TranscriptionProgressDialog, TranscriptionErrorDialog, TranscriptionScreen } from './components/transcription';
 import { useModelDownload } from './hooks/use-model-download';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { Brain } from 'lucide-react';
 
 // App screen states
@@ -43,6 +44,10 @@ function App() {
     retryDownload,
   } = useModelDownload();
 
+  // Model preloading state
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [isModelReady, setIsModelReady] = useState(false);
+
   // Load all projects on mount
   useEffect(() => {
     // Only load if running in Tauri (not in browser dev mode)
@@ -62,6 +67,54 @@ function App() {
       setCurrentScreen('project-details');
     }
   }, [currentProject, isTranscribing]);
+
+  // Listen to model preloading events
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+      return;
+    }
+
+    let unlistenModelLoading: (() => void) | undefined;
+    let unlistenModelReady: (() => void) | undefined;
+    let unlistenModelError: (() => void) | undefined;
+
+    const setupModelListeners = async () => {
+      // Listen for model loading start
+      unlistenModelLoading = await listen('model:loading', () => {
+        setIsModelLoading(true);
+      });
+
+      // Listen for model ready
+      unlistenModelReady = await listen('model:ready', () => {
+        setIsModelLoading(false);
+        setIsModelReady(true);
+      });
+
+      // Listen for model loading errors
+      unlistenModelError = await listen<{ message: string }>('model:error', (event) => {
+        setIsModelLoading(false);
+        setIsModelReady(false);
+        toast.error('Erreur de chargement du modèle', {
+          description: event.payload.message,
+        });
+      });
+    };
+
+    setupModelListeners();
+
+    // Trigger model preload in background
+    invoke('preload_parakeet_model').catch((error) => {
+      console.error('Failed to preload model:', error);
+      setIsModelLoading(false);
+      setIsModelReady(false);
+    });
+
+    return () => {
+      if (unlistenModelLoading) unlistenModelLoading();
+      if (unlistenModelReady) unlistenModelReady();
+      if (unlistenModelError) unlistenModelError();
+    };
+  }, []);
 
   // Listen to transcription events
   useEffect(() => {
@@ -194,6 +247,7 @@ function App() {
             videoInfo={{
               id: currentProject.id,
               file_name: currentProject.file_name,
+              file_path: currentProject.file_path,
               duration_seconds: currentProject.duration_seconds,
               file_size_bytes: currentProject.file_size_bytes,
             }}
@@ -282,7 +336,7 @@ function App() {
                     );
                   }
                 }}
-                disabled={isTranscribing || !isReady}
+                disabled={isTranscribing || !isReady || isModelLoading || !isModelReady}
               >
                 {isTranscribing ? (
                   <>
@@ -291,6 +345,11 @@ function App() {
                   </>
                 ) : !isReady ? (
                   'Modèle Parakeet en téléchargement...'
+                ) : isModelLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                    Chargement du modèle en arrière-plan...
+                  </>
                 ) : (
                   <>
                     <Brain className="w-5 h-5 mr-2" />
@@ -301,6 +360,11 @@ function App() {
               {!isReady && (
                 <p className="text-slate-400 text-xs">
                   Le modèle de transcription se télécharge au premier lancement
+                </p>
+              )}
+              {isModelLoading && (
+                <p className="text-slate-400 text-xs">
+                  Préchargement du modèle en arrière-plan pour des transcriptions instantanées
                 </p>
               )}
             </div>

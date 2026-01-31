@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Brain, Film, Lock, Cpu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 interface TranscriptionProgress {
   video_id: string;
@@ -12,6 +13,7 @@ interface TranscriptionProgress {
 interface VideoInfo {
   id: string;
   file_name: string;
+  file_path: string;
   duration_seconds: number;
   file_size_bytes?: number;
 }
@@ -27,10 +29,31 @@ export function TranscriptionScreen({
   videoInfo,
   onCancel,
 }: TranscriptionScreenProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [progressHistory, setProgressHistory] = useState<
     { timestamp: number; progress: number }[]
   >([]);
+  const [videoSrc, setVideoSrc] = useState<string>('');
+
+  // Convertir le chemin du fichier en URL utilisable
+  useEffect(() => {
+    try {
+      // Tauri v2: convertFileSrc avec protocole asset explicite
+      const assetUrl = convertFileSrc(videoInfo.file_path, 'asset');
+      setVideoSrc(assetUrl);
+    } catch (error) {
+      console.error('Failed to convert file source:', error);
+    }
+  }, [videoInfo.file_path]);
+
+  // Synchroniser la position vidéo avec la progression
+  useEffect(() => {
+    if (videoRef.current && videoInfo.duration_seconds > 0) {
+      const estimatedTime = progress.progress * videoInfo.duration_seconds;
+      videoRef.current.currentTime = estimatedTime;
+    }
+  }, [progress.progress, videoInfo.duration_seconds]);
 
   // Calculer le temps restant basé sur la progression
   useEffect(() => {
@@ -115,18 +138,25 @@ export function TranscriptionScreen({
       <div className="w-full max-w-[680px] flex flex-col gap-8">
         {/* Video Thumbnail Card */}
         <div className="bg-card-dark rounded-xl border border-white/5 overflow-hidden shadow-2xl">
-          {/* Video Thumbnail Section */}
+          {/* Video Preview Section */}
           <div className="relative w-full aspect-video bg-gray-800 group">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-
-            {/* Play Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="bg-black/40 rounded-full p-3 backdrop-blur-sm">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="w-0 h-0 border-l-[12px] border-l-white border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1" />
-                </div>
+            {/* Video Element */}
+            {videoSrc ? (
+              <video
+                ref={videoRef}
+                src={videoSrc}
+                className="w-full h-full object-contain"
+                muted
+                playsInline
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
               </div>
-            </div>
+            )}
+
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
             {/* Duration Badge */}
             <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">

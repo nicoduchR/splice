@@ -46,6 +46,7 @@ async fn main() {
             transcription_commands::cancel_transcription,
             transcription_commands::save_transcript,
             transcription_commands::get_transcript,
+            transcription_commands::preload_parakeet_model,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {
