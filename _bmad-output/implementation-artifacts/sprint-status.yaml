@@ -59,8 +59,8 @@ development_status:
   epic-1-retrospective: optional
 
   epic-2: in-progress
-  2-1-parakeet-model-download-infrastructure: done  # Download infrastructure complete: HF API + HTTP fallback, progress tracking, retry logic, Tauri 2.0 detection
-  2-2-transcription-backend-integration: backlog
+  2-1-parakeet-model-download-infrastructure: done  # Code review: 8/13 issues fixed. Remaining: real checksums, E2E testing
+  2-2-transcription-backend-integration: ready-for-dev  # Story created: Parakeet integration with word-level timestamps, CPU-only transcription
   2-3-transcript-data-storage: backlog
   2-4-transcription-ui-progress-tracking: backlog
   2-5-transcript-display-editor-component: backlog

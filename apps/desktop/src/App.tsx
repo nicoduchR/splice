@@ -69,19 +69,6 @@ function App() {
           <TopBar />
           <Toaster />
 
-      {/* Dev: Toggle Components Demo */}
-      <div className="absolute top-4 right-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowComponentsDemo(true)}
-          className="text-xs bg-background/50 backdrop-blur-sm hover:bg-background/80"
-        >
-          <span className="material-symbols-outlined text-sm">palette</span>
-          Demo
-        </Button>
-      </div>
-
       <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 relative">
         {/* Abstract Background Gradient for depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -38,6 +38,7 @@ async fn main() {
             license_commands::check_grace_period,
             model_commands::check_model_status,
             model_commands::download_parakeet_model,
+            model_commands::cancel_model_download,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

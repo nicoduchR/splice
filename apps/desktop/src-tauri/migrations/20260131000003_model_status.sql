@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS model_status (
 );
 
 -- Insert initial record for Parakeet model
+-- NOTE: Real size is 2.5 GB (not 670 MB as initially documented)
 INSERT INTO model_status (name, version, status, total_size_bytes)
-VALUES ('parakeet-tdt-0.6b-v3', 'v3', 'missing', 670000000)
+VALUES ('parakeet-tdt-0.6b-v3', 'v3', 'missing', 2514050000)
 ON CONFLICT(name) DO NOTHING;
 
 -- Create index for faster lookups

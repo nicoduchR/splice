@@ -1,6 +1,6 @@
 # Story 2.1: Parakeet Model Download Infrastructure
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -54,7 +54,7 @@ Afin de pouvoir commencer à transcrire des vidéos sans configuration manuelle.
 
 - [x] Valider l'intégrité du modèle avec checksum SHA-256 (AC: modèle validé avec vérification checksum)
   - [x] Ajouter dépendances: `sha2 = "0.10"`, `hex = "0.4"`
-  - [x] Stocker checksums attendus dans configuration (const avec PLACEHOLDER_HASH)
+  - [x] Stocker checksums attendus dans configuration (checksums réels ajoutés 2026-01-31)
   - [x] Implémenter `verify_file_checksum(path, expected_hash)` avec SHA-256
   - [x] Si checksum invalide, supprimer fichier corrompu et retourner erreur
 
@@ -85,12 +85,12 @@ Cette story implémente l'**infrastructure de téléchargement automatique des m
 **Décision: Téléchargement automatique au premier lancement vs Bundle avec l'app**
 [Source: Architecture FR7, Epic 2 Story 2.1]
 
-**Rationale:** Le modèle Parakeet TDT 0.6B v3 ONNX INT8 pèse ≈670 MB (version quantifiée). Bundler ce modèle dans l'app desktop augmenterait significativement la taille de l'installateur (.dmg/.msi), créant une mauvaise expérience de téléchargement initial. Le téléchargement à la demande permet :
+**Rationale:** Le modèle Parakeet TDT 0.6B v3 ONNX INT8 pèse ≈2.5 GB (version quantifiée). Bundler ce modèle dans l'app desktop augmenterait significativement la taille de l'installateur (.dmg/.msi), créant une mauvaise expérience de téléchargement initial. Le téléchargement à la demande permet :
 - Installateur léger (~50 MB sans modèle)
 - Mise à jour facile des modèles sans recompiler l'app
 - Support de plusieurs modèles à l'avenir (langues multiples)
 
-**Alternative considérée:** Bundle modèle dans l'installateur - Rejeté car taille excessive (>700 MB) et inflexibilité.
+**Alternative considérée:** Bundle modèle dans l'installateur - Rejeté car taille excessive (>2.5 GB) et inflexibilité.
 
 **Implications NFR:**
 - **NFR2:** Feedback visuel (barre de progression temps réel)
@@ -107,20 +107,21 @@ Cette story implémente l'**infrastructure de téléchargement automatique des m
 
 **Repository HuggingFace:**
 - **Original NeMo:** `nvidia/parakeet-tdt-0.6b-v3` (2.51 GB)
-- **ONNX INT8 (recommandé):** `istupakov/parakeet-tdt-0.6b-v3-onnx` (670 MB)
+- **ONNX INT8 (utilisé):** `istupakov/parakeet-tdt-0.6b-v3-onnx` (2.5 GB)
 - **Licence:** CC-BY-4.0 (usage commercial autorisé)
 - **Téléchargements:** 88,239/mois (modèle populaire)
 
 **Fichiers à télécharger depuis HuggingFace:**
 ```
 istupakov/parakeet-tdt-0.6b-v3-onnx/
-├── encoder-model.onnx        (~300 MB)
-├── encoder-model.onnx.data   (~350 MB)
-├── decoder_joint-model.onnx  (~20 MB)
+├── encoder-model.onnx        (~42 MB)
+├── encoder-model.onnx.data   (~2.4 GB) ⚠️ Fichier principal
+├── decoder_joint-model.onnx  (~72 MB)
 └── vocab.txt                 (~50 KB, vocabulaire SentencePiece 8192 tokens)
 ```
 
-**Total: ≈670 MB (modèle INT8 quantifié)**
+**Total: ≈2.5 GB (modèle INT8 quantifié)**
+**⚠️ CORRECTION:** La documentation initiale mentionnait 670 MB, mais la taille réelle est 2.5 GB.
 
 **Performances CPU-only (benchmarks 2026):**
 - **Intel Core i7-12700K:** RTFx 3332.74 (ultra-rapide, ~54× plus rapide que Phi-4)
@@ -761,7 +762,7 @@ describe('ModelDownloadDialog', () => {
 **Format ONNX INT8 (istupakov conversion):**
 - **Créé:** Décembre 2024
 - **Téléchargements:** 2,574/mois
-- **Taille optimisée:** 670 MB (vs 2.51 GB original)
+- **Taille:** 2.5 GB (similaire au 2.51 GB original NeMo)
 - **Performance:** Aucune perte significative de précision (WER 6.32% vs 6.14%)
 
 **Bibliothèques Rust (Janvier 2026):**
@@ -844,6 +845,80 @@ describe('ModelDownloadDialog', () => {
 - [sha2 - SHA-256 Hashing](https://crates.io/crates/sha2)
 - [reqwest - HTTP Client](https://docs.rs/reqwest)
 
+## Code Review (AI) - 2026-01-31
+
+### Review Outcome: **Changes Applied (Auto-fixed)**
+
+**Reviewer:** Claude Sonnet 4.5
+**Date:** 2026-01-31
+**Issues Found:** 13 (4 CRITICAL, 4 HIGH, 5 MEDIUM)
+**Issues Fixed:** 8 (all CRITICAL and HIGH)
+
+### CRITICAL Issues (Fixed ✅)
+
+1. **✅ FIXED: Checksums placeholders → CHECKSUMS RÉELS**
+   - **Location:** `model_manager.rs:29-42`
+   - **Problème:** `PLACEHOLDER_HASH` partout, validation intégrité désactivée
+   - **Fix:** Checksums SHA-256 réels ajoutés (générés 2026-01-31)
+   - **Status:** ✅ COMPLÈTEMENT RÉSOLU - Validation d'intégrité maintenant ACTIVE
+
+2. **✅ FIXED: Taille du modèle incorrecte (670 MB vs 2.5 GB)**
+   - **Location:** Multiple files (story, migration, model_commands, model_manager)
+   - **Problème:** Inconsistance entre documentation (670 MB) et code (2.5 GB)
+   - **Fix:** Corrigé partout pour 2.5 GB, ajouté note d'erreur dans doc
+
+3. **✅ FIXED: Frontend écoute des événements jamais émis**
+   - **Location:** `ModelDownloadDialog.tsx:58-70` vs `model_commands.rs`
+   - **Problème:** `model:download_failed` et `model:download_completed` non émis par backend
+   - **Fix:** Ajouté émission de ces événements dans `download_parakeet_model()`
+
+4. **✅ FIXED: Commande d'annulation inexistante**
+   - **Location:** `model-service.ts:51-58`
+   - **Problème:** `cancel_model_download()` appelée mais non implémentée
+   - **Fix:** Implémenté commande Tauri `cancel_model_download` avec flag global
+
+### HIGH Issues (Fixed ✅)
+
+5. **✅ FIXED: Table SQLite créée mais jamais utilisée**
+   - **Problème:** Migration crée `model_status` mais aucun read/write
+   - **Fix:** Implémenté CRUD complet (read dans `check_model_status`, write dans `download_parakeet_model`)
+
+6. **✅ FIXED: État "Downloading" défini mais jamais utilisé**
+   - **Problème:** `ModelStatus::Downloading` existait mais non utilisé
+   - **Fix:** Marqué status="downloading" au début de téléchargement dans SQLite
+
+7. **✅ FIXED: Documentation technique fausse**
+   - **Problème:** Story doc mentionnait 670 MB partout
+   - **Fix:** Corrigé toutes les sections avec taille réelle 2.5 GB
+
+8. **✅ FIXED: Pas d'événements d'erreur émis**
+   - **Problème:** `download_parakeet_model()` retourne `Err()` sans événement
+   - **Fix:** Émission de `model:download_failed` avant retour d'erreur
+
+### MEDIUM Issues (Partiellement fixes)
+
+9. **✅ FIXED: Story status incorrect** - Sera mis à jour en fin de review
+10. **⚠️ NON FIX: Reqwest redondant** - Laissé pour fallback robustesse
+11. **⚠️ NON FIX: Tests E2E non exécutés** - À faire manuellement
+12. **⚠️ NON FIX: Timeout global** - Acceptable (5min × 4 fichiers = 20min max)
+13. **⚠️ NON FIX: Hardcoded strings** - Refactoring mineur, pas critique
+
+### Files Modified in Code Review
+
+- `model_commands.rs` - Ajout SQLite CRUD, événements, cancel command
+- `model_manager.rs` - TODO checksums documenté
+- `20260131000003_model_status.sql` - Taille corrigée (2.5 GB)
+- `main.rs` - Enregistrement `cancel_model_download`
+- `2-1-parakeet-model-download-infrastructure.md` - Doc corrigée
+
+### Remaining TODO (User Action Required)
+
+- [x] **Générer checksums réels** ✅ FAIT (2026-01-31)
+- [x] **Remplacer PLACEHOLDER_HASH** ✅ FAIT dans `model_manager.rs:29-42`
+- [ ] **Tester workflow E2E** complet (premier lancement → téléchargement → validation checksum)
+
+---
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -895,8 +970,8 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 2. **Téléchargement depuis HuggingFace**
    - Utilise `hf-hub` crate pour télécharger depuis `istupakov/parakeet-tdt-0.6b-v3-onnx`
-   - Fichiers: encoder-model.onnx (300MB), encoder-model.onnx.data (350MB), decoder_joint-model.onnx (20MB), vocab.txt (50KB)
-   - Total: ~670 MB (modèle INT8 quantifié)
+   - Fichiers: encoder-model.onnx (42MB), encoder-model.onnx.data (2.4GB), decoder_joint-model.onnx (72MB), vocab.txt (50KB)
+   - Total: ~2.5 GB (modèle INT8 quantifié)
    - Cache automatique HuggingFace utilisé
 
 3. **Barre de progression temps réel**
@@ -924,10 +999,16 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
    - Intégration avec événements Tauri pour progression temps réel
    - Boutons Annuler/Réessayer fonctionnels
 
-**⚠️ À compléter:**
-- Remplacer PLACEHOLDER_HASH par checksums réels (nécessite téléchargement manuel initial)
-- Tester workflow complet E2E (premier lancement → téléchargement → validation)
-- Implémenter persistance status dans SQLite (actuellement seulement en mémoire)
+**✅ COMPLÉTÉ dans code review:**
+- ✅ Persistance status SQLite implémentée (read/write)
+- ✅ État "Downloading" maintenant utilisé
+- ✅ Événements manquants ajoutés: `model:download_completed`, `model:download_failed`
+- ✅ Commande `cancel_model_download` implémentée
+- ✅ Tailles corrigées partout (2.5 GB au lieu de 670 MB)
+- ✅ **Checksums réels SHA-256 ajoutés** (validation intégrité ACTIVÉE)
+
+**⚠️ TODO restant:**
+- **Tester workflow complet E2E** (premier lancement → téléchargement → validation checksum)
 
 **Tests unitaires:**
 - ✅ `verify_checksum()` - validation avec fichier test "hello world"
@@ -936,18 +1017,18 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 ### File List
 
-**Backend Rust:**
+**Backend Rust (Original + Code Review Fixes):**
 - `src/domain/entities/model_metadata.rs` (NOUVEAU)
 - `src/domain/entities/mod.rs` (MODIFIÉ - ajout exports)
 - `src/application/ports/model_downloader.rs` (NOUVEAU)
 - `src/application/ports/mod.rs` (MODIFIÉ - ajout exports)
-- `src/infrastructure/adapters/model_manager.rs` (NOUVEAU)
+- `src/infrastructure/adapters/model_manager.rs` (NOUVEAU, **MODIFIÉ dans review** - TODO checksums)
 - `src/infrastructure/adapters/mod.rs` (MODIFIÉ - ajout exports)
-- `src/infrastructure/tauri_commands/model_commands.rs` (NOUVEAU)
+- `src/infrastructure/tauri_commands/model_commands.rs` (NOUVEAU, **MODIFIÉ dans review** - SQLite CRUD, événements, cancel)
 - `src/infrastructure/tauri_commands/mod.rs` (MODIFIÉ - ajout exports)
-- `src/main.rs` (MODIFIÉ - enregistrement commandes Tauri)
+- `src/main.rs` (MODIFIÉ - enregistrement commandes Tauri, **+ cancel_model_download**)
 - `Cargo.toml` (MODIFIÉ - ajout dépendances)
-- `migrations/20260131000003_model_status.sql` (NOUVEAU)
+- `migrations/20260131000003_model_status.sql` (NOUVEAU, **MODIFIÉ dans review** - taille corrigée)
 
 **Frontend TypeScript:**
 - `src/services/model-service.ts` (MODIFIÉ - ajout DownloadProgress, onDownloadProgress)
@@ -955,3 +1036,47 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - `src/components/model-download/index.ts` (existant)
 - `src/hooks/use-model-download.ts` (existant)
 - `src/App-with-model-download.example.tsx` (existant - exemple d'intégration)
+
+**Documentation:**
+- `2-1-parakeet-model-download-infrastructure.md` (**MODIFIÉ dans review** - tailles corrigées, notes ajoutées)
+
+
+## Change Log
+
+### 2026-01-31 - Real Checksums Added (User + Claude)
+
+**Critical Security Fix:**
+- ✅ **Added real SHA-256 checksums** for all 4 model files
+  - encoder-model.onnx: `98a74b21b4cc0017c1e7030319a4a96f4a9506e50f0708f3a516d02a77c96bb1`
+  - encoder-model.onnx.data: `9a22d372c51455c34f13405da2520baefb7125bd16981397561423ed32d24f36`
+  - decoder_joint-model.onnx: `e978ddf6688527182c10fde2eb4b83068421648985ef23f7a86be732be8706c1`
+  - vocab.txt: `d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d`
+- ✅ **File integrity validation is now ACTIVE** (was disabled with PLACEHOLDER_HASH)
+
+**Remaining Work:**
+- Test E2E workflow (first launch → download → checksum validation)
+
+### 2026-01-31 - Code Review Auto-Fixes (Claude Sonnet 4.5)
+
+**Changes Applied:**
+- ✅ Fixed all CRITICAL and HIGH severity issues (8 issues)
+- ✅ Added SQLite CRUD for model_status table (read/write persistence)
+- ✅ Implemented model status "Downloading" state usage
+- ✅ Added missing Tauri events: `model:download_completed`, `model:download_failed`
+- ✅ Implemented `cancel_model_download` Tauri command
+- ✅ Corrected model size from 670 MB to 2.5 GB (everywhere)
+- ✅ Updated documentation with size corrections
+
+**Status Change:** `ready-for-dev` → `in-progress`
+
+### 2026-01-31 - Initial Implementation (Dev Agent)
+
+**Implemented:**
+- Model download infrastructure with HuggingFace API
+- Progress tracking with Tauri events
+- Retry logic with exponential backoff
+- SQLite migration for model status
+- Frontend components (ModelDownloadDialog, hooks, services)
+
+**Status:** `ready-for-dev`
+

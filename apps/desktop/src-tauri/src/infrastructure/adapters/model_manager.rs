@@ -24,13 +24,14 @@ const PARAKEET_FILES: &[(&str, u64)] = &[
 
 const TOTAL_MODEL_SIZE: u64 = 2_514_050_000; // ~2.5 GB total
 
-/// SHA-256 checksums for model files
-/// TODO: These will be computed after first manual download
+/// SHA-256 checksums for model files (Parakeet TDT 0.6B v3 ONNX INT8)
+/// Generated on 2026-01-31 from istupakov/parakeet-tdt-0.6b-v3-onnx
+/// These checksums ensure file integrity after download
 const MODEL_CHECKSUMS: &[(&str, &str)] = &[
-    ("encoder-model.onnx", "PLACEHOLDER_HASH"),
-    ("encoder-model.onnx.data", "PLACEHOLDER_HASH"),
-    ("decoder_joint-model.onnx", "PLACEHOLDER_HASH"),
-    ("vocab.txt", "PLACEHOLDER_HASH"),
+    ("encoder-model.onnx", "98a74b21b4cc0017c1e7030319a4a96f4a9506e50f0708f3a516d02a77c96bb1"),
+    ("encoder-model.onnx.data", "9a22d372c51455c34f13405da2520baefb7125bd16981397561423ed32d24f36"),
+    ("decoder_joint-model.onnx", "e978ddf6688527182c10fde2eb4b83068421648985ef23f7a86be732be8706c1"),
+    ("vocab.txt", "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
 ];
 
 /// HuggingFace Model Manager implementation
