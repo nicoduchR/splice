@@ -56,7 +56,7 @@ impl SaveTranscriptUseCase {
         let created_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| {
-                DomainError::ValidationError(format!("Failed to get timestamp: {}", e))
+                DomainError::RepositoryError(format!("Failed to get timestamp: {}", e))
             })?
             .as_secs() as i64;
 
