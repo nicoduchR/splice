@@ -3,7 +3,6 @@ use crate::infrastructure::ffmpeg::video_metadata::VideoMetadata;
 use serde_json::Value;
 use std::path::Path;
 use std::time::Duration;
-use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 use tokio::time::timeout;
 use tracing::{debug, error, info};
@@ -226,8 +225,9 @@ mod tests {
     async fn test_probe_video_format_file_not_found() {
         let service = FfmpegService::new();
         let app = tauri::test::mock_app();
+        let app_handle = app.handle();
 
-        let result = service.probe_video_format(&app, "/nonexistent/video.mp4").await;
+        let result = service.probe_video_format(app_handle, "/nonexistent/video.mp4").await;
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), DomainError::FileNotFound(_)));
@@ -237,9 +237,10 @@ mod tests {
     async fn test_probe_video_format_h264_success() {
         let service = FfmpegService::new();
         let app = tauri::test::mock_app();
+        let app_handle = app.handle();
 
         let fixture_path = format!("{}/sample-h264.mp4", TEST_FIXTURES_DIR);
-        let result = service.probe_video_format(&app, &fixture_path).await;
+        let result = service.probe_video_format(app_handle, &fixture_path).await;
 
         assert!(result.is_ok(), "H.264 validation should succeed");
         let metadata = result.unwrap();

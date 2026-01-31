@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 /// TranscriptWord - represents a single word with timing information
+/// Used in future stories for transcription
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../../../packages/types/src/generated/")]
 pub struct TranscriptWord {
@@ -15,6 +17,8 @@ pub struct TranscriptWord {
 }
 
 /// Transcript - represents a full video transcription
+/// Used in future stories for transcription
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../../../packages/types/src/generated/")]
 pub struct Transcript {

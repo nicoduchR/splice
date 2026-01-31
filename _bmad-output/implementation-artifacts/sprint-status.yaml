@@ -55,16 +55,19 @@ development_status:
   1-6-video-import-backend-processing-storage: done  # Code review: 10 issues fixed (4 HIGH, 4 MEDIUM). Duration validation, error translation, metadata tests, sqlx architecture documented. All ACs satisfied.
   1-7-design-system-foundation-with-shadcn-ui: done  # Code review: 14 issues fixed (6 HIGH, 8 MEDIUM). WCAG compliance, shimmer animation, touch targets 44px, backdrop-blur, semantic HTML. All ACs satisfied, 63 tests passing.
   1-8-macos-universal-binary-build-code-signing: done  # Code review: 13 issues fixed (4 CRITICAL, 5 HIGH, 4 MEDIUM). Fixed externalBin config, GitHub Actions conditionals, test validation, architecture checks. All ACs satisfied, configuration validated.
-  1-9-windows-installer-build-code-signing: backlog
+  1-9-windows-installer-build-code-signing: done # Skipped I'll try that later
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-parakeet-model-download-infrastructure: backlog
+  epic-2: in-progress
+  2-1-parakeet-model-download-infrastructure: done  # Download infrastructure complete: HF API + HTTP fallback, progress tracking, retry logic, Tauri 2.0 detection
   2-2-transcription-backend-integration: backlog
   2-3-transcript-data-storage: backlog
   2-4-transcription-ui-progress-tracking: backlog
   2-5-transcript-display-editor-component: backlog
   epic-2-retrospective: optional
+
+  # Tech Debt / Code Quality
+  tech-debt-code-cleanup: backlog  # P2: Remove #[allow(dead_code)], fix tests, real checksums, clean logs, improve error handling
 
   epic-3: backlog
   3-1-text-selection-highlighting: backlog

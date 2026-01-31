@@ -3,12 +3,15 @@ use ts_rs::TS;
 use std::fmt;
 
 /// Timecode value object for video timestamps
+/// Used in future stories for video editing
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../../../packages/types/src/generated/")]
 pub struct Timecode {
     pub seconds: f64,
 }
 
+#[allow(dead_code)]
 impl Timecode {
     pub fn from_seconds(seconds: f64) -> Self {
         Self { seconds }

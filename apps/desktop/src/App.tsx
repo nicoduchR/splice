@@ -5,19 +5,45 @@ import { TopBar } from './components/layout';
 import { Toaster } from './components/ui/sonner';
 import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
+import { ModelDownloadDialog } from './components/model-download';
+import { useModelDownload } from './hooks/use-model-download';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
   const loadAllProjects = useVideoStore(s => s.loadAllProjects);
   const [showComponentsDemo, setShowComponentsDemo] = useState(false);
 
+  // Model download management
+  const {
+    showDialog,
+    isChecking,
+    isReady,
+    cancelDownload,
+    retryDownload,
+  } = useModelDownload();
+
   // Load all projects on mount
   useEffect(() => {
     // Only load if running in Tauri (not in browser dev mode)
-    if (window.__TAURI__) {
+    // Check for Tauri 2.0 internals object
+    if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
       loadAllProjects();
     }
   }, [loadAllProjects]);
+
+  // Loading screen while checking model status
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background-dark">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-gray-400">
+            Vérification du moteur de transcription...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Show components demo if toggled
   if (showComponentsDemo) {
@@ -36,9 +62,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col overflow-hidden">
-      <TopBar />
-      <Toaster />
+    <>
+      {!showDialog ? (
+        // Normal app content
+        <div className="min-h-screen flex flex-col overflow-hidden">
+          <TopBar />
+          <Toaster />
 
       {/* Dev: Toggle Components Demo */}
       <div className="absolute top-4 right-4 z-50">
@@ -140,7 +169,19 @@ function App() {
           </div>
         )}
       </main>
-    </div>
+        </div>
+      ) : (
+        // Clean background when model is downloading
+        <div className="min-h-screen bg-background-dark" />
+      )}
+
+      {/* Model Download Dialog - shown automatically if model is missing or corrupted */}
+      <ModelDownloadDialog
+        isOpen={showDialog}
+        onCancel={cancelDownload}
+        onRetry={retryDownload}
+      />
+    </>
   );
 }
 
