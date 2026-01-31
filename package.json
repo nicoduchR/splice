@@ -1,0 +1,19 @@
+{
+  "name": "splice",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @splice/desktop dev",
+    "tauri:dev": "pnpm --filter @splice/desktop tauri dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@10.28.1"
+}

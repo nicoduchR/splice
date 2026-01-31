@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@splice/ui": ["../../packages/ui/src"],
+      "@splice/types": ["../../packages/types/src"],
+      "@splice/validation": ["../../packages/validation/src"],
+      "@splice/utils": ["../../packages/utils/src"]
+    }
+  }
+}
