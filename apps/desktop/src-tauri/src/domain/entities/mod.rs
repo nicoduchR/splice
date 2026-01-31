@@ -2,6 +2,7 @@ pub mod video;
 pub mod transcript;
 pub mod model_metadata;
 pub mod transcription;
+pub mod transcript_stored;
 
 pub use video::VideoProject;
 // Used in future stories
@@ -10,3 +11,4 @@ pub use transcript::{Transcript, TranscriptWord};
 #[allow(unused_imports)]
 pub use model_metadata::{ModelMetadata, ModelStatus};
 pub use transcription::{TranscriptionResult, Word};
+pub use transcript_stored::{TranscriptStored, TranscriptWordStored};

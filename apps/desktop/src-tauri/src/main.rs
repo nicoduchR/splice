@@ -43,6 +43,8 @@ async fn main() {
             model_commands::download_parakeet_model,
             model_commands::cancel_model_download,
             transcription_commands::transcribe_video,
+            transcription_commands::save_transcript,
+            transcription_commands::get_transcript,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

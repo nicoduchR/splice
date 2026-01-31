@@ -1,9 +1,14 @@
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, State};
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::Arc;
 use crate::domain::entities::transcription::TranscriptionResult;
+use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
+use crate::domain::repositories::TranscriptRepository;
 use crate::infrastructure::adapters::{AudioExtractor, ParakeetTranscriptionService};
+use crate::infrastructure::config::app_state::AppState;
 use crate::application::ports::transcription_service::TranscriptionService;
+use crate::application::use_cases::SaveTranscriptUseCase;
 
 // Progress tracking constants
 const PROGRESS_EXTRACTION: f64 = 0.2;
@@ -196,6 +201,134 @@ fn emit_progress<R: tauri::Runtime>(
     );
 
     Ok(())
+}
+
+/// Save a transcription result to database
+///
+/// Takes an in-memory TranscriptionResult and persists it to SQLite
+/// with generated IDs and metadata.
+///
+/// # Arguments
+/// * `transcript_result` - The transcription result from Parakeet
+/// * `project_id` - The project ID this transcript belongs to
+/// * `app_state` - The application state (injected by Tauri)
+///
+/// # Returns
+/// * `Ok(TranscriptStored)` - The saved transcript with ID
+/// * `Err(String)` - Error message in French
+#[tauri::command]
+pub async fn save_transcript(
+    transcript_result: TranscriptionResult,
+    project_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<TranscriptStored, String> {
+    tracing::info!(
+        event = "save_transcript_command",
+        project_id = %project_id,
+        word_count = transcript_result.words.len(),
+    );
+
+    // Validation: Check project_id is not empty
+    if project_id.trim().is_empty() {
+        return Err("L'identifiant du projet ne peut pas être vide".to_string());
+    }
+
+    // Create use case and execute
+    let use_case = SaveTranscriptUseCase::new(app_state.transcript_repository.clone());
+
+    match use_case.execute(transcript_result, project_id) {
+        Ok(transcript) => {
+            tracing::info!(
+                event = "save_transcript_success",
+                transcript_id = %transcript.id,
+            );
+            Ok(transcript)
+        }
+        Err(e) => {
+            tracing::error!(
+                event = "save_transcript_failed",
+                error = %e,
+            );
+            Err(format!("Erreur lors de la sauvegarde du transcript: {}", e))
+        }
+    }
+}
+
+/// Combined transcript with words for frontend
+#[derive(Clone, Serialize)]
+pub struct FullTranscript {
+    pub transcript: TranscriptStored,
+    pub words: Vec<TranscriptWordStored>,
+}
+
+/// Get a transcript by project ID
+///
+/// Retrieves the transcript and all its words from the database.
+///
+/// # Arguments
+/// * `project_id` - The project ID to search for
+/// * `app_state` - The application state (injected by Tauri)
+///
+/// # Returns
+/// * `Ok(Some(FullTranscript))` - The transcript with words
+/// * `Ok(None)` - No transcript found for this project
+/// * `Err(String)` - Error message in French
+#[tauri::command]
+pub async fn get_transcript(
+    project_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<Option<FullTranscript>, String> {
+    tracing::info!(
+        event = "get_transcript_command",
+        project_id = %project_id,
+    );
+
+    // Validation: Check project_id is not empty
+    if project_id.trim().is_empty() {
+        return Err("L'identifiant du projet ne peut pas être vide".to_string());
+    }
+
+    // Find transcript
+    let transcript = match app_state.transcript_repository.find_by_project_id(&project_id) {
+        Ok(Some(t)) => t,
+        Ok(None) => {
+            tracing::info!(
+                event = "get_transcript_not_found",
+                project_id = %project_id,
+            );
+            return Ok(None);
+        }
+        Err(e) => {
+            tracing::error!(
+                event = "get_transcript_failed",
+                error = %e,
+            );
+            return Err(format!("Erreur lors de la récupération du transcript: {}", e));
+        }
+    };
+
+    // Find words
+    let words = match app_state.transcript_repository.find_words_by_transcript_id(&transcript.id) {
+        Ok(w) => w,
+        Err(e) => {
+            tracing::error!(
+                event = "get_transcript_words_failed",
+                error = %e,
+            );
+            return Err(format!("Erreur lors de la récupération des mots: {}", e));
+        }
+    };
+
+    tracing::info!(
+        event = "get_transcript_success",
+        transcript_id = %transcript.id,
+        word_count = words.len(),
+    );
+
+    Ok(Some(FullTranscript {
+        transcript,
+        words,
+    }))
 }
 
 /// Clean up old temporary audio files on app startup
