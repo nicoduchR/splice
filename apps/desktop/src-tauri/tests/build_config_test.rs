@@ -159,22 +159,28 @@ fn test_external_bin_config_includes_both_architectures() {
     let config_content = fs::read_to_string(config_path)
         .expect("Failed to read tauri.conf.json");
 
-    // Verify all architecture-specific binaries are listed
+    // Tauri automatically appends target triple to binary names at build time
+    // Config should use base names: "binaries/ffmpeg", "binaries/ffprobe"
+    // Tauri will look for binaries/ffmpeg-{target} when building
     assert!(
-        config_content.contains("binaries/ffmpeg-aarch64-apple-darwin"),
-        "Config should include ffmpeg aarch64 binary"
+        config_content.contains("\"binaries/ffmpeg\""),
+        "Config should include ffmpeg binary (base name)"
     );
     assert!(
-        config_content.contains("binaries/ffprobe-aarch64-apple-darwin"),
-        "Config should include ffprobe aarch64 binary"
+        config_content.contains("\"binaries/ffprobe\""),
+        "Config should include ffprobe binary (base name)"
+    );
+
+    // Verify the actual architecture-specific binaries exist on disk
+    // (Tauri will look for these when building for specific targets)
+    let binaries_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("binaries");
+    assert!(
+        binaries_dir.join("ffmpeg-aarch64-apple-darwin").exists(),
+        "ffmpeg-aarch64-apple-darwin should exist"
     );
     assert!(
-        config_content.contains("binaries/ffmpeg-x86_64-apple-darwin"),
-        "Config should include ffmpeg x86_64 binary"
-    );
-    assert!(
-        config_content.contains("binaries/ffprobe-x86_64-apple-darwin"),
-        "Config should include ffprobe x86_64 binary"
+        binaries_dir.join("ffmpeg-x86_64-apple-darwin").exists(),
+        "ffmpeg-x86_64-apple-darwin should exist"
     );
 }
 
