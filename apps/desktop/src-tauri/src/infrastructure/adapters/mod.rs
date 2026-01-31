@@ -1,6 +1,8 @@
 pub mod mock_video_repository;
 pub mod sqlite_video_repository;
 pub mod model_manager;
+pub mod parakeet_transcription_service;
+pub mod audio_extractor;
 
 // Used in tests
 #[allow(unused_imports)]
@@ -9,3 +11,5 @@ pub use sqlite_video_repository::SqliteVideoRepository;
 // Used by tauri_commands
 #[allow(unused_imports)]
 pub use model_manager::HuggingFaceModelManager;
+pub use parakeet_transcription_service::ParakeetTranscriptionService;
+pub use audio_extractor::AudioExtractor;

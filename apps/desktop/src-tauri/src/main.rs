@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands};
 use tauri::Emitter;
 
 #[tokio::main]
@@ -25,6 +25,9 @@ async fn main() {
     // Create application state
     let app_state = AppState::new(db_pool);
 
+    // Cleanup old temporary transcription files on startup
+    transcription_commands::cleanup_temp_directory();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -39,6 +42,7 @@ async fn main() {
             model_commands::check_model_status,
             model_commands::download_parakeet_model,
             model_commands::cancel_model_download,
+            transcription_commands::transcribe_video,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {
