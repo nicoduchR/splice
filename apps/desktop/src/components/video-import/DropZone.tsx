@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FileVideo, FolderOpen } from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface DropZoneProps {
   onFileSelected: (filePath: string) => void;
@@ -127,12 +128,12 @@ export const DropZone = React.memo(({
           <span className="text-white text-3xl font-bold">!</span>
         </div>
         <p className="text-destructive font-medium text-center max-w-md">{error}</p>
-        <button
+        <Button
           onClick={() => window.location.reload()}
-          className="px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
+          size="lg"
         >
           Choisir un autre fichier
-        </button>
+        </Button>
       </div>
     );
   }
@@ -179,23 +180,24 @@ export const DropZone = React.memo(({
 
       {/* Actions & Meta */}
       <div className="flex flex-col items-center gap-6 mt-2 w-full">
-        {/* Ghost Button */}
-        <button
+        {/* Primary Action Button */}
+        <Button
           onClick={(e) => {
             e.stopPropagation();
             onBrowseFiles();
           }}
           disabled={isValidating}
-          className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-primary font-bold text-sm sm:text-base hover:bg-primary/10 transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          size="lg"
+          className="min-w-[220px]"
         >
           <FolderOpen className="w-5 h-5" />
           <span>Parcourir les fichiers</span>
-        </button>
+        </Button>
 
         {/* Format Badge */}
         <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#21344a] border border-[#2f4b6a]">
           <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-            MP4 • MOV • AVI • Jusqu'à 50GB
+            MP4 • MOV • AVI
           </span>
         </div>
       </div>

@@ -3,25 +3,36 @@ import { useVideoStore } from './stores/video-store';
 import { useTranscriptStore } from './stores/transcript-store';
 import { VideoImport } from './components/video-import';
 import { TopBar } from './components/layout';
-import { Toaster, toast } from './components/ui/sonner';
+import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
 import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
 import { ModelDownloadDialog } from './components/model-download';
-import { TranscriptionProgressDialog } from './components/transcription';
+import { TranscriptionProgressDialog, TranscriptionErrorDialog, TranscriptionScreen } from './components/transcription';
 import { useModelDownload } from './hooks/use-model-download';
 import { listen } from '@tauri-apps/api/event';
+import { Brain } from 'lucide-react';
+
+// App screen states
+type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
   const loadAllProjects = useVideoStore(s => s.loadAllProjects);
   const [showComponentsDemo, setShowComponentsDemo] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+
+  // Screen state management
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>('import');
 
   // Transcription state
   const isTranscribing = useTranscriptStore(s => s.isTranscribing);
   const transcriptionProgress = useTranscriptStore(s => s.transcriptionProgress);
+  const transcribingProjectId = useTranscriptStore(s => s.currentProjectId); // Capture project ID to prevent race condition
   const updateTranscriptionProgress = useTranscriptStore(s => s.updateTranscriptionProgress);
   const completeTranscription = useTranscriptStore(s => s.completeTranscription);
   const cancelTranscription = useTranscriptStore(s => s.cancelTranscription);
+  const startTranscription = useTranscriptStore(s => s.startTranscription);
 
   // Model download management
   const {
@@ -41,73 +52,87 @@ function App() {
     }
   }, [loadAllProjects]);
 
+  // Auto-manage screen transitions based on app state
+  useEffect(() => {
+    if (!currentProject) {
+      setCurrentScreen('import');
+    } else if (isTranscribing) {
+      setCurrentScreen('transcribing');
+    } else {
+      setCurrentScreen('project-details');
+    }
+  }, [currentProject, isTranscribing]);
+
   // Listen to transcription events
   useEffect(() => {
     if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
       return;
     }
 
-    // Listen for transcription progress events
-    const unlistenProgress = listen<{
-      video_id: string;
-      stage: string;
-      progress: number;
-      message: string;
-    }>('transcription:progress', (event) => {
-      const { progress, stage, message } = event.payload;
-      updateTranscriptionProgress(progress, stage, message);
-    });
+    let unlistenProgress: (() => void) | undefined;
+    let unlistenCompleted: (() => void) | undefined;
+    let unlistenError: (() => void) | undefined;
 
-    // Listen for transcription completion
-    const unlistenCompleted = listen<{
-      text: string;
-      words: any[];
-      language: string;
-      confidence?: number;
-    }>('transcription:completed', async (event) => {
-      if (currentProject) {
-        try {
-          await completeTranscription(event.payload, currentProject.id);
+    // Setup listeners
+    const setupListeners = async () => {
+      // Listen for transcription progress events
+      unlistenProgress = await listen<{
+        video_id: string;
+        stage: string;
+        progress: number;
+        message: string;
+      }>('transcription:progress', (event) => {
+        const { progress, stage, message } = event.payload;
+        updateTranscriptionProgress(progress, stage, message);
+      });
 
-          // Show success toast
-          const wordCount = event.payload.words.length;
-          toast.success('Transcript généré avec succès!', {
-            description: `${wordCount} mots détectés`,
-            duration: 5000,
-          });
-        } catch (error) {
-          console.error('Failed to save transcript:', error);
-          toast.error('Erreur lors de la sauvegarde du transcript', {
-            description: error as string,
-          });
+      // Listen for transcription completion
+      unlistenCompleted = await listen<{
+        text: string;
+        words: any[];
+        language: string;
+        confidence?: number;
+      }>('transcription:completed', async (event) => {
+        // Use captured project ID to prevent race condition (user might have changed projects)
+        if (transcribingProjectId) {
+          try {
+            await completeTranscription(event.payload, transcribingProjectId);
+
+            // Show success toast
+            const wordCount = event.payload.words.length;
+            toast.success('Transcript généré avec succès!', {
+              description: `${wordCount} mots détectés`,
+              duration: 5000,
+            });
+          } catch (error) {
+            console.error('Failed to save transcript:', error);
+            toast.error('Erreur lors de la sauvegarde du transcript', {
+              description: error as string,
+            });
+          }
         }
-      }
-    });
+      });
 
-    // Listen for transcription errors
-    const unlistenError = listen<{ message: string }>(
-      'transcription:error',
-      (event) => {
-        console.error('Transcription error:', event.payload.message);
+      // Listen for transcription errors
+      unlistenError = await listen<{ message: string }>(
+        'transcription:error',
+        (event) => {
+          console.error('Transcription error:', event.payload.message);
 
-        // Show error toast
-        toast.error('Erreur de transcription', {
-          description: event.payload.message,
-          duration: Infinity, // Keep until manually dismissed
-          action: {
-            label: 'Fermer',
-            onClick: () => {},
-          },
-        });
-      }
-    );
+          // Show error dialog instead of toast
+          setTranscriptionError(event.payload.message);
+        }
+      );
+    };
+
+    setupListeners();
 
     return () => {
-      unlistenProgress.then((fn) => fn());
-      unlistenCompleted.then((fn) => fn());
-      unlistenError.then((fn) => fn());
+      if (unlistenProgress) unlistenProgress();
+      if (unlistenCompleted) unlistenCompleted();
+      if (unlistenError) unlistenError();
     };
-  }, [updateTranscriptionProgress, completeTranscription, currentProject]);
+  }, [updateTranscriptionProgress, completeTranscription, transcribingProjectId]);
 
   // Loading screen while checking model status
   if (isChecking) {
@@ -148,17 +173,35 @@ function App() {
           <Toaster />
 
       <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 relative">
-        {/* Abstract Background Gradient for depth */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
-          <div className="absolute top-[40%] right-[5%] w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[100px]"></div>
-        </div>
+        {/* Abstract Background Gradient for depth - only for import and project-details */}
+        {currentScreen !== 'transcribing' && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
+            <div className="absolute top-[40%] right-[5%] w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[100px]"></div>
+          </div>
+        )}
 
-        {!currentProject ? (
+        {/* Screen Router */}
+        {currentScreen === 'import' && (
           <div className="relative w-full max-w-[800px] flex flex-col items-center justify-center">
             <VideoImport />
           </div>
-        ) : (
+        )}
+
+        {currentScreen === 'transcribing' && currentProject && (
+          <TranscriptionScreen
+            progress={transcriptionProgress}
+            videoInfo={{
+              id: currentProject.id,
+              file_name: currentProject.file_name,
+              duration_seconds: currentProject.duration_seconds,
+              file_size_bytes: currentProject.file_size_bytes,
+            }}
+            onCancel={cancelTranscription}
+          />
+        )}
+
+        {currentScreen === 'project-details' && currentProject && (
           <div className="text-white relative z-10 w-full max-w-2xl">
             <h1 className="text-3xl font-bold mb-6 text-center">Projet chargé</h1>
             <div className="bg-[#25252D] p-8 rounded-xl border border-[#35353F] shadow-2xl">
@@ -225,11 +268,41 @@ function App() {
               </div>
             </div>
 
-            {/* Next steps placeholder */}
-            <div className="mt-6 text-center">
-              <p className="text-slate-400 text-sm">
-                Prochaine étape: Transcription (Story 2.1+)
-              </p>
+            {/* Transcription Action Button */}
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <Button
+                size="lg"
+                className="w-full max-w-md"
+                onClick={() => {
+                  if (currentProject) {
+                    startTranscription(
+                      currentProject.id,
+                      currentProject.file_path,
+                      currentProject.id
+                    );
+                  }
+                }}
+                disabled={isTranscribing || !isReady}
+              >
+                {isTranscribing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                    Transcription en cours...
+                  </>
+                ) : !isReady ? (
+                  'Modèle Parakeet en téléchargement...'
+                ) : (
+                  <>
+                    <Brain className="w-5 h-5 mr-2" />
+                    Générer le transcript
+                  </>
+                )}
+              </Button>
+              {!isReady && (
+                <p className="text-slate-400 text-xs">
+                  Le modèle de transcription se télécharge au premier lancement
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -247,18 +320,17 @@ function App() {
         onRetry={retryDownload}
       />
 
-      {/* Transcription Progress Dialog */}
+      {/* Transcription Error Dialog - shown as overlay on any screen */}
       {currentProject && (
-        <TranscriptionProgressDialog
-          isOpen={isTranscribing}
-          progress={transcriptionProgress}
-          videoInfo={{
-            id: currentProject.id,
-            file_name: currentProject.file_name,
-            duration_seconds: currentProject.duration_seconds,
-            file_size_bytes: currentProject.file_size_bytes,
+        <TranscriptionErrorDialog
+          isOpen={!!transcriptionError}
+          errorMessage={transcriptionError || ''}
+          onRetry={() => {
+            setTranscriptionError(null);
+            // Retry transcription with same video
+            startTranscription(currentProject.id, currentProject.file_path, currentProject.id);
           }}
-          onCancel={cancelTranscription}
+          onClose={() => setTranscriptionError(null)}
         />
       )}
     </>

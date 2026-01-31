@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { listen } from '@tauri-apps/api/event';
 import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Brain, Movie, Lock, Cpu } from 'lucide-react';
+import { Brain, Film, Lock, Cpu } from 'lucide-react';
 
 interface TranscriptionProgress {
   video_id: string;
@@ -49,28 +49,30 @@ export function TranscriptionProgressDialog({
       return;
     }
 
-    // Ajouter à l'historique
-    const newHistory = [
-      ...progressHistory,
-      { timestamp: Date.now(), progress: progress.progress },
-    ].slice(-10); // Garder les 10 derniers échantillons
+    // Ajouter à l'historique (functional update to avoid stale closure)
+    setProgressHistory((prevHistory) => {
+      const newHistory = [
+        ...prevHistory,
+        { timestamp: Date.now(), progress: progress.progress },
+      ].slice(-10); // Garder les 10 derniers échantillons
 
-    setProgressHistory(newHistory);
+      // Calculer temps restant si on a au moins 2 échantillons
+      if (newHistory.length >= 2) {
+        const first = newHistory[0];
+        const last = newHistory[newHistory.length - 1];
+        const deltaProgress = last.progress - first.progress;
+        const deltaTime = last.timestamp - first.timestamp;
 
-    // Calculer temps restant si on a au moins 2 échantillons
-    if (newHistory.length >= 2) {
-      const first = newHistory[0];
-      const last = newHistory[newHistory.length - 1];
-      const deltaProgress = last.progress - first.progress;
-      const deltaTime = last.timestamp - first.timestamp;
-
-      if (deltaProgress > 0) {
-        const speed = deltaProgress / deltaTime; // progress/ms
-        const remaining = 1.0 - last.progress;
-        const estimatedMs = remaining / speed;
-        setTimeRemaining(Math.max(0, Math.round(estimatedMs / 1000)));
+        if (deltaProgress > 0) {
+          const speed = deltaProgress / deltaTime; // progress/ms
+          const remaining = 1.0 - last.progress;
+          const estimatedMs = remaining / speed;
+          setTimeRemaining(Math.max(0, Math.round(estimatedMs / 1000)));
+        }
       }
-    }
+
+      return newHistory;
+    });
   }, [progress.progress, isOpen]);
 
   // Formater la durée de la vidéo
@@ -120,6 +122,11 @@ export function TranscriptionProgressDialog({
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel?.()}>
       <AlertDialogContent className="max-w-[580px] p-0 gap-0 border-white/5 bg-card-dark">
+        {/* Accessible title for screen readers */}
+        <AlertDialogTitle className="sr-only">
+          Progression de la transcription - {videoInfo.file_name}
+        </AlertDialogTitle>
+
         {/* Video Thumbnail Section */}
         <div className="relative w-full aspect-video bg-gray-800 group">
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -144,7 +151,7 @@ export function TranscriptionProgressDialog({
           {/* File Info */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Movie className="w-5 h-5 text-primary" />
+              <Film className="w-5 h-5 text-primary" />
             </div>
             <div className="flex flex-col overflow-hidden">
               <h2 className="text-white text-base font-semibold truncate">

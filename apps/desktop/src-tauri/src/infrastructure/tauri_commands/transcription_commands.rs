@@ -26,6 +26,12 @@ struct TranscriptionProgress {
     message: String,
 }
 
+/// Error event payload for transcription
+#[derive(Clone, Serialize)]
+struct TranscriptionError {
+    message: String,
+}
+
 /// Transcribe video audio to text with word-level timestamps
 ///
 /// This command orchestrates the full transcription pipeline:
@@ -73,17 +79,8 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         return Err(format!("Le chemin n'est pas un fichier valide: {}", video_path));
     }
 
-    // Validation: Check file size is reasonable (max 10 GB)
-    const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024 * 1024; // 10 GB
-    if let Ok(metadata) = std::fs::metadata(&video_path_buf) {
-        let file_size = metadata.len();
-        if file_size > MAX_FILE_SIZE {
-            return Err(format!(
-                "Le fichier vidéo est trop volumineux: {:.2} GB (max: 10 GB)",
-                file_size as f64 / (1024.0 * 1024.0 * 1024.0)
-            ));
-        }
-    }
+    // Note: No file size limit - professional videos can be 50-100+ GB (4K/8K footage)
+    // The real limits are disk space and system memory, which will naturally fail if exceeded
 
     // Create temp directory for audio extraction
     let temp_dir = dirs::home_dir()
@@ -146,11 +143,15 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         AudioExtractor::load_wav_as_f32(&audio_path)
             .map_err(|e| format!("Erreur de lecture du fichier WAV: {}", e))?;
 
+    // Calculate audio duration
+    let audio_duration_seconds = audio_samples.len() as f64 / sample_rate as f64;
+
     tracing::info!(
         event = "audio_loaded",
         sample_count = audio_samples.len(),
         sample_rate = sample_rate,
         channels = channels,
+        duration_seconds = audio_duration_seconds,
     );
 
     // Check for cancellation after loading
@@ -160,13 +161,26 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         return Err("Transcription annulée par l'utilisateur".to_string());
     }
 
-    // Stage 3: Transcription (60%)
+    // Stage 3: Transcription (60% → 95%)
+    // Use chunking for long videos to avoid ONNX Runtime errors
+    const CHUNK_DURATION_SECONDS: f64 = 300.0; // 5 minutes chunks (safe for Parakeet)
+    let chunk_size_samples = (CHUNK_DURATION_SECONDS * sample_rate as f64) as usize;
+    let total_samples = audio_samples.len();
+    let num_chunks = (total_samples as f64 / chunk_size_samples as f64).ceil() as usize;
+
+    tracing::info!(
+        event = "transcription_chunking",
+        total_duration = audio_duration_seconds,
+        chunk_duration = CHUNK_DURATION_SECONDS,
+        num_chunks = num_chunks,
+    );
+
     emit_progress(
         &app_handle,
         &video_id,
         "transcribing",
         PROGRESS_TRANSCRIBING,
-        "Transcription en cours (CPU)...",
+        &format!("Transcription en cours ({} segment{})...", num_chunks, if num_chunks > 1 { "s" } else { "" }),
     )
     .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
 
@@ -178,15 +192,123 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     }
 
     let service = ParakeetTranscriptionService;
-    let result = service
-        .transcribe_audio(audio_samples, sample_rate, channels, video_id.clone())
-        .await
-        .map_err(|e| {
-            // Cleanup on error
-            let _ = std::fs::remove_file(&audio_path);
+    let mut all_words = Vec::new();
+    let mut full_text = String::new();
+    let mut current_time_offset = 0.0;
+
+    // Process each chunk
+    for chunk_idx in 0..num_chunks {
+        // Check for cancellation
+        if cancel_flag.load(Ordering::Relaxed) {
+            let _ = tokio::fs::remove_file(&audio_path).await;
             app_state.remove_cancel_flag(&video_id);
-            format!("Erreur de transcription: {}", e)
-        })?;
+            return Err("Transcription annulée par l'utilisateur".to_string());
+        }
+
+        let start_sample = chunk_idx * chunk_size_samples;
+        let end_sample = ((chunk_idx + 1) * chunk_size_samples).min(total_samples);
+        let chunk_samples = audio_samples[start_sample..end_sample].to_vec();
+
+        // Update progress for this chunk
+        let chunk_progress = PROGRESS_TRANSCRIBING +
+            (0.35 * (chunk_idx as f64 / num_chunks as f64)); // 60% → 95%
+
+        emit_progress(
+            &app_handle,
+            &video_id,
+            "transcribing",
+            chunk_progress,
+            &format!("Transcription segment {}/{}...", chunk_idx + 1, num_chunks),
+        )
+        .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
+
+        tracing::info!(
+            event = "transcribing_chunk",
+            chunk = chunk_idx + 1,
+            total_chunks = num_chunks,
+            chunk_samples = chunk_samples.len(),
+        );
+
+        // Transcribe this chunk
+        let chunk_result = match service
+            .transcribe_audio(chunk_samples, sample_rate, channels, format!("{}-chunk-{}", video_id, chunk_idx))
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                // Cleanup on error
+                let _ = tokio::fs::remove_file(&audio_path).await;
+                app_state.remove_cancel_flag(&video_id);
+
+                // Emit error event to frontend with user-friendly message
+                let error_string = e.to_string();
+                let user_message = if error_string.contains("ONNX Runtime error") {
+                    format!("Erreur du modèle de transcription au segment {}/{}. Le modèle Parakeet peut être corrompu.", chunk_idx + 1, num_chunks)
+                } else if error_string.contains("out of memory") || error_string.contains("OOM") {
+                    "Mémoire insuffisante pour transcriber cette vidéo. Essayez de fermer d'autres applications.".to_string()
+                } else {
+                    format!("Erreur de transcription au segment {}/{}: {}", chunk_idx + 1, num_chunks, error_string)
+                };
+
+                let _ = app_handle.emit("transcription:error", TranscriptionError {
+                    message: user_message.clone()
+                });
+
+                tracing::error!(
+                    event = "transcription_chunk_failed",
+                    chunk = chunk_idx + 1,
+                    total_chunks = num_chunks,
+                    error = %e,
+                );
+
+                return Err(user_message);
+            }
+        };
+
+        // Count words before consuming the vector
+        let words_in_chunk = chunk_result.words.len();
+
+        // Adjust timestamps and combine results
+        for word in chunk_result.words {
+            all_words.push(crate::domain::entities::transcription::Word {
+                text: word.text,
+                start: word.start + current_time_offset,
+                end: word.end + current_time_offset,
+                confidence: word.confidence,
+            });
+        }
+
+        if !full_text.is_empty() && !chunk_result.text.is_empty() {
+            full_text.push(' ');
+        }
+        full_text.push_str(&chunk_result.text);
+
+        // Update time offset for next chunk
+        current_time_offset += chunk_result.duration_seconds;
+
+        tracing::info!(
+            event = "chunk_completed",
+            chunk = chunk_idx + 1,
+            words_in_chunk = words_in_chunk,
+            total_words = all_words.len(),
+        );
+    }
+
+    // Create combined result
+    let result = TranscriptionResult {
+        video_id: video_id.clone(),
+        text: full_text,
+        words: all_words,
+        duration_seconds: current_time_offset,
+        language: None,
+    };
+
+    tracing::info!(
+        event = "transcription_chunks_completed",
+        total_chunks = num_chunks,
+        total_words = result.words.len(),
+        total_duration = result.duration_seconds,
+    );
 
     // Check for cancellation after transcription
     if cancel_flag.load(Ordering::Relaxed) {
@@ -208,6 +330,10 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         ),
     )
     .map_err(|e| format!("Erreur d'émission d'événement: {}", e))?;
+
+    // Emit completion event with full result for frontend
+    app_handle.emit("transcription:completed", &result)
+        .map_err(|e| format!("Erreur d'émission d'événement de complétion: {}", e))?;
 
     // Cleanup: remove temporary WAV file
     if let Err(e) = tokio::fs::remove_file(&audio_path).await {

@@ -25,6 +25,7 @@ interface TranscriptStore {
   transcriptionProgress: TranscriptionProgress;
   error: string | null;
   currentVideoId: string | null;
+  currentProjectId: string | null; // Track project ID to prevent race condition
 
   // Actions
   setTranscript: (transcript: Transcript | null) => void;
@@ -32,7 +33,7 @@ interface TranscriptStore {
   setSelection: (startIndex: number, endIndex: number) => void;
   clearSelection: () => void;
   setTranscribing: (isTranscribing: boolean, progress?: number) => void;
-  startTranscription: (videoId: string, videoPath: string) => Promise<void>;
+  startTranscription: (videoId: string, videoPath: string, projectId: string) => Promise<void>;
   updateTranscriptionProgress: (progress: number, stage: string, message: string) => void;
   cancelTranscription: () => Promise<void>;
   completeTranscription: (result: TranscriptionResult, projectId: string) => Promise<void>;
@@ -52,6 +53,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       },
       error: null,
       currentVideoId: null,
+      currentProjectId: null,
 
       setTranscript: (transcript) => {
         set({ transcript, error: null });
@@ -100,10 +102,11 @@ export const useTranscriptStore = create<TranscriptStore>()(
       },
 
       // Démarrer la transcription
-      startTranscription: async (videoId: string, videoPath: string) => {
+      startTranscription: async (videoId: string, videoPath: string, projectId: string) => {
         set({
           isTranscribing: true,
           currentVideoId: videoId,
+          currentProjectId: projectId, // Capture project ID to prevent race condition
           transcriptionProgress: {
             video_id: videoId,
             stage: 'extracting',
@@ -115,16 +118,19 @@ export const useTranscriptStore = create<TranscriptStore>()(
 
         try {
           // La commande Tauri va émettre des événements de progression
+          // Les erreurs seront gérées via l'événement 'transcription:error'
           await invoke('transcribe_video', {
             videoId,
             videoPath,
           });
         } catch (error) {
+          // Erreur d'invocation (pas d'erreur de transcription)
+          // Les erreurs de transcription sont gérées via événement
+          console.error('Failed to invoke transcribe_video:', error);
           set({
             error: error as string,
             isTranscribing: false,
           });
-          throw error;
         }
       },
 
