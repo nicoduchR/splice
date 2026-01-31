@@ -26,7 +26,8 @@ impl VideoRepository for SqliteVideoRepository {
         tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
                 let row = sqlx::query(
-                    "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at
+                    "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at,
+                            width, height, file_size_bytes, codec
                      FROM projects
                      WHERE id = ?"
                 )
@@ -46,6 +47,10 @@ impl VideoRepository for SqliteVideoRepository {
                         duration_seconds: row.get("duration_seconds"),
                         created_at: row.get("created_at"),
                         updated_at: row.get("updated_at"),
+                        width: row.get("width"),
+                        height: row.get("height"),
+                        file_size_bytes: row.get("file_size_bytes"),
+                        codec: row.get("codec"),
                     })),
                     None => Ok(None),
                 }
@@ -61,7 +66,8 @@ impl VideoRepository for SqliteVideoRepository {
         tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
                 let rows = sqlx::query(
-                    "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at
+                    "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at,
+                            width, height, file_size_bytes, codec
                      FROM projects
                      ORDER BY created_at DESC"
                 )
@@ -80,6 +86,10 @@ impl VideoRepository for SqliteVideoRepository {
                         duration_seconds: row.get("duration_seconds"),
                         created_at: row.get("created_at"),
                         updated_at: row.get("updated_at"),
+                        width: row.get("width"),
+                        height: row.get("height"),
+                        file_size_bytes: row.get("file_size_bytes"),
+                        codec: row.get("codec"),
                     }
                 }).collect();
 
@@ -89,7 +99,8 @@ impl VideoRepository for SqliteVideoRepository {
     }
 
     fn save(&self, project: VideoProject) -> Result<VideoProject, DomainError> {
-        debug!("Saving project: {}", project.id);
+        debug!("Saving project: {} with metadata: width={:?}, height={:?}, size={:?}, codec={:?}",
+            project.id, project.width, project.height, project.file_size_bytes, project.codec);
 
         let pool = self.pool.clone();
 
@@ -102,13 +113,18 @@ impl VideoRepository for SqliteVideoRepository {
                 })?;
 
                 sqlx::query(
-                    "INSERT INTO projects (id, file_path, file_name, duration_seconds, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?)
+                    "INSERT INTO projects (id, file_path, file_name, duration_seconds, created_at, updated_at,
+                                          width, height, file_size_bytes, codec)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                          file_path = excluded.file_path,
                          file_name = excluded.file_name,
                          duration_seconds = excluded.duration_seconds,
-                         updated_at = excluded.updated_at"
+                         updated_at = excluded.updated_at,
+                         width = excluded.width,
+                         height = excluded.height,
+                         file_size_bytes = excluded.file_size_bytes,
+                         codec = excluded.codec"
                 )
                 .bind(&project.id)
                 .bind(&project.file_path)
@@ -116,6 +132,10 @@ impl VideoRepository for SqliteVideoRepository {
                 .bind(project.duration_seconds)
                 .bind(project.created_at)
                 .bind(project.updated_at)
+                .bind(project.width.map(|w| w as i64))
+                .bind(project.height.map(|h| h as i64))
+                .bind(project.file_size_bytes.map(|s| s as i64))
+                .bind(&project.codec)
                 .execute(&mut *tx)
                 .await
                 .map_err(|e| {

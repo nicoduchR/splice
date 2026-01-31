@@ -3,4 +3,15 @@
 /**
  * VideoProject entity - represents a single imported video project
  */
-export type VideoProject = { id: string, file_path: string, file_name: string, duration_seconds: number, created_at: number, updated_at: number, };
+export type VideoProject = {
+  id: string,
+  file_path: string,
+  file_name: string,
+  duration_seconds: number,
+  created_at: number,
+  updated_at: number,
+  width?: number,
+  height?: number,
+  file_size_bytes?: number,
+  codec?: string,
+};

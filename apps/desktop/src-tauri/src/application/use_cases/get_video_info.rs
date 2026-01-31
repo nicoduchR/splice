@@ -46,6 +46,11 @@ mod tests {
             Ok(projects.get(id).cloned())
         }
 
+        fn find_all(&self) -> Result<Vec<VideoProject>, DomainError> {
+            let projects = self.projects.lock().unwrap();
+            Ok(projects.values().cloned().collect())
+        }
+
         fn save(&self, project: VideoProject) -> Result<VideoProject, DomainError> {
             let mut projects = self.projects.lock().unwrap();
             projects.insert(project.id.clone(), project.clone());

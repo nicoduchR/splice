@@ -81,8 +81,12 @@ impl ImportVideoUseCase {
             .await?;
 
         info!(
-            "Video codec: {}, duration: {}s",
-            video_metadata.codec_name, video_metadata.duration
+            "Video metadata: codec={}, duration={}s, resolution={}x{}, size={} bytes",
+            video_metadata.codec_name,
+            video_metadata.duration,
+            video_metadata.width.unwrap_or(0),
+            video_metadata.height.unwrap_or(0),
+            video_metadata.file_size
         );
 
         // 5. Extract file name
@@ -97,16 +101,27 @@ impl ImportVideoUseCase {
         debug!("File name: {}", file_name);
 
         // 6. Create video project with real duration from FFmpeg
-        let project = VideoProject::new(
+        let mut project = VideoProject::new(
             uuid::Uuid::new_v4().to_string(),
             file_path.to_string(),
             file_name,
             video_metadata.duration, // Real duration extracted by FFmpeg
         )?;
 
-        info!("Created project: {} with duration: {}s", project.id, project.duration_seconds);
+        // 7. Enrich project with additional metadata from FFmpeg
+        project = project.with_metadata(&video_metadata);
 
-        // 7. Save to SQLite
+        info!(
+            "Created project: {} with metadata - duration: {}s, resolution: {}x{}, codec: {:?}",
+            project.id,
+            project.duration_seconds,
+            project.width.unwrap_or(0),
+            project.height.unwrap_or(0),
+            project.codec
+        );
+
+        // 8. Save to SQLite (streaming - no file copy, just reference)
+        info!("Saving project to SQLite: {}", project.id);
         self.video_repository.save(project.clone())
             .map_err(|e| {
                 error!("Failed to save project to database: {:?}", e);
@@ -186,9 +201,20 @@ mod tests {
         assert_eq!(project.file_name, "sample-h264.mp4");
         assert!(project.duration_seconds > 0.0, "Duration should be extracted from FFmpeg");
 
+        // Verify metadata was extracted from FFmpeg
+        assert!(project.width.is_some(), "Width should be extracted from FFmpeg");
+        assert!(project.height.is_some(), "Height should be extracted from FFmpeg");
+        assert!(project.file_size_bytes.is_some(), "File size should be extracted");
+        assert_eq!(project.codec, Some("h264".to_string()), "Codec should be h264");
+
         // Verify project was saved to repository
         let saved = repo.find_by_id(&project.id).unwrap();
         assert!(saved.is_some(), "Project should be saved in repository");
+        let saved_project = saved.unwrap();
+        assert_eq!(saved_project.width, project.width, "Width should be persisted");
+        assert_eq!(saved_project.height, project.height, "Height should be persisted");
+        assert_eq!(saved_project.file_size_bytes, project.file_size_bytes, "File size should be persisted");
+        assert_eq!(saved_project.codec, project.codec, "Codec should be persisted");
     }
 
     #[tokio::test]
@@ -203,6 +229,11 @@ mod tests {
         let project = result.unwrap();
         assert_eq!(project.file_name, "sample-h265.mov");
         assert!(project.duration_seconds > 0.0);
+
+        // Verify H.265 metadata
+        assert_eq!(project.codec, Some("hevc".to_string()), "Codec should be hevc for H.265");
+        assert!(project.width.is_some(), "Width should be extracted");
+        assert!(project.height.is_some(), "Height should be extracted");
     }
 
     #[tokio::test]
