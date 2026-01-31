@@ -37,8 +37,8 @@ impl VideoProject {
         file_name: String,
         duration_seconds: f64,
     ) -> Result<Self, DomainError> {
-        // Validate duration
-        if duration_seconds < 0.0 {
+        // Validate duration - must be positive (> 0)
+        if duration_seconds <= 0.0 {
             return Err(DomainError::InvalidDuration(duration_seconds));
         }
 

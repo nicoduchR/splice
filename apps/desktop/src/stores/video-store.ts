@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import type { VideoProject } from '@splice/types/generated';
 import { toast } from 'sonner';
+import { getImportErrorMessage } from '../lib/error-messages';
 
 // Interface du store avec state + actions
 interface VideoStore {
@@ -84,9 +85,9 @@ export const useVideoStore = create<VideoStore>()(
             importProgress: 0,
           });
 
-          // Display error toast with user-friendly message
+          // Display error toast with French user-friendly message (NFR29)
           toast.error('Erreur d\'importation', {
-            description: errorMessage,
+            description: getImportErrorMessage(errorMessage),
           });
         }
       },

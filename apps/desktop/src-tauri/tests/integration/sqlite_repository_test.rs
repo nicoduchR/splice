@@ -2,6 +2,7 @@ use sqlx::SqlitePool;
 use splice::domain::entities::VideoProject;
 use splice::domain::repositories::VideoRepository;
 use splice::infrastructure::adapters::SqliteVideoRepository;
+use splice::infrastructure::ffmpeg::VideoMetadata;
 
 #[tokio::test]
 async fn test_save_and_find_project() {
@@ -157,4 +158,100 @@ async fn test_update_project() {
     // Should still only have 1 project (not 2)
     let all = repo.find_all().unwrap();
     assert_eq!(all.len(), 1);
+}
+
+#[tokio::test]
+async fn test_save_and_retrieve_project_with_metadata() {
+    // Story 1.6: Test complete metadata round-trip (save → retrieve → verify)
+    let pool = SqlitePool::connect("sqlite::memory:")
+        .await
+        .unwrap();
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .unwrap();
+
+    let repo = SqliteVideoRepository::new(pool);
+
+    // Create project with complete metadata
+    let metadata = VideoMetadata {
+        codec_name: "h264".to_string(),
+        codec_type: "video".to_string(),
+        width: Some(1920),
+        height: Some(1080),
+        duration: 125.5,
+        file_size: 52428800, // 50MB
+    };
+
+    let project = VideoProject::new(
+        "test-metadata".to_string(),
+        "/path/to/video.mp4".to_string(),
+        "video.mp4".to_string(),
+        125.5,
+    )
+    .unwrap()
+    .with_metadata(&metadata);
+
+    // Verify metadata was set on entity
+    assert_eq!(project.width, Some(1920), "Width should be set before save");
+    assert_eq!(project.height, Some(1080), "Height should be set before save");
+    assert_eq!(project.file_size_bytes, Some(52428800), "File size should be set before save");
+    assert_eq!(project.codec, Some("h264".to_string()), "Codec should be set before save");
+
+    // Save to SQLite
+    let saved = repo.save(project.clone()).unwrap();
+    assert_eq!(saved.width, Some(1920), "Saved project should have width");
+
+    // Retrieve from SQLite
+    let retrieved = repo.find_by_id("test-metadata").unwrap().unwrap();
+
+    // CRITICAL: Verify ALL metadata fields persisted correctly
+    assert_eq!(retrieved.id, "test-metadata");
+    assert_eq!(retrieved.file_name, "video.mp4");
+    assert_eq!(retrieved.duration_seconds, 125.5);
+    assert_eq!(retrieved.width, Some(1920), "Width should be persisted in SQLite");
+    assert_eq!(retrieved.height, Some(1080), "Height should be persisted in SQLite");
+    assert_eq!(retrieved.file_size_bytes, Some(52428800), "File size should be persisted in SQLite");
+    assert_eq!(retrieved.codec, Some("h264".to_string()), "Codec should be persisted in SQLite");
+}
+
+#[tokio::test]
+async fn test_save_project_without_metadata_null_values() {
+    // Story 1.6: Test backward compatibility - projects without metadata should have NULL
+    let pool = SqlitePool::connect("sqlite::memory:")
+        .await
+        .unwrap();
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .unwrap();
+
+    let repo = SqliteVideoRepository::new(pool);
+
+    // Create project WITHOUT metadata (legacy style)
+    let project = VideoProject::new(
+        "test-no-metadata".to_string(),
+        "/path/to/legacy.mp4".to_string(),
+        "legacy.mp4".to_string(),
+        100.0,
+    ).unwrap();
+
+    // Verify metadata fields are None
+    assert!(project.width.is_none(), "Width should be None initially");
+    assert!(project.height.is_none(), "Height should be None initially");
+    assert!(project.file_size_bytes.is_none(), "File size should be None initially");
+    assert!(project.codec.is_none(), "Codec should be None initially");
+
+    // Save to SQLite
+    repo.save(project).unwrap();
+
+    // Retrieve and verify NULL values persisted correctly
+    let retrieved = repo.find_by_id("test-no-metadata").unwrap().unwrap();
+    assert_eq!(retrieved.id, "test-no-metadata");
+    assert!(retrieved.width.is_none(), "Width should remain None in database");
+    assert!(retrieved.height.is_none(), "Height should remain None in database");
+    assert!(retrieved.file_size_bytes.is_none(), "File size should remain None in database");
+    assert!(retrieved.codec.is_none(), "Codec should remain None in database");
 }
