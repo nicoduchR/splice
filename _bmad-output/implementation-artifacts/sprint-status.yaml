@@ -54,7 +54,7 @@ development_status:
   1-5-video-format-validation-error-handling: done  # Code review: 15 issues fixed. Tests: 11 Rust tests + 13 TS tests with fixtures (48KB). Pending: Windows binaries only
   1-6-video-import-backend-processing-storage: done  # Code review: 10 issues fixed (4 HIGH, 4 MEDIUM). Duration validation, error translation, metadata tests, sqlx architecture documented. All ACs satisfied.
   1-7-design-system-foundation-with-shadcn-ui: done  # Code review: 14 issues fixed (6 HIGH, 8 MEDIUM). WCAG compliance, shimmer animation, touch targets 44px, backdrop-blur, semantic HTML. All ACs satisfied, 63 tests passing.
-  1-8-macos-universal-binary-build-code-signing: review  # Configuration complete, scripts ready, awaiting Apple Developer credentials for full build test
+  1-8-macos-universal-binary-build-code-signing: done  # Code review: 13 issues fixed (4 CRITICAL, 5 HIGH, 4 MEDIUM). Fixed externalBin config, GitHub Actions conditionals, test validation, architecture checks. All ACs satisfied, configuration validated.
   1-9-windows-installer-build-code-signing: backlog
   epic-1-retrospective: optional
 
