@@ -9,7 +9,9 @@ import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
 import { ModelDownloadDialog } from './components/model-download';
 import { TranscriptionProgressDialog, TranscriptionErrorDialog, TranscriptionScreen } from './components/transcription';
+import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcript';
 import { useModelDownload } from './hooks/use-model-download';
+import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { Brain } from 'lucide-react';
@@ -34,6 +36,25 @@ function App() {
   const completeTranscription = useTranscriptStore(s => s.completeTranscription);
   const cancelTranscription = useTranscriptStore(s => s.cancelTranscription);
   const startTranscription = useTranscriptStore(s => s.startTranscription);
+
+  // Transcript viewer state
+  const transcript = useTranscriptStore(s => s.transcript);
+  const loadTranscript = useTranscriptStore(s => s.loadTranscript);
+  const selectedWordIndices = useTranscriptStore(s => s.selectedWordIndices);
+  const toggleWordSelection = useTranscriptStore(s => s.toggleWordSelection);
+  const setSelection = useTranscriptStore(s => s.setSelection);
+  const clearSelection = useTranscriptStore(s => s.clearSelection);
+  const [showTimestamps, setShowTimestamps] = useState(false);
+
+  // Search functionality
+  const {
+    searchQuery,
+    setSearchQuery,
+    matches,
+    currentMatchIndex,
+    nextMatch,
+    prevMatch,
+  } = useTranscriptSearch(transcript?.words || []);
 
   // Model download management
   const {
@@ -63,10 +84,20 @@ function App() {
       setCurrentScreen('import');
     } else if (isTranscribing) {
       setCurrentScreen('transcribing');
+    } else if (transcript && transcript.project_id === currentProject.id) {
+      // If transcript exists for current project, show editor
+      setCurrentScreen('editor');
     } else {
       setCurrentScreen('project-details');
     }
-  }, [currentProject, isTranscribing]);
+  }, [currentProject, isTranscribing, transcript]);
+
+  // Load transcript when project changes
+  useEffect(() => {
+    if (currentProject && typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+      loadTranscript(currentProject.id);
+    }
+  }, [currentProject, loadTranscript]);
 
   // Listen to model preloading events
   useEffect(() => {
@@ -367,6 +398,33 @@ function App() {
                   Préchargement du modèle en arrière-plan pour des transcriptions instantanées
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {currentScreen === 'editor' && transcript && (
+          <div className="relative z-10 w-full h-full flex flex-col">
+            <TranscriptViewerToolbar
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              currentMatchIndex={currentMatchIndex}
+              totalMatches={matches.length}
+              onNextMatch={nextMatch}
+              onPrevMatch={prevMatch}
+              showTimestamps={showTimestamps}
+              onToggleTimestamps={() => setShowTimestamps(!showTimestamps)}
+              onClearSelection={clearSelection}
+            />
+            <div className="flex-1 overflow-hidden">
+              <TranscriptViewer
+                words={transcript.words}
+                selectedIndices={selectedWordIndices}
+                onWordClick={toggleWordSelection}
+                onSelectionChange={setSelection}
+                onClearSelection={clearSelection}
+                showTimestamps={showTimestamps}
+                searchQuery={searchQuery}
+              />
             </div>
           </div>
         )}

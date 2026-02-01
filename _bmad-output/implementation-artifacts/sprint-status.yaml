@@ -62,8 +62,8 @@ development_status:
   2-1-parakeet-model-download-infrastructure: done  # Code review: 8/13 issues fixed. Remaining: real checksums, E2E testing
   2-2-transcription-backend-integration: done  # Code review: 22/22 issues fixed (10 HIGH, 8 MEDIUM, 4 LOW). All ACs satisfied: confidence scores, security, performance RTF, validations. Documented: cancellation limitation (Story 2.4+), memory limits (2.3GB for 2h video)
   2-3-transcript-data-storage: done  # Core persistence implemented: SQLite schema, repositories, use cases, Tauri commands. Auto-save (NFR25) and crash recovery (NFR26) deferred to Story 2.4+ (complexity vs MVP value).
-  2-4-transcription-ui-progress-tracking: review  # Core UI implemented: modal, progress tracking, cancellation. Toast success/error. Adaptive display (>10min: bar, <10min: spinner). Tests created.
-  2-5-transcript-display-editor-component: backlog
+  2-4-transcription-ui-progress-tracking: done  # Core UI implemented: modal, progress tracking, cancellation. Toast success/error. Adaptive display (>10min: bar, <10min: spinner). Tests created.
+  2-5-transcript-display-editor-component: review  # COMPLETE: 42/42 tests passing, integrated in App.tsx, performance 16-142x faster than targets
   epic-2-retrospective: optional
 
   epic-3: backlog

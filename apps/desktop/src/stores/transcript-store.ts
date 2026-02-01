@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
-import type { Transcript, TranscriptWord } from '@splice/types/generated';
+import type { Transcript, TranscriptWord } from '@splice/types';
 
 interface TranscriptionProgress {
   video_id: string;
@@ -22,6 +22,7 @@ interface TranscriptStore {
   transcript: Transcript | null;
   selectedWordIndices: number[];
   isTranscribing: boolean;
+  isLoading: boolean;
   transcriptionProgress: TranscriptionProgress;
   error: string | null;
   currentVideoId: string | null;
@@ -37,6 +38,7 @@ interface TranscriptStore {
   updateTranscriptionProgress: (progress: number, stage: string, message: string) => void;
   cancelTranscription: () => Promise<void>;
   completeTranscription: (result: TranscriptionResult, projectId: string) => Promise<void>;
+  loadTranscript: (projectId: string) => Promise<void>;
 }
 
 export const useTranscriptStore = create<TranscriptStore>()(
@@ -45,6 +47,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       transcript: null,
       selectedWordIndices: [],
       isTranscribing: false,
+      isLoading: false,
       transcriptionProgress: {
         video_id: '',
         stage: 'extracting',
@@ -198,6 +201,52 @@ export const useTranscriptStore = create<TranscriptStore>()(
             isTranscribing: false,
           });
           throw error;
+        }
+      },
+
+      // Charger un transcript depuis la base de données
+      loadTranscript: async (projectId: string) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const result = await invoke<{
+            transcript: {
+              id: string;
+              project_id: string;
+              full_text: string;
+              language: string;
+              created_at: number;
+            };
+            words: Array<{
+              id: string;
+              transcript_id: string;
+              word: string;
+              start_time: number;
+              end_time: number;
+              confidence: number;
+              word_index: number;
+            }>;
+          }>('get_transcript', { projectId });
+
+          // Convertir en format frontend
+          const transcript: Transcript = {
+            id: result.transcript.id,
+            project_id: result.transcript.project_id,
+            full_text: result.transcript.full_text,
+            language: result.transcript.language,
+            created_at: result.transcript.created_at,
+            words: result.words.map((w) => ({
+              index: w.word_index,
+              text: w.word,
+              start_time: w.start_time,
+              end_time: w.end_time,
+              confidence: w.confidence,
+            })),
+          };
+
+          set({ transcript, isLoading: false, error: null });
+        } catch (error) {
+          set({ error: error.toString(), isLoading: false, transcript: null });
         }
       },
     }),
