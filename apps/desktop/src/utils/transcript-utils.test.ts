@@ -4,31 +4,29 @@ import type { TranscriptWord } from '@splice/types/generated';
 
 describe('formatTimestamp', () => {
   it('should format 0 seconds', () => {
-    expect(formatTimestamp(0)).toBe('00:00.000');
+    expect(formatTimestamp(0)).toBe('[00:00:00]');
   });
 
   it('should format seconds with decimals', () => {
-    expect(formatTimestamp(0.5)).toBe('00:00.500');
+    expect(formatTimestamp(0.5)).toBe('[00:00:00]');
   });
 
   it('should format full minutes and seconds', () => {
-    expect(formatTimestamp(83.456)).toBe('01:23.456');
+    expect(formatTimestamp(83.456)).toBe('[00:01:23]');
   });
 
   it('should format timestamps over 1 hour', () => {
-    expect(formatTimestamp(3665.789)).toBe('61:05.789');
+    expect(formatTimestamp(3665.789)).toBe('[01:01:05]');
   });
 
   it('should pad single digits', () => {
-    // Note: Float precision may cause minor rounding (5.007 -> 5.006999...)
-    const result = formatTimestamp(5.007);
-    expect(result).toMatch(/^00:05\.00[67]$/); // Accept 006 or 007 due to float precision
+    expect(formatTimestamp(5.007)).toBe('[00:00:05]');
   });
 });
 
 describe('detectParagraphs', () => {
-  it('should return [0] for empty array', () => {
-    expect(detectParagraphs([])).toEqual([0]);
+  it('should return [] for empty array', () => {
+    expect(detectParagraphs([])).toEqual([]);
   });
 
   it('should return [0] for single word', () => {
@@ -72,5 +70,39 @@ describe('detectParagraphs', () => {
 
     const result = detectParagraphs(words);
     expect(result).toEqual([0, 2, 3]); // Paragraphes à 0, 2 et 3
+  });
+
+  it('should break after sentence-ending punctuation with 0.8s+ pause', () => {
+    const words: TranscriptWord[] = [
+      { index: 0, text: 'Hello.', start_time: 0, end_time: 0.5, confidence: 0.9 },
+      // 1.0s pause after period — above 0.8s sentence threshold
+      { index: 1, text: 'World', start_time: 1.5, end_time: 2.0, confidence: 0.95 },
+    ];
+
+    expect(detectParagraphs(words)).toEqual([0, 1]);
+  });
+
+  it('should not break after punctuation with short pause', () => {
+    const words: TranscriptWord[] = [
+      { index: 0, text: 'Hello.', start_time: 0, end_time: 0.5, confidence: 0.9 },
+      // 0.2s pause — below 0.8s sentence threshold
+      { index: 1, text: 'World', start_time: 0.7, end_time: 1.2, confidence: 0.95 },
+    ];
+
+    expect(detectParagraphs(words)).toEqual([0]);
+  });
+
+  it('should force break at max paragraph length', () => {
+    // Create 90 words with no pauses
+    const words: TranscriptWord[] = Array.from({ length: 90 }, (_, i) => ({
+      index: i,
+      text: 'word',
+      start_time: i * 0.3,
+      end_time: i * 0.3 + 0.25,
+      confidence: 0.9,
+    }));
+
+    const result = detectParagraphs(words);
+    expect(result).toEqual([0, 80]); // Break forced at word 80
   });
 });

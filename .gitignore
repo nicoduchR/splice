@@ -12,7 +12,7 @@ target/
 .env.*.local
 
 # OS files
-.DS_Store
+**/.DS_Store
 Thumbs.db
 
 # IDE files
@@ -31,9 +31,15 @@ pnpm-debug.log*
 **/src-tauri/target/
 **/src-tauri/WixTools/
 
+# Tauri sidecar/ffmpeg binaries (too large for git, built or downloaded locally)
+**/src-tauri/binaries/ffmpeg-*
+**/src-tauri/binaries/ffprobe-*
+**/src-tauri/binaries/fluidaudio-sidecar-*
+
 # Swift Package Manager build artifacts
 **/.build/
 **/src-tauri/swift/
 
 # Misc
 .cache/
+**/.claude/settings.local.json

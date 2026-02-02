@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { TranscriptWord } from '@splice/types';
 
 export function useTranscriptKeyboardNav(
-  words: TranscriptWord[],
+  words: TranscriptWord[] | undefined,
   selectedIndices: number[],
   onSelectionChange: (start: number, end: number) => void,
   onClearSelection?: () => void,
@@ -10,6 +10,8 @@ export function useTranscriptKeyboardNav(
 ) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!words || words.length === 0) return;
+
       // Get current selected index
       const currentIndex =
         selectedIndices.length > 0
@@ -38,5 +40,5 @@ export function useTranscriptKeyboardNav(
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndices, words.length, onSelectionChange, onClearSelection, scrollToIndex]);
+  }, [selectedIndices, words?.length, onSelectionChange, onClearSelection, scrollToIndex]);
 }

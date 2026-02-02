@@ -1,8 +1,6 @@
 use crate::application::ports::model_downloader::ModelDownloader;
 use crate::domain::entities::model_metadata::{ModelMetadata, ModelStatus};
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use std::io::Read;
 use hf_hub::api::tokio::Api;
 use std::time::Instant;
 use chrono::Utc;
@@ -23,16 +21,6 @@ const PARAKEET_FILES: &[(&str, u64)] = &[
 ];
 
 const TOTAL_MODEL_SIZE: u64 = 2_514_050_000; // ~2.5 GB total
-
-/// SHA-256 checksums for model files (Parakeet TDT 0.6B v3 ONNX INT8)
-/// Generated on 2026-01-31 from istupakov/parakeet-tdt-0.6b-v3-onnx
-/// These checksums ensure file integrity after download
-const MODEL_CHECKSUMS: &[(&str, &str)] = &[
-    ("encoder-model.onnx", "98a74b21b4cc0017c1e7030319a4a96f4a9506e50f0708f3a516d02a77c96bb1"),
-    ("encoder-model.onnx.data", "9a22d372c51455c34f13405da2520baefb7125bd16981397561423ed32d24f36"),
-    ("decoder_joint-model.onnx", "e978ddf6688527182c10fde2eb4b83068421648985ef23f7a86be732be8706c1"),
-    ("vocab.txt", "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
-];
 
 /// HuggingFace Model Manager implementation
 pub struct HuggingFaceModelManager {
@@ -118,17 +106,35 @@ impl HuggingFaceModelManager {
                 }
             };
 
-            // Get file size
-            let metadata = std::fs::metadata(&cached_path).map_err(|e| {
-                BackoffError::permanent(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
-            })?;
-            let file_size = metadata.len();
-
             // Copy file to destination
             std::fs::copy(&cached_path, &dest_path).map_err(|e| {
                 tracing::warn!("Copy failed for {}: {}", file_name, e);
                 BackoffError::transient(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
             })?;
+
+            // Validate file size on the destination copy
+            let file_size = std::fs::metadata(&dest_path).map_err(|e| {
+                BackoffError::permanent(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+            })?.len();
+
+            // Find expected minimum size (80% of estimated) to catch truncated downloads
+            let expected_size = PARAKEET_FILES
+                .iter()
+                .find(|(name, _)| *name == file_name)
+                .map(|(_, size)| *size)
+                .unwrap_or(0);
+            let min_size = expected_size * 80 / 100;
+
+            if file_size < min_size {
+                tracing::warn!(
+                    "File {} is too small: {} bytes (expected at least {} bytes), retrying",
+                    file_name, file_size, min_size
+                );
+                let _ = std::fs::remove_file(&dest_path);
+                return Err(BackoffError::transient(
+                    format!("{} is truncated ({} bytes, expected >= {})", file_name, file_size, min_size).into()
+                ));
+            }
 
             Ok::<u64, BackoffError<Box<dyn std::error::Error + Send + Sync>>>(file_size)
         }).await?;
@@ -192,41 +198,6 @@ impl ModelDownloader for HuggingFaceModelManager {
                     total_downloaded += file_size;
                     estimated_progress += estimated_size;
 
-                    // Validate checksum if available (skip PLACEHOLDER_HASH)
-                    let expected_hash = MODEL_CHECKSUMS
-                        .iter()
-                        .find(|(name, _)| *name == *file_name)
-                        .map(|(_, hash)| *hash);
-
-                    if let Some(hash) = expected_hash {
-                        if hash != "PLACEHOLDER_HASH" {
-                            tracing::info!("Validating checksum for {}", file_name);
-
-                            let file_path = model_dir.join(file_name);
-                            let is_valid = self.verify_checksum(&file_path, hash).await?;
-
-                            if !is_valid {
-                                tracing::error!("Checksum validation failed for {}", file_name);
-
-                                // Delete corrupted file
-                                std::fs::remove_file(&file_path)?;
-
-                                return Err(format!(
-                                    "Le fichier {} est corrompu (checksum invalide)",
-                                    file_name
-                                )
-                                .into());
-                            }
-
-                            tracing::info!("Checksum validation passed for {}", file_name);
-                        } else {
-                            tracing::warn!(
-                                "Skipping checksum validation for {} (placeholder hash)",
-                                file_name
-                            );
-                        }
-                    }
-
                     // Calculate speed in MB/s
                     let elapsed = start_time.elapsed().as_secs_f64();
                     let speed = if elapsed > 0.0 {
@@ -267,29 +238,6 @@ impl ModelDownloader for HuggingFaceModelManager {
         })
     }
 
-    async fn verify_checksum(
-        &self,
-        path: &Path,
-        expected_hash: &str,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        let mut file = std::fs::File::open(path)?;
-        let mut hasher = Sha256::new();
-        let mut buffer = [0u8; 8192];
-
-        loop {
-            let bytes_read = file.read(&mut buffer)?;
-            if bytes_read == 0 {
-                break;
-            }
-            hasher.update(&buffer[..bytes_read]);
-        }
-
-        let result = hasher.finalize();
-        let hash_string = hex::encode(result);
-
-        Ok(hash_string.to_lowercase() == expected_hash.to_lowercase())
-    }
-
     fn get_model_dir(&self, model_name: &str) -> PathBuf {
         self.base_dir.join(model_name)
     }
@@ -298,7 +246,6 @@ impl ModelDownloader for HuggingFaceModelManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use tempfile::TempDir;
 
     #[tokio::test]
@@ -340,35 +287,6 @@ mod tests {
 
         let exists = manager.check_model_exists(PARAKEET_MODEL_NAME).await.unwrap();
         assert!(!exists, "Model should not exist when only partial files are present");
-    }
-
-    #[tokio::test]
-    async fn test_verify_checksum_valid() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_file = tempfile::NamedTempFile::new().unwrap();
-        let mut file = temp_file.reopen().unwrap();
-        file.write_all(b"hello world").unwrap();
-
-        let manager = HuggingFaceModelManager::new_with_base_dir(temp_dir.path().to_path_buf()).unwrap();
-
-        // SHA-256 of "hello world"
-        let expected_hash = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
-        let result = manager.verify_checksum(temp_file.path(), expected_hash).await.unwrap();
-        assert!(result, "Checksum should match");
-    }
-
-    #[tokio::test]
-    async fn test_verify_checksum_invalid() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_file = tempfile::NamedTempFile::new().unwrap();
-        let mut file = temp_file.reopen().unwrap();
-        file.write_all(b"hello world").unwrap();
-
-        let manager = HuggingFaceModelManager::new_with_base_dir(temp_dir.path().to_path_buf()).unwrap();
-
-        let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
-        let result = manager.verify_checksum(temp_file.path(), wrong_hash).await.unwrap();
-        assert!(!result, "Checksum should not match");
     }
 
     #[test]

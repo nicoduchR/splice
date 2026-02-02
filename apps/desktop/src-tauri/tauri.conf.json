@@ -21,10 +21,11 @@
     ],
     "externalBin": [
       "binaries/ffmpeg",
-      "binaries/ffprobe"
+      "binaries/ffprobe",
+      "binaries/fluidaudio-sidecar"
     ],
     "macOS": {
-      "minimumSystemVersion": "13.0",
+      "minimumSystemVersion": "14.0",
       "frameworks": [],
       "exceptionDomain": "",
       "signingIdentity": null,

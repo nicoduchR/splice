@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ModelService } from '@/services/model-service';
 import type { ModelMetadata } from '@/services/model-service';
 
@@ -71,6 +71,7 @@ export function useModelDownload(): UseModelDownloadReturn {
   const [modelStatus, setModelStatus] = useState<ModelMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const downloadStartedRef = useRef(false);
 
   /**
    * Vérifie le statut du modèle au montage
@@ -163,8 +164,13 @@ export function useModelDownload(): UseModelDownloadReturn {
   };
 
   const startDownload = async () => {
+    if (downloadStartedRef.current) {
+      console.log('Download already in progress (ref guard), skipping');
+      return;
+    }
+    downloadStartedRef.current = true;
     try {
-      console.log('📥 Starting download...');
+      console.log('Starting download...');
       setIsDownloading(true);
       setError(null);
       const result = await ModelService.downloadParakeetModel();
@@ -183,6 +189,7 @@ export function useModelDownload(): UseModelDownloadReturn {
       setError(errorMessage);
     } finally {
       setIsDownloading(false);
+      downloadStartedRef.current = false;
     }
   };
 
