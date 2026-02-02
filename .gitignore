@@ -31,5 +31,9 @@ pnpm-debug.log*
 **/src-tauri/target/
 **/src-tauri/WixTools/
 
+# Swift Package Manager build artifacts
+**/.build/
+**/src-tauri/swift/
+
 # Misc
 .cache/
