@@ -1,6 +1,6 @@
 # Story 3.1: Text Selection & Highlighting
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -299,6 +299,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Change Log
 
 - 2026-02-02: Story 3.1 implementation complete - Selection persistence backend + frontend + auto-save
+- 2026-02-02: Code Review (adversarial) - Fixed 2 HIGH + 1 MEDIUM issues: removed phantom showTimestamp prop from TranscriptWord tests (H1), removed duplicate FK in migration SQL (H2), added missing TranscriptViewer.tsx to File List (M1)
 
 ### File List
 
@@ -312,6 +313,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - apps/desktop/src/stores/transcript-store-selections.test.ts
 
 **Modified files:**
+- apps/desktop/src-tauri/migrations/20260202000005_selections_schema.sql (review: removed duplicate FK)
 - apps/desktop/src-tauri/src/domain/entities/mod.rs
 - apps/desktop/src-tauri/src/domain/repositories/mod.rs
 - apps/desktop/src-tauri/src/infrastructure/adapters/mod.rs
@@ -321,5 +323,6 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - apps/desktop/src-tauri/src/main.rs
 - apps/desktop/src/stores/transcript-store.ts
 - apps/desktop/src/components/transcript/TranscriptWord.tsx
-- apps/desktop/src/components/transcript/TranscriptWord.test.tsx
+- apps/desktop/src/components/transcript/TranscriptWord.test.tsx (review: removed phantom showTimestamp prop and broken tests)
+- apps/desktop/src/components/transcript/TranscriptViewer.tsx
 - apps/desktop/src/App.tsx

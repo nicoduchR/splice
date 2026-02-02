@@ -45,6 +45,10 @@ function App() {
   const clearSelection = useTranscriptStore(s => s.clearSelection);
   const toggleSelectionRange = useTranscriptStore(s => s.toggleSelectionRange);
   const setSelectionFromIndices = useTranscriptStore(s => s.setSelectionFromIndices);
+  const undo = useTranscriptStore(s => s.undo);
+  const redo = useTranscriptStore(s => s.redo);
+  const canUndo = useTranscriptStore(s => s.canUndo);
+  const canRedo = useTranscriptStore(s => s.canRedo);
   const loadSelections = useTranscriptStore(s => s.loadSelections);
   const startAutoSave = useTranscriptStore(s => s.startAutoSave);
   const stopAutoSave = useTranscriptStore(s => s.stopAutoSave);
@@ -368,6 +372,11 @@ function App() {
               totalMatches={matches.length}
               onNextMatch={nextMatch}
               onPrevMatch={prevMatch}
+              onUndo={undo}
+              onRedo={redo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onClearAll={clearSelection}
             />
             <div className="flex-1 overflow-hidden">
               <TranscriptViewer
@@ -378,6 +387,8 @@ function App() {
                 onToggleRange={toggleSelectionRange}
                 onSetIndices={setSelectionFromIndices}
                 onClearSelection={clearSelection}
+                onUndo={undo}
+                onRedo={redo}
                 searchQuery={searchQuery}
               />
             </div>

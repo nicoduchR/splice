@@ -19,6 +19,8 @@ export interface TranscriptViewerProps {
   onToggleRange?: (startIndex: number, endIndex: number) => void;
   onSetIndices?: (indices: number[]) => void;
   onClearSelection?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
   searchQuery?: string;
   className?: string;
 }
@@ -31,6 +33,8 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
   onToggleRange,
   onSetIndices,
   onClearSelection,
+  onUndo,
+  onRedo,
   searchQuery = '',
   className = '',
 }: TranscriptViewerProps) {
@@ -87,7 +91,9 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
     selectedIndices,
     onSelectionChange,
     onClearSelection,
-    scrollToIndex
+    scrollToIndex,
+    onUndo,
+    onRedo,
   );
 
   // Drag selection state

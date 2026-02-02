@@ -1,7 +1,18 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, Highlighter, Undo2, Redo2 } from 'lucide-react';
+import { Search, Highlighter, Undo2, Redo2, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../ui/alert-dialog';
 
 export interface TranscriptViewerToolbarProps {
   searchQuery: string;
@@ -10,6 +21,11 @@ export interface TranscriptViewerToolbarProps {
   totalMatches: number;
   onNextMatch: () => void;
   onPrevMatch: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onClearAll?: () => void;
 }
 
 export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolbar({
@@ -19,6 +35,11 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
   totalMatches,
   onNextMatch,
   onPrevMatch,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  onClearAll,
 }: TranscriptViewerToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,14 +68,59 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2">
           {/* Undo */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            disabled={!canUndo}
+            onClick={onUndo}
+            title="Annuler (⌘Z)"
+          >
             <Undo2 className="h-4 w-4" />
           </Button>
 
           {/* Redo */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            disabled={!canRedo}
+            onClick={onRedo}
+            title="Rétablir (⌘⇧Z)"
+          >
             <Redo2 className="h-4 w-4" />
           </Button>
+
+          {/* Clear All with confirmation */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                title="Effacer toutes les sélections"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Effacer toutes les sélections ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Toutes les sélections seront supprimées. Vous pouvez annuler avec Cmd+Z.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={onClearAll}
+                >
+                  Effacer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Search */}
           <div className="relative">

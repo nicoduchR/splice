@@ -130,6 +130,67 @@ describe('useTranscriptKeyboardNav', () => {
     expect(mockOnSelectionChange).toHaveBeenCalledWith(1, 1); // Start from 0, go to 1
   });
 
+  it('should call onUndo on Cmd+Z', () => {
+    const mockOnUndo = vi.fn();
+    renderHook(() =>
+      useTranscriptKeyboardNav(
+        mockWords,
+        [3],
+        mockOnSelectionChange,
+        mockOnClearSelection,
+        mockScrollToIndex,
+        mockOnUndo,
+      )
+    );
+
+    const event = new KeyboardEvent('keydown', { key: 'z', metaKey: true });
+    window.dispatchEvent(event);
+
+    expect(mockOnUndo).toHaveBeenCalled();
+  });
+
+  it('should call onRedo on Cmd+Shift+Z', () => {
+    const mockOnRedo = vi.fn();
+    renderHook(() =>
+      useTranscriptKeyboardNav(
+        mockWords,
+        [3],
+        mockOnSelectionChange,
+        mockOnClearSelection,
+        mockScrollToIndex,
+        undefined,
+        mockOnRedo,
+      )
+    );
+
+    const event = new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true });
+    window.dispatchEvent(event);
+
+    expect(mockOnRedo).toHaveBeenCalled();
+  });
+
+  it('should not call onUndo on Cmd+Shift+Z (that is redo)', () => {
+    const mockOnUndo = vi.fn();
+    const mockOnRedo = vi.fn();
+    renderHook(() =>
+      useTranscriptKeyboardNav(
+        mockWords,
+        [3],
+        mockOnSelectionChange,
+        mockOnClearSelection,
+        mockScrollToIndex,
+        mockOnUndo,
+        mockOnRedo,
+      )
+    );
+
+    const event = new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true });
+    window.dispatchEvent(event);
+
+    expect(mockOnUndo).not.toHaveBeenCalled();
+    expect(mockOnRedo).toHaveBeenCalled();
+  });
+
   it('should cleanup event listener on unmount', () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');

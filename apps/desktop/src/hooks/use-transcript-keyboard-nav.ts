@@ -6,7 +6,9 @@ export function useTranscriptKeyboardNav(
   selectedIndices: number[],
   onSelectionChange: (start: number, end: number) => void,
   onClearSelection?: () => void,
-  scrollToIndex?: (index: number) => void
+  scrollToIndex?: (index: number) => void,
+  onUndo?: () => void,
+  onRedo?: () => void,
 ) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,9 +38,21 @@ export function useTranscriptKeyboardNav(
         e.preventDefault();
         onClearSelection?.();
       }
+
+      // Undo: Cmd+Z (Mac) / Ctrl+Z (Win)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        onUndo?.();
+      }
+
+      // Redo: Cmd+Shift+Z (Mac) / Ctrl+Shift+Z (Win)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        onRedo?.();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndices, words?.length, onSelectionChange, onClearSelection, scrollToIndex]);
+  }, [selectedIndices, words?.length, onSelectionChange, onClearSelection, scrollToIndex, onUndo, onRedo]);
 }

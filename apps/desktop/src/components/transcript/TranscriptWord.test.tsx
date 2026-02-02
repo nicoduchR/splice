@@ -18,7 +18,6 @@ describe('TranscriptWord', () => {
         word={mockWord}
         isSelected={false}
         isHighlighted={false}
-        showTimestamp={false}
         onClick={vi.fn()}
         onShiftClick={vi.fn()}
       />
@@ -27,13 +26,12 @@ describe('TranscriptWord', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
-  it('should apply selected state style', () => {
+  it('should apply selected state style with emerald green', () => {
     render(
       <TranscriptWord
         word={mockWord}
         isSelected={true}
         isHighlighted={false}
-        showTimestamp={false}
         onClick={vi.fn()}
         onShiftClick={vi.fn()}
       />
@@ -50,7 +48,6 @@ describe('TranscriptWord', () => {
         word={mockWord}
         isSelected={false}
         isHighlighted={true}
-        showTimestamp={false}
         onClick={vi.fn()}
         onShiftClick={vi.fn()}
       />
@@ -67,7 +64,6 @@ describe('TranscriptWord', () => {
         word={mockWord}
         isSelected={false}
         isHighlighted={false}
-        showTimestamp={false}
         onClick={handleClick}
         onShiftClick={vi.fn()}
       />
@@ -86,7 +82,6 @@ describe('TranscriptWord', () => {
         word={mockWord}
         isSelected={false}
         isHighlighted={false}
-        showTimestamp={false}
         onClick={vi.fn()}
         onShiftClick={handleShiftClick}
       />
@@ -96,35 +91,5 @@ describe('TranscriptWord', () => {
     fireEvent.click(wordElement, { shiftKey: true });
 
     expect(handleShiftClick).toHaveBeenCalledTimes(1);
-  });
-
-  it('should show timestamp when showTimestamp is true', () => {
-    render(
-      <TranscriptWord
-        word={mockWord}
-        isSelected={false}
-        isHighlighted={false}
-        showTimestamp={true}
-        onClick={vi.fn()}
-        onShiftClick={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText('00:00.500')).toBeInTheDocument();
-  });
-
-  it('should hide timestamp when showTimestamp is false', () => {
-    render(
-      <TranscriptWord
-        word={mockWord}
-        isSelected={false}
-        isHighlighted={false}
-        showTimestamp={false}
-        onClick={vi.fn()}
-        onShiftClick={vi.fn()}
-      />
-    );
-
-    expect(screen.queryByText('00:00.500')).not.toBeInTheDocument();
   });
 });

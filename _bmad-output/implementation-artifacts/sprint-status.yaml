@@ -67,8 +67,8 @@ development_status:
   epic-2-retrospective: optional
 
   epic-3: in-progress
-  3-1-text-selection-highlighting: review
-  3-2-de-selection-selection-management: backlog
+  3-1-text-selection-highlighting: done  # Code review: 3 issues fixed (2 HIGH, 1 MEDIUM). Removed phantom showTimestamp tests, duplicate FK in migration, added missing TranscriptViewer.tsx to File List. All ACs satisfied, 15/15 tests passing.
+  3-2-de-selection-selection-management: done  # Code review: 6 issues fixed (2 HIGH, 4 MEDIUM). Refactored _pushUndo to closure, fixed validation order, deep copy snapshots, added missing test. All ACs satisfied, 42 tests passing.
   3-3-timeline-visualization-sync: backlog
   3-4-selection-statistics-feedback: backlog
   epic-3-retrospective: optional

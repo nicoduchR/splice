@@ -28,6 +28,14 @@ export interface SelectionRange {
   createdAt: number;
 }
 
+/** Snapshot of selection state for undo/redo */
+interface UndoState {
+  selectedWordIndices: number[];
+  selections: SelectionRange[];
+}
+
+const MAX_UNDO_STACK = 50;
+
 interface TranscriptStore {
   // State
   transcript: Transcript | null;
@@ -41,6 +49,8 @@ interface TranscriptStore {
   currentProjectId: string | null;
   _autoSaveIntervalId: ReturnType<typeof setInterval> | null;
   _selectionsDirty: boolean;
+  _undoStack: UndoState[];
+  _redoStack: UndoState[];
 
   // Actions
   setTranscript: (transcript: Transcript | null) => void;
@@ -59,6 +69,10 @@ interface TranscriptStore {
   saveSelections: () => Promise<void>;
   startAutoSave: () => void;
   stopAutoSave: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 /** Convert sorted word indices to contiguous selection ranges */
@@ -119,7 +133,22 @@ function selectionsToIndices(selections: SelectionRange[]): number[] {
 
 export const useTranscriptStore = create<TranscriptStore>()(
   devtools(
-    (set, get) => ({
+    (set, get) => {
+      /** Internal: capture current selection state before a mutation */
+      function pushUndo() {
+        const { selectedWordIndices, selections, _undoStack } = get();
+        const snapshot: UndoState = {
+          selectedWordIndices: [...selectedWordIndices],
+          selections: selections.map(s => ({ ...s })),
+        };
+        const newStack = [..._undoStack, snapshot];
+        if (newStack.length > MAX_UNDO_STACK) {
+          newStack.shift();
+        }
+        set({ _undoStack: newStack, _redoStack: [], canUndo: true, canRedo: false });
+      }
+
+      return ({
       transcript: null,
       selectedWordIndices: [],
       selections: [],
@@ -127,6 +156,10 @@ export const useTranscriptStore = create<TranscriptStore>()(
       isLoading: false,
       _autoSaveIntervalId: null,
       _selectionsDirty: false,
+      _undoStack: [],
+      _redoStack: [],
+      canUndo: false,
+      canRedo: false,
       transcriptionProgress: {
         video_id: '',
         stage: 'extracting',
@@ -141,8 +174,55 @@ export const useTranscriptStore = create<TranscriptStore>()(
         set({ transcript, error: null });
       },
 
+      undo: () => {
+        const { _undoStack, _redoStack, selectedWordIndices, selections } = get();
+        if (_undoStack.length === 0) return;
+
+        const currentSnapshot: UndoState = {
+          selectedWordIndices: [...selectedWordIndices],
+          selections: selections.map(s => ({ ...s })),
+        };
+        const newUndoStack = [..._undoStack];
+        const restored = newUndoStack.pop()!;
+        const newRedoStack = [..._redoStack, currentSnapshot];
+
+        set({
+          selectedWordIndices: restored.selectedWordIndices,
+          selections: restored.selections,
+          _undoStack: newUndoStack,
+          _redoStack: newRedoStack,
+          canUndo: newUndoStack.length > 0,
+          canRedo: true,
+          _selectionsDirty: true,
+        });
+      },
+
+      redo: () => {
+        const { _undoStack, _redoStack, selectedWordIndices, selections } = get();
+        if (_redoStack.length === 0) return;
+
+        const currentSnapshot: UndoState = {
+          selectedWordIndices: [...selectedWordIndices],
+          selections: selections.map(s => ({ ...s })),
+        };
+        const newRedoStack = [..._redoStack];
+        const restored = newRedoStack.pop()!;
+        const newUndoStack = [..._undoStack, currentSnapshot];
+
+        set({
+          selectedWordIndices: restored.selectedWordIndices,
+          selections: restored.selections,
+          _undoStack: newUndoStack,
+          _redoStack: newRedoStack,
+          canUndo: true,
+          canRedo: newRedoStack.length > 0,
+          _selectionsDirty: true,
+        });
+      },
+
       // Action spécifique avec logique métier
       toggleWordSelection: (wordIndex) => {
+        pushUndo();
         const { selectedWordIndices } = get();
         const isSelected = selectedWordIndices.includes(wordIndex);
 
@@ -162,6 +242,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
         if (startIndex > endIndex) {
           throw new Error('Invalid selection range');
         }
+        pushUndo();
 
         const indices = Array.from(
           { length: endIndex - startIndex + 1 },
@@ -176,11 +257,13 @@ export const useTranscriptStore = create<TranscriptStore>()(
       },
 
       clearSelection: () => {
+        pushUndo();
         set({ selectedWordIndices: [], selections: [], _selectionsDirty: true });
       },
 
       // Toggle a range: add if not fully selected, remove if fully selected
       toggleSelectionRange: (startIndex, endIndex) => {
+        pushUndo();
         const { selectedWordIndices, transcript, currentProjectId } = get();
         const selectedSet = new Set(selectedWordIndices);
 
@@ -412,6 +495,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
 
       // Set selection from an arbitrary array of indices (for drag merge)
       setSelectionFromIndices: (indices) => {
+        pushUndo();
         const { transcript, currentProjectId } = get();
         set({
           selectedWordIndices: indices,
@@ -449,6 +533,10 @@ export const useTranscriptStore = create<TranscriptStore>()(
             selections,
             selectedWordIndices: indices,
             _selectionsDirty: false,
+            _undoStack: [],
+            _redoStack: [],
+            canUndo: false,
+            canRedo: false,
           });
         } catch (error) {
           console.error('Failed to load selections:', error);
@@ -499,7 +587,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           set({ _autoSaveIntervalId: null });
         }
       },
-    }),
+    });},
     { name: 'TranscriptStore' }
   )
 );
