@@ -11,5 +11,10 @@ export type DomainError =
   | "INVALID_FILE_NAME"
   | { INVALID_FILE_PATH: string }
   | { INVALID_DURATION: number }
+  | { OPERATION_CANCELLED: string }
+  | { PROCESSING_ERROR: string }
   | { REPOSITORY_ERROR: string }
-  | { DATABASE_ERROR: string };
+  | { DATABASE_ERROR: string }
+  | { SEGMENT_VALIDATION_FAILED: { segment_index: number; reason: string } }
+  | { SEGMENT_REGENERATION_FAILED: { segment_index: number; attempts: number } }
+  | { CONCATENATION_FAILED: { reason: string } };

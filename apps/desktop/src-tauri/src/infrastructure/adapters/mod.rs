@@ -7,6 +7,9 @@ pub mod fluidaudio_transcription_service;
 pub mod audio_extractor;
 pub mod proxy_generator;
 pub mod sqlite_cut_repository;
+pub mod video_segmenter;
+pub mod segment_validator;
+pub mod video_concatenator;
 
 // Used in tests
 #[allow(unused_imports)]

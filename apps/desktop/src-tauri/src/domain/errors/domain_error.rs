@@ -37,11 +37,32 @@ pub enum DomainError {
     #[serde(rename = "INVALID_DURATION")]
     InvalidDuration(f64),
 
+    #[serde(rename = "OPERATION_CANCELLED")]
+    OperationCancelled(String),
+
+    #[serde(rename = "PROCESSING_ERROR")]
+    ProcessingError(String),
+
     #[serde(rename = "REPOSITORY_ERROR")]
     RepositoryError(String),
 
     #[serde(rename = "DATABASE_ERROR")]
     DatabaseError(String),
+
+    #[serde(rename = "SEGMENT_VALIDATION_FAILED")]
+    SegmentValidationFailed {
+        segment_index: usize,
+        reason: String,
+    },
+
+    #[serde(rename = "SEGMENT_REGENERATION_FAILED")]
+    SegmentRegenerationFailed {
+        segment_index: usize,
+        attempts: usize,
+    },
+
+    #[serde(rename = "CONCATENATION_FAILED")]
+    ConcatenationFailed { reason: String },
 }
 
 impl std::fmt::Display for DomainError {
@@ -69,8 +90,19 @@ impl std::fmt::Display for DomainError {
             DomainError::InvalidFileName => write!(f, "InvalidFileName"),
             DomainError::InvalidFilePath(path) => write!(f, "InvalidFilePath(\"{}\")", path),
             DomainError::InvalidDuration(dur) => write!(f, "InvalidDuration({})", dur),
+            DomainError::OperationCancelled(msg) => write!(f, "OperationCancelled(\"{}\")", msg),
+            DomainError::ProcessingError(msg) => write!(f, "ProcessingError(\"{}\")", msg),
             DomainError::RepositoryError(msg) => write!(f, "RepositoryError(\"{}\")", msg),
             DomainError::DatabaseError(msg) => write!(f, "DatabaseError(\"{}\")", msg),
+            DomainError::SegmentValidationFailed { segment_index, reason } => {
+                write!(f, "SegmentValidationFailed(segment: {}, reason: \"{}\")", segment_index, reason)
+            }
+            DomainError::SegmentRegenerationFailed { segment_index, attempts } => {
+                write!(f, "SegmentRegenerationFailed(segment: {}, attempts: {})", segment_index, attempts)
+            }
+            DomainError::ConcatenationFailed { reason } => {
+                write!(f, "ConcatenationFailed(\"{}\")", reason)
+            }
         }
     }
 }

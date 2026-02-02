@@ -1,4 +1,4 @@
-import { Settings, Scissors } from 'lucide-react';
+import { Settings, Scissors, Play, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import type { VideoProject } from '@splice/types/generated';
 
@@ -7,9 +7,13 @@ interface TopBarProps {
   currentScreen?: string;
   onGenerateCuts?: () => void;
   hasSelections?: boolean;
+  isSegmenting?: boolean;
+  canPreview?: boolean;
+  onPreview?: () => void;
+  onBackToEditor?: () => void;
 }
 
-export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false }: TopBarProps) {
+export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, onPreview, onBackToEditor }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-[#21344a] bg-[#101923] shrink-0">
       <div className="flex items-center gap-4">
@@ -21,8 +25,8 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
         </div>
         <h2 className="text-white text-xl font-bold leading-tight tracking-tight">Splice</h2>
 
-        {/* Filename when in editor */}
-        {currentScreen === 'editor' && currentProject && (
+        {/* Filename when in editor or preview */}
+        {(currentScreen === 'editor' || currentScreen === 'preview') && currentProject && (
           <>
             <div className="w-px h-5 bg-border-dark" />
             <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={currentProject.file_name}>
@@ -33,11 +37,27 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Back to editor button (preview mode) */}
+        {currentScreen === 'preview' && onBackToEditor && (
+          <Button variant="outline" size="sm" onClick={onBackToEditor}>
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            Retour à l'éditeur
+          </Button>
+        )}
+
         {/* Generate cuts CTA */}
         {currentScreen === 'editor' && onGenerateCuts && (
-          <Button size="sm" onClick={onGenerateCuts} disabled={!hasSelections}>
+          <Button size="sm" onClick={onGenerateCuts} disabled={!hasSelections || isSegmenting}>
             <Scissors className="w-4 h-4 mr-1.5" />
             Générer les cuts
+          </Button>
+        )}
+
+        {/* Preview button */}
+        {currentScreen === 'editor' && canPreview && onPreview && (
+          <Button size="sm" variant="default" onClick={onPreview}>
+            <Play className="w-4 h-4 mr-1.5" />
+            Prévisualiser
           </Button>
         )}
 

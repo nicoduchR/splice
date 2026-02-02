@@ -3,6 +3,8 @@ pub mod import_video;
 pub mod save_transcript;
 pub mod selection_use_cases;
 pub mod generate_cuts;
+pub mod segment_video;
+pub mod validate_segments;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -11,3 +13,5 @@ pub use import_video::ImportVideoUseCase;
 pub use save_transcript::SaveTranscriptUseCase;
 pub use selection_use_cases::{SaveSelectionsUseCase, GetSelectionsUseCase, ClearSelectionsUseCase};
 pub use generate_cuts::GenerateCutsUseCase;
+pub use segment_video::SegmentVideoUseCase;
+pub use validate_segments::ValidateSegmentsUseCase;

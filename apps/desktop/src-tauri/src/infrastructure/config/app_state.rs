@@ -14,6 +14,8 @@ pub struct AppState {
     pub cut_repository: Arc<dyn CutRepository>,
     /// Cancellation flags for ongoing transcriptions (video_id -> cancel_flag)
     pub transcription_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    /// Cancellation flags for ongoing segmentations (project_id -> cancel_flag)
+    pub segmentation_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
 }
 
 impl AppState {
@@ -37,6 +39,7 @@ impl AppState {
             selection_repository,
             cut_repository,
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
+            segmentation_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 

@@ -17,9 +17,13 @@ import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
+import { useSegmentationStore } from './stores/segmentation-store';
+import { SegmentationProgressDialog } from './components/segmentation';
+import { PreviewPlayer } from './components/preview/PreviewPlayer';
+import type { SegmentationProgress } from '@splice/types/generated';
 
 // App screen states
-type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor';
+type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor' | 'preview';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
@@ -55,6 +59,15 @@ function App() {
   const loadSelections = useTranscriptStore(s => s.loadSelections);
   const startAutoSave = useTranscriptStore(s => s.startAutoSave);
   const stopAutoSave = useTranscriptStore(s => s.stopAutoSave);
+
+  // Segmentation state
+  const isSegmenting = useSegmentationStore(s => s.isSegmenting);
+  const segmentationProgress = useSegmentationStore(s => s.segmentationProgress);
+  const isValidating = useSegmentationStore(s => s.isValidating);
+  const validationProgress = useSegmentationStore(s => s.validationProgress);
+  const isConcatenating = useSegmentationStore(s => s.isConcatenating);
+  const segmentationStats = useSegmentationStore(s => s.stats);
+  const finalVideoPath = useSegmentationStore(s => s.finalVideoPath);
 
   // Search functionality
   const {
@@ -203,6 +216,99 @@ function App() {
     };
   }, [updateTranscriptionProgress, completeTranscription, transcribingProjectId]);
 
+  // Listen to segmentation events
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+      return;
+    }
+
+    let unlistenProgress: (() => void) | undefined;
+    let unlistenCompleted: (() => void) | undefined;
+    let unlistenError: (() => void) | undefined;
+    let unlistenValidating: (() => void) | undefined;
+    let unlistenConcatenating: (() => void) | undefined;
+    let unlistenStats: (() => void) | undefined;
+
+    const setupListeners = async () => {
+      unlistenStats = await listen<{
+        segment_count: number;
+        final_duration_secs: number;
+        original_duration_secs: number;
+        reduction_percent: number;
+      }>(
+        'segmentation:stats',
+        (event) => {
+          useSegmentationStore.getState().setStats(event.payload);
+        }
+      );
+
+      unlistenProgress = await listen<SegmentationProgress>(
+        'segmentation:progress',
+        (event) => {
+          useSegmentationStore.getState().updateProgress(event.payload);
+        }
+      );
+
+      unlistenValidating = await listen<{ project_id: string; current_segment: number; total_segments: number }>(
+        'segmentation:validating',
+        (event) => {
+          useSegmentationStore.getState().updateValidationProgress(event.payload);
+        }
+      );
+
+      unlistenConcatenating = await listen<{ project_id: string }>(
+        'segmentation:concatenating',
+        () => {
+          useSegmentationStore.getState().setConcatenating(true);
+        }
+      );
+
+      unlistenCompleted = await listen<{ project_id: string; segment_paths: string[]; final_video_path?: string }>(
+        'segmentation:completed',
+        (event) => {
+          const finalPath = event.payload.final_video_path;
+          if (finalPath) {
+            useSegmentationStore.getState().setFinalVideoPath(finalPath);
+          }
+          useSegmentationStore.getState().resetSegmentation();
+          toast.success('Vidéo finale générée avec succès!', {
+            description: finalPath
+              ? `Fichier: ${finalPath}`
+              : 'Export terminé',
+            duration: 5000,
+          });
+        }
+      );
+
+      unlistenError = await listen<{ project_id: string; error: string }>(
+        'segmentation:error',
+        (event) => {
+          useSegmentationStore.setState({
+            isSegmenting: false,
+            segmentationProgress: null,
+            isValidating: false,
+            validationProgress: null,
+            error: event.payload.error,
+          });
+          toast.error('Erreur lors de la génération des cuts', {
+            description: event.payload.error,
+          });
+        }
+      );
+    };
+
+    setupListeners();
+
+    return () => {
+      if (unlistenProgress) unlistenProgress();
+      if (unlistenCompleted) unlistenCompleted();
+      if (unlistenError) unlistenError();
+      if (unlistenValidating) unlistenValidating();
+      if (unlistenConcatenating) unlistenConcatenating();
+      if (unlistenStats) unlistenStats();
+    };
+  }, []);
+
   // Loading screen while checking model status
   if (isChecking) {
     return (
@@ -241,8 +347,18 @@ function App() {
           <TopBar
             currentProject={currentProject}
             currentScreen={currentScreen}
-            onGenerateCuts={() => { /* TODO: implement generate cuts */ }}
+            onGenerateCuts={async () => {
+              if (currentProject && !isSegmenting) {
+                // Flush pending selections to DB before generating cuts
+                await useTranscriptStore.getState().saveSelections();
+                useSegmentationStore.getState().startSegmentation(currentProject.id);
+              }
+            }}
+            isSegmenting={isSegmenting}
             hasSelections={hasSelections}
+            canPreview={!!finalVideoPath}
+            onPreview={() => setCurrentScreen('preview')}
+            onBackToEditor={() => setCurrentScreen('editor')}
           />
           <Toaster />
 
@@ -382,6 +498,12 @@ function App() {
           </div>
         )}
 
+        {currentScreen === 'preview' && finalVideoPath && (
+          <div className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
+            <PreviewPlayer filePath={finalVideoPath} />
+          </div>
+        )}
+
         {currentScreen === 'editor' && transcript && currentProject && (
           <div className="relative z-10 w-full h-full min-h-0 flex flex-row">
             {/* Left panel — Transcript (60%) */}
@@ -440,6 +562,21 @@ function App() {
         isOpen={showDialog}
         onCancel={cancelDownload}
         onRetry={retryDownload}
+      />
+
+      {/* Segmentation Progress Dialog */}
+      <SegmentationProgressDialog
+        isOpen={isSegmenting}
+        progress={segmentationProgress}
+        isValidating={isValidating}
+        validationProgress={validationProgress}
+        isConcatenating={isConcatenating}
+        stats={segmentationStats}
+        onCancel={() => {
+          if (currentProject) {
+            useSegmentationStore.getState().cancelSegmentation(currentProject.id);
+          }
+        }}
       />
 
       {/* Transcription Error Dialog - shown as overlay on any screen */}

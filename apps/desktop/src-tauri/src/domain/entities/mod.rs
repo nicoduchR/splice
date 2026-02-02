@@ -5,6 +5,7 @@ pub mod transcription;
 pub mod transcript_stored;
 pub mod selection;
 pub mod cut;
+pub mod segment_validation;
 
 pub use video::VideoProject;
 // Used in future stories
@@ -16,3 +17,4 @@ pub use transcription::{TranscriptionResult, Word};
 pub use transcript_stored::{TranscriptStored, TranscriptWordStored};
 pub use selection::Selection;
 pub use cut::Cut;
+pub use segment_validation::SegmentValidation;
