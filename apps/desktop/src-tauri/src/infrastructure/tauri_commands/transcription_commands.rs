@@ -7,9 +7,11 @@ use crate::domain::entities::transcription::TranscriptionResult;
 use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
 use crate::domain::repositories::TranscriptRepository;
 use crate::infrastructure::adapters::{AudioExtractor, FluidAudioTranscriptionService};
+use crate::infrastructure::adapters::proxy_generator::ProxyGenerator;
 use crate::infrastructure::config::app_state::AppState;
 use crate::application::ports::transcription_service::TranscriptionService;
 use crate::application::use_cases::SaveTranscriptUseCase;
+use super::proxy_commands::{ProxyCompleted, ProxyFailed};
 
 // Progress tracking constants
 const PROGRESS_EXTRACTION: f64 = 0.2;
@@ -78,6 +80,37 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     })?;
 
     let audio_path = temp_dir.join(format!("audio-{}.wav", video_id));
+
+    // Launch proxy generation in parallel (non-blocking)
+    let proxy_handle = {
+        let video_path_buf_clone = video_path_buf.clone();
+        let video_id_clone = video_id.clone();
+        let cancel_flag_clone = cancel_flag.clone();
+
+        // Get video dimensions from the project in database
+        let (proj_width, proj_height) = match app_state.video_repository.find_by_id(&video_id) {
+            Ok(Some(project)) => (project.width, project.height),
+            _ => (None, None),
+        };
+
+        let app_data_dir = dirs::home_dir()
+            .unwrap_or_default()
+            .join(".splice");
+
+        tokio::spawn(async move {
+            // Check cancel before starting
+            if cancel_flag_clone.load(Ordering::Relaxed) {
+                return Ok(None);
+            }
+            ProxyGenerator::generate_proxy(
+                &video_path_buf_clone,
+                &video_id_clone,
+                proj_width,
+                proj_height,
+                &app_data_dir,
+            ).await
+        })
+    };
 
     // Stage 1: Extract audio (20%)
     emit_progress(
@@ -169,6 +202,40 @@ pub async fn transcribe_video<R: tauri::Runtime>(
 
     app_handle.emit("transcription:completed", &result)
         .map_err(|e| format!("Erreur d'émission d'événement de complétion: {}", e))?;
+
+    // Await proxy generation result (non-blocking - it ran in parallel)
+    match proxy_handle.await {
+        Ok(Ok(Some(proxy_path))) => {
+            let proxy_path_str = proxy_path.to_string_lossy().to_string();
+            // Save proxy_path to database
+            if let Ok(Some(mut project)) = app_state.video_repository.find_by_id(&video_id) {
+                project.proxy_path = Some(proxy_path_str.clone());
+                let _ = app_state.video_repository.save(project);
+            }
+            let _ = app_handle.emit("proxy:completed", ProxyCompleted {
+                project_id: video_id.clone(),
+                proxy_path: proxy_path_str,
+            });
+        }
+        Ok(Ok(None)) => {
+            // No proxy needed or skipped - this is normal
+            tracing::debug!(event = "proxy_not_needed", video_id = %video_id);
+        }
+        Ok(Err(e)) => {
+            let _ = app_handle.emit("proxy:failed", ProxyFailed {
+                project_id: video_id.clone(),
+                message: e.clone(),
+            });
+            tracing::warn!(event = "proxy_generation_error", video_id = %video_id, error = %e);
+        }
+        Err(e) => {
+            let _ = app_handle.emit("proxy:failed", ProxyFailed {
+                project_id: video_id.clone(),
+                message: e.to_string(),
+            });
+            tracing::warn!(event = "proxy_task_join_error", video_id = %video_id, error = %e);
+        }
+    }
 
     // Cleanup temporary WAV file
     if let Err(e) = tokio::fs::remove_file(&audio_path).await {

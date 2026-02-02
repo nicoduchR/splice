@@ -1,47 +1,48 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Resolve the path to the bundled ffmpeg sidecar binary.
+/// In dev mode: uses the binaries/ directory relative to CARGO_MANIFEST_DIR.
+/// In production: uses the binary next to the current executable.
+pub fn ffmpeg_path() -> PathBuf {
+    // Try production path first (next to the running binary)
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+
+    if let Some(dir) = &exe_dir {
+        let candidate = dir.join("ffmpeg");
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+
+    // Dev mode: resolve from CARGO_MANIFEST_DIR
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let target = format!("ffmpeg-{}", std::env::consts::ARCH);
+    let dev_path = PathBuf::from(manifest_dir)
+        .join("binaries")
+        .join(format!("{}-apple-darwin", target));
+    if dev_path.exists() {
+        return dev_path;
+    }
+
+    // Fallback: universal binary
+    let universal = PathBuf::from(manifest_dir)
+        .join("binaries")
+        .join("ffmpeg-universal-apple-darwin");
+    if universal.exists() {
+        return universal;
+    }
+
+    // Last resort: hope it's on PATH
+    PathBuf::from("ffmpeg")
+}
+
 /// AudioExtractor - handles audio extraction from video files using FFmpeg
 pub struct AudioExtractor;
 
 impl AudioExtractor {
-    /// Resolve the path to the bundled ffmpeg sidecar binary.
-    /// In dev mode: uses the binaries/ directory relative to CARGO_MANIFEST_DIR.
-    /// In production: uses the binary next to the current executable.
-    fn ffmpeg_path() -> PathBuf {
-        // Try production path first (next to the running binary)
-        let exe_dir = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.to_path_buf()));
-
-        if let Some(dir) = &exe_dir {
-            let candidate = dir.join("ffmpeg");
-            if candidate.exists() {
-                return candidate;
-            }
-        }
-
-        // Dev mode: resolve from CARGO_MANIFEST_DIR
-        let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        let target = format!("ffmpeg-{}", std::env::consts::ARCH);
-        let dev_path = PathBuf::from(manifest_dir)
-            .join("binaries")
-            .join(format!("{}-apple-darwin", target));
-        if dev_path.exists() {
-            return dev_path;
-        }
-
-        // Fallback: universal binary
-        let universal = PathBuf::from(manifest_dir)
-            .join("binaries")
-            .join("ffmpeg-universal-apple-darwin");
-        if universal.exists() {
-            return universal;
-        }
-
-        // Last resort: hope it's on PATH
-        PathBuf::from("ffmpeg")
-    }
 
     /// Extract audio from video file to WAV format (16kHz mono PCM s16le)
     pub async fn extract_audio(
@@ -77,7 +78,7 @@ impl AudioExtractor {
         let video_path_str = video_path.to_string_lossy().to_string();
         let output_path_str = output_path.to_string_lossy().to_string();
 
-        let ffmpeg = Self::ffmpeg_path();
+        let ffmpeg = ffmpeg_path();
         tokio::task::spawn_blocking(move || {
             let output = Command::new(&ffmpeg)
                 .args([

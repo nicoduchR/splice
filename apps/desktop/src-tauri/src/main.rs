@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands};
 use tauri::Emitter;
 
 #[tokio::main]
@@ -49,6 +49,7 @@ async fn main() {
             selection_commands::save_selections,
             selection_commands::get_selections,
             selection_commands::clear_selections,
+            proxy_commands::generate_proxy,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

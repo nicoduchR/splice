@@ -14,4 +14,5 @@ export type VideoProject = {
   height?: number,
   file_size_bytes?: number,
   codec?: string,
+  proxy_path?: string,
 };

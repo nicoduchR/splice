@@ -5,6 +5,7 @@ pub mod sqlite_selection_repository;
 pub mod model_manager;
 pub mod fluidaudio_transcription_service;
 pub mod audio_extractor;
+pub mod proxy_generator;
 
 // Used in tests
 #[allow(unused_imports)]
@@ -16,4 +17,4 @@ pub use sqlite_selection_repository::SqliteSelectionRepository;
 #[allow(unused_imports)]
 pub use model_manager::HuggingFaceModelManager;
 pub use fluidaudio_transcription_service::FluidAudioTranscriptionService;
-pub use audio_extractor::AudioExtractor;
+pub use audio_extractor::{AudioExtractor, ffmpeg_path};

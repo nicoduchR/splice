@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import type { VideoProject } from '@splice/types/generated';
 import { toast } from 'sonner';
+import { listen } from '@tauri-apps/api/event';
 import { getImportErrorMessage } from '../lib/error-messages';
 
 // Interface du store avec state + actions
@@ -14,6 +15,8 @@ interface VideoStore {
   importProgress: number;
   error: string | null;
   isDragOver: boolean;
+  proxyPath: string | null;
+  isGeneratingProxy: boolean;
 
   // Actions
   importVideo: (filePath: string) => Promise<void>;
@@ -22,6 +25,8 @@ interface VideoStore {
   clearProject: () => void;
   setError: (error: string | null) => void;
   setDragOver: (isDragOver: boolean) => void;
+  setProxyPath: (path: string | null) => void;
+  initProxyListener: () => Promise<() => void>;
 }
 
 // Convention: préfixe "use" + nom domaine + "Store"
@@ -35,6 +40,8 @@ export const useVideoStore = create<VideoStore>()(
       importProgress: 0,
       error: null,
       isDragOver: false,
+      proxyPath: null,
+      isGeneratingProxy: false,
 
       // Actions métier explicites (pas de setters génériques)
       importVideo: async (filePath) => {
@@ -49,6 +56,8 @@ export const useVideoStore = create<VideoStore>()(
             isImporting: false,
             importProgress: 100,
             allProjects: [...get().allProjects, project],
+            proxyPath: project.proxy_path ?? null,
+            isGeneratingProxy: false,
           });
 
           // Display success toast with video metadata
@@ -105,12 +114,16 @@ export const useVideoStore = create<VideoStore>()(
       selectProject: (projectId) => {
         const project = get().allProjects.find(p => p.id === projectId);
         if (project) {
-          set({ currentProject: project });
+          set({
+            currentProject: project,
+            proxyPath: project.proxy_path ?? null,
+            isGeneratingProxy: false,
+          });
         }
       },
 
       clearProject: () => {
-        set({ currentProject: null });
+        set({ currentProject: null, proxyPath: null, isGeneratingProxy: false });
       },
 
       setError: (error) => {
@@ -119,6 +132,24 @@ export const useVideoStore = create<VideoStore>()(
 
       setDragOver: (isDragOver) => {
         set({ isDragOver });
+      },
+
+      setProxyPath: (path) => {
+        set({ proxyPath: path, isGeneratingProxy: false });
+      },
+
+      initProxyListener: async () => {
+        const unlisten = await listen<{ project_id: string; proxy_path: string }>(
+          'proxy:completed',
+          (event) => {
+            const { project_id, proxy_path } = event.payload;
+            const current = get().currentProject;
+            if (current && current.id === project_id) {
+              set({ proxyPath: proxy_path, isGeneratingProxy: false });
+            }
+          }
+        );
+        return unlisten;
       },
     }),
     { name: 'VideoStore' } // DevTools label

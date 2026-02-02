@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useEffect, useMemo } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useTimelineStore } from '../../stores/timeline-store';
 import { useTranscriptStore } from '../../stores/transcript-store';
+import { useVideoStore } from '../../stores/video-store';
 import { formatTimecode } from '../../lib/format-timecode';
 import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward } from 'lucide-react';
 import {
@@ -42,6 +43,10 @@ export const VideoPlayer = React.memo(function VideoPlayer({
   const seek = useTimelineStore((s) => s.seek);
   const setSeeking = useTimelineStore((s) => s.setSeeking);
 
+  // Proxy support: use proxy path if available
+  const proxyPath = useVideoStore((s) => s.proxyPath);
+  const effectivePath = proxyPath ?? filePath;
+
   // For segment click → word index
   const selections = useTranscriptStore((s) => s.selections);
   const selectionMap = useMemo(() => {
@@ -54,10 +59,10 @@ export const VideoPlayer = React.memo(function VideoPlayer({
 
   const videoSrc = useMemo(() => {
     if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      return convertFileSrc(filePath, 'asset');
+      return convertFileSrc(effectivePath, 'asset');
     }
-    return filePath;
-  }, [filePath]);
+    return effectivePath;
+  }, [effectivePath]);
 
   // Resolution badge
   const resolutionLabel = useMemo(() => {
@@ -68,6 +73,23 @@ export const VideoPlayer = React.memo(function VideoPlayer({
     if (width >= 854) return '480p';
     return `${width}×${height}`;
   }, [width, height]);
+
+  // Preserve currentTime when switching source (proxy ↔ original)
+  const prevSrcRef = useRef(videoSrc);
+  useEffect(() => {
+    if (prevSrcRef.current !== videoSrc) {
+      prevSrcRef.current = videoSrc;
+      const video = videoRef.current;
+      if (video) {
+        const savedTime = currentTime;
+        const onLoaded = () => {
+          video.currentTime = savedTime;
+          video.removeEventListener('loadedmetadata', onLoaded);
+        };
+        video.addEventListener('loadedmetadata', onLoaded);
+      }
+    }
+  }, [videoSrc, currentTime]);
 
   // Sync video element → store (debounced timeupdate)
   const lastTimeUpdate = useRef(0);

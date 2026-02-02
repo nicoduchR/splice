@@ -28,6 +28,9 @@ pub struct VideoProject {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub codec: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy_path: Option<String>,
 }
 
 impl VideoProject {
@@ -64,6 +67,7 @@ impl VideoProject {
             height: None,
             file_size_bytes: None,
             codec: None,
+            proxy_path: None,
         })
     }
 

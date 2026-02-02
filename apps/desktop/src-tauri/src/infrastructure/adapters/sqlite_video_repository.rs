@@ -27,7 +27,7 @@ impl VideoRepository for SqliteVideoRepository {
             tokio::runtime::Handle::current().block_on(async {
                 let row = sqlx::query(
                     "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at,
-                            width, height, file_size_bytes, codec
+                            width, height, file_size_bytes, codec, proxy_path
                      FROM projects
                      WHERE id = ?"
                 )
@@ -51,6 +51,7 @@ impl VideoRepository for SqliteVideoRepository {
                         height: row.get("height"),
                         file_size_bytes: row.get("file_size_bytes"),
                         codec: row.get("codec"),
+                        proxy_path: row.get("proxy_path"),
                     })),
                     None => Ok(None),
                 }
@@ -67,7 +68,7 @@ impl VideoRepository for SqliteVideoRepository {
             tokio::runtime::Handle::current().block_on(async {
                 let rows = sqlx::query(
                     "SELECT id, file_path, file_name, duration_seconds, created_at, updated_at,
-                            width, height, file_size_bytes, codec
+                            width, height, file_size_bytes, codec, proxy_path
                      FROM projects
                      ORDER BY created_at DESC"
                 )
@@ -90,6 +91,7 @@ impl VideoRepository for SqliteVideoRepository {
                         height: row.get("height"),
                         file_size_bytes: row.get("file_size_bytes"),
                         codec: row.get("codec"),
+                        proxy_path: row.get("proxy_path"),
                     }
                 }).collect();
 
@@ -114,8 +116,8 @@ impl VideoRepository for SqliteVideoRepository {
 
                 sqlx::query(
                     "INSERT INTO projects (id, file_path, file_name, duration_seconds, created_at, updated_at,
-                                          width, height, file_size_bytes, codec)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                          width, height, file_size_bytes, codec, proxy_path)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                          file_path = excluded.file_path,
                          file_name = excluded.file_name,
@@ -124,7 +126,8 @@ impl VideoRepository for SqliteVideoRepository {
                          width = excluded.width,
                          height = excluded.height,
                          file_size_bytes = excluded.file_size_bytes,
-                         codec = excluded.codec"
+                         codec = excluded.codec,
+                         proxy_path = excluded.proxy_path"
                 )
                 .bind(&project.id)
                 .bind(&project.file_path)
@@ -136,6 +139,7 @@ impl VideoRepository for SqliteVideoRepository {
                 .bind(project.height.map(|h| h as i64))
                 .bind(project.file_size_bytes.map(|s| s as i64))
                 .bind(&project.codec)
+                .bind(&project.proxy_path)
                 .execute(&mut *tx)
                 .await
                 .map_err(|e| {
