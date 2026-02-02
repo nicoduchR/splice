@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TranscriptWord as TWord } from '@splice/types';
 import { TranscriptWord } from './TranscriptWord';
@@ -22,6 +22,7 @@ export interface TranscriptViewerProps {
   onUndo?: () => void;
   onRedo?: () => void;
   searchQuery?: string;
+  scrollToWordIndex?: number | null;
   className?: string;
 }
 
@@ -36,6 +37,7 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
   onUndo,
   onRedo,
   searchQuery = '',
+  scrollToWordIndex = null,
   className = '',
 }: TranscriptViewerProps) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
@@ -84,6 +86,13 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
     },
     [paragraphs, virtualizer]
   );
+
+  // External scroll-to-word trigger
+  useEffect(() => {
+    if (scrollToWordIndex !== null && scrollToWordIndex >= 0) {
+      scrollToIndex(scrollToWordIndex);
+    }
+  }, [scrollToWordIndex, scrollToIndex]);
 
   // Keyboard navigation
   useTranscriptKeyboardNav(

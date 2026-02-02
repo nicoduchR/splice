@@ -10,7 +10,10 @@ import { Button } from './components/ui/button';
 import { ModelDownloadDialog } from './components/model-download';
 import { TranscriptionProgressDialog, TranscriptionErrorDialog, TranscriptionScreen } from './components/transcription';
 import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcript';
+import { VideoPlayer, KeyboardShortcutsBar } from './components/video';
 import { useModelDownload } from './hooks/use-model-download';
+import { useTimelineSync } from './hooks/use-timeline-sync';
+import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
@@ -62,6 +65,17 @@ function App() {
     nextMatch,
     prevMatch,
   } = useTranscriptSearch(transcript?.words || []);
+
+  // Timeline sync
+  useTimelineSync();
+  const timelineSegments = useTimelineStore(s => s.segments);
+  const hasSelections = timelineSegments.length > 0;
+  const [scrollToWordIndex, setScrollToWordIndex] = useState<number | null>(null);
+
+  const handleSegmentClick = (wordIndex: number) => {
+    setScrollToWordIndex(null);
+    queueMicrotask(() => setScrollToWordIndex(wordIndex));
+  };
 
   // Model download management
   const {
@@ -223,11 +237,16 @@ function App() {
     <>
       {!showDialog ? (
         // Normal app content
-        <div className="min-h-screen flex flex-col overflow-hidden">
-          <TopBar />
+        <div className="h-screen flex flex-col overflow-hidden">
+          <TopBar
+            currentProject={currentProject}
+            currentScreen={currentScreen}
+            onGenerateCuts={() => { /* TODO: implement generate cuts */ }}
+            hasSelections={hasSelections}
+          />
           <Toaster />
 
-      <main className={`flex-1 flex flex-col relative ${currentScreen === 'editor' ? 'overflow-hidden' : 'items-center justify-center p-6 sm:p-10'}`}>
+      <main className={`flex-1 min-h-0 flex flex-col relative ${currentScreen === 'editor' ? 'overflow-hidden' : 'items-center justify-center p-6 sm:p-10'}`}>
         {/* Abstract Background Gradient for depth - only for import and project-details */}
         {currentScreen !== 'transcribing' && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -363,34 +382,49 @@ function App() {
           </div>
         )}
 
-        {currentScreen === 'editor' && transcript && (
-          <div className="relative z-10 w-full h-full flex flex-col">
-            <TranscriptViewerToolbar
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              currentMatchIndex={currentMatchIndex}
-              totalMatches={matches.length}
-              onNextMatch={nextMatch}
-              onPrevMatch={prevMatch}
-              onUndo={undo}
-              onRedo={redo}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onClearAll={clearSelection}
-            />
-            <div className="flex-1 overflow-hidden">
-              <TranscriptViewer
-                words={transcript.words}
-                selectedIndices={selectedWordIndices}
-                onWordClick={toggleWordSelection}
-                onSelectionChange={setSelection}
-                onToggleRange={toggleSelectionRange}
-                onSetIndices={setSelectionFromIndices}
-                onClearSelection={clearSelection}
+        {currentScreen === 'editor' && transcript && currentProject && (
+          <div className="relative z-10 w-full h-full min-h-0 flex flex-row">
+            {/* Left panel — Transcript (60%) */}
+            <div className="w-[60%] h-full min-h-0 flex flex-col border-r border-border-dark">
+              <TranscriptViewerToolbar
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                currentMatchIndex={currentMatchIndex}
+                totalMatches={matches.length}
+                onNextMatch={nextMatch}
+                onPrevMatch={prevMatch}
                 onUndo={undo}
                 onRedo={redo}
-                searchQuery={searchQuery}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onClearAll={clearSelection}
               />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <TranscriptViewer
+                  words={transcript.words}
+                  selectedIndices={selectedWordIndices}
+                  onWordClick={toggleWordSelection}
+                  onSelectionChange={setSelection}
+                  onToggleRange={toggleSelectionRange}
+                  onSetIndices={setSelectionFromIndices}
+                  onClearSelection={clearSelection}
+                  onUndo={undo}
+                  onRedo={redo}
+                  searchQuery={searchQuery}
+                  scrollToWordIndex={scrollToWordIndex}
+                />
+              </div>
+            </div>
+
+            {/* Right panel — Video (40%) */}
+            <div className="w-[40%] h-full min-h-0 flex flex-col bg-panel-dark">
+              <VideoPlayer
+                filePath={currentProject.file_path}
+                width={currentProject.width ?? undefined}
+                height={currentProject.height ?? undefined}
+                onSegmentClick={handleSegmentClick}
+              />
+              <KeyboardShortcutsBar />
             </div>
           </div>
         )}

@@ -13,12 +13,18 @@ interface TimelineStore {
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  volume: number;
+  isSeeking: boolean;
   segments: TimelineSegment[];
 
   // Actions
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   togglePlayback: () => void;
+  setPlaying: (playing: boolean) => void;
+  setVolume: (volume: number) => void;
+  seek: (time: number) => void;
+  setSeeking: (seeking: boolean) => void;
   setSegments: (segments: TimelineSegment[]) => void;
   addSegment: (segment: TimelineSegment) => void;
 }
@@ -29,6 +35,8 @@ export const useTimelineStore = create<TimelineStore>()(
       currentTime: 0,
       duration: 0,
       isPlaying: false,
+      volume: 0.7,
+      isSeeking: false,
       segments: [],
 
       setCurrentTime: (time) => {
@@ -64,6 +72,24 @@ export const useTimelineStore = create<TimelineStore>()(
 
       togglePlayback: () => {
         set({ isPlaying: !get().isPlaying });
+      },
+
+      setPlaying: (playing) => {
+        set({ isPlaying: playing });
+      },
+
+      setVolume: (volume) => {
+        set({ volume: Math.max(0, Math.min(1, volume)) });
+      },
+
+      seek: (time) => {
+        const { duration } = get();
+        const clamped = duration > 0 ? Math.min(Math.max(0, time), duration) : Math.max(0, time);
+        set({ currentTime: clamped });
+      },
+
+      setSeeking: (seeking) => {
+        set({ isSeeking: seeking });
       },
 
       setSegments: (segments) => {

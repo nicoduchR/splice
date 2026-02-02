@@ -6,3 +6,5 @@ export { TranscriptViewerToolbar } from './TranscriptViewerToolbar';
 
 export { TranscriptWord } from './TranscriptWord';
 export type { TranscriptWordProps } from './TranscriptWord';
+
+export { SelectionStats } from './SelectionStats';

@@ -1,6 +1,15 @@
-import { Settings } from 'lucide-react';
+import { Settings, Scissors } from 'lucide-react';
+import { Button } from '../ui/button';
+import type { VideoProject } from '@splice/types/generated';
 
-export function TopBar() {
+interface TopBarProps {
+  currentProject?: VideoProject | null;
+  currentScreen?: string;
+  onGenerateCuts?: () => void;
+  hasSelections?: boolean;
+}
+
+export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-[#21344a] bg-[#101923] shrink-0">
       <div className="flex items-center gap-4">
@@ -11,11 +20,31 @@ export function TopBar() {
           </svg>
         </div>
         <h2 className="text-white text-xl font-bold leading-tight tracking-tight">Splice</h2>
+
+        {/* Filename when in editor */}
+        {currentScreen === 'editor' && currentProject && (
+          <>
+            <div className="w-px h-5 bg-border-dark" />
+            <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={currentProject.file_name}>
+              {currentProject.file_name}
+            </span>
+          </>
+        )}
       </div>
 
-      <button className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors">
-        <Settings className="w-6 h-6" />
-      </button>
+      <div className="flex items-center gap-3">
+        {/* Generate cuts CTA */}
+        {currentScreen === 'editor' && onGenerateCuts && (
+          <Button size="sm" onClick={onGenerateCuts} disabled={!hasSelections}>
+            <Scissors className="w-4 h-4 mr-1.5" />
+            Générer les cuts
+          </Button>
+        )}
+
+        <button className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors">
+          <Settings className="w-6 h-6" />
+        </button>
+      </div>
     </header>
   );
 }

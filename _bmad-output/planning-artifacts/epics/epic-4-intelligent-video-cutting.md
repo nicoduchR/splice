@@ -2,6 +2,50 @@
 
 Les utilisateurs peuvent générer automatiquement des cuts vidéo basés sur leur sélection textuelle.
 
+## Story 4.0: Video Proxy Generation
+
+En tant qu'utilisateur,
+Je veux qu'un proxy vidéo léger soit créé automatiquement en arrière-plan,
+Afin que la lecture vidéo dans l'application soit fluide, même avec des fichiers 4K volumineux.
+
+**Acceptance Criteria:**
+
+1. **Given** une vidéo est importée et la transcription démarre
+   **When** l'extraction audio commence (stage 1 du pipeline transcription)
+   **Then** un processus FFmpeg parallèle génère un proxy vidéo :
+   - Résolution : 720p (1280x720) ou proportionnelle si source < 720p
+   - Codec : H.264 (libx264), preset `fast`, CRF 28
+   - Audio : copié tel quel (pas de ré-encodage audio)
+   - Fichier : `~/.splice/proxies/{project_id}_proxy.mp4`
+
+2. **And** la génération du proxy se fait en arrière-plan sans bloquer la transcription ni l'UI
+
+3. **And** la progression du proxy est trackée dans le store (optionnel : indicateur discret dans l'UI)
+
+4. **And** une fois le proxy prêt, le `VideoPlayer` bascule automatiquement sur le fichier proxy pour la lecture
+
+5. **And** l'utilisateur peut toujours accéder au fichier original (les cuts/exports utilisent l'original, pas le proxy)
+
+6. **And** si la vidéo source est déjà ≤720p, aucun proxy n'est créé (utilisation directe de l'original)
+
+7. **And** si la génération du proxy échoue, l'application continue normalement avec le fichier original (fallback gracieux)
+
+8. **And** les fichiers proxy sont nettoyés quand le projet est supprimé
+
+9. **And** le proxy est persisté en base de données (`proxy_path` dans la table `projects`) pour les sessions futures
+
+**Dev Notes:**
+
+- FFmpeg est déjà bundlé comme sidecar Tauri (`binaries/ffmpeg`)
+- Commande FFmpeg estimée : `ffmpeg -i <source> -vf scale=-2:720 -c:v libx264 -preset fast -crf 28 -c:a copy -y <proxy>`
+- Le pipeline transcription actuel (audio_extractor.rs) peut servir de modèle pour spawner FFmpeg en parallèle
+- Le `VideoPlayer.tsx` utilise `convertFileSrc(filePath, 'asset')` — il suffit de changer le `filePath` vers le proxy
+- `useTimelineStore` stocke déjà `duration` — pas d'impact sur les timecodes (proxy garde le même timing)
+- Le proxy garde le même framerate et les mêmes timecodes que l'original — les sélections/cuts restent cohérents
+- Pour les épiques 4 (cutting) et 5 (preview), toute la lecture in-app utilisera le proxy, les exports/cuts utiliseront l'original
+
+---
+
 ## Story 4.1: Cut Generation Backend Logic
 
 As a developer,

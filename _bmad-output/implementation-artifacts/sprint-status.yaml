@@ -69,11 +69,12 @@ development_status:
   epic-3: in-progress
   3-1-text-selection-highlighting: done  # Code review: 3 issues fixed (2 HIGH, 1 MEDIUM). Removed phantom showTimestamp tests, duplicate FK in migration, added missing TranscriptViewer.tsx to File List. All ACs satisfied, 15/15 tests passing.
   3-2-de-selection-selection-management: done  # Code review: 6 issues fixed (2 HIGH, 4 MEDIUM). Refactored _pushUndo to closure, fixed validation order, deep copy snapshots, added missing test. All ACs satisfied, 42 tests passing.
-  3-3-timeline-visualization-sync: backlog
-  3-4-selection-statistics-feedback: backlog
+  3-3-timeline-visualization-sync: done  # Code review: 6 issues fixed (3 HIGH, 3 MEDIUM). Fixed scrollToWordIndex repeat-click, memoized getTextPreview, added tooltip test, formatTimecode HH:MM:SS support, 7 formatTimecode tests. 21 tests passing.
+  3-4-selection-statistics-feedback: done  # Code review: 6 issues fixed (3 HIGH, 3 MEDIUM). Added estimated final duration (AC #1), test duration=0 boundary, test final duration, removed unused rerender. 9 tests passing.
   epic-3-retrospective: optional
 
   epic-4: backlog
+  4-0-video-proxy-generation: backlog
   4-1-cut-generation-backend-logic: backlog
   4-2-ffmpeg-video-segmentation: backlog
   4-3-cut-processing-ui-with-progress: backlog

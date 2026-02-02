@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Search, Highlighter, Undo2, Redo2, Trash2 } from 'lucide-react';
+import { SelectionStats } from './SelectionStats';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -67,6 +68,9 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
 
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2">
+          {/* Selection stats */}
+          <SelectionStats />
+
           {/* Undo */}
           <Button
             variant="ghost"
