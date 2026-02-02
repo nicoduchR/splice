@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands};
 use tauri::Emitter;
 
 #[tokio::main]
@@ -46,7 +46,9 @@ async fn main() {
             transcription_commands::cancel_transcription,
             transcription_commands::save_transcript,
             transcription_commands::get_transcript,
-            transcription_commands::preload_parakeet_model,
+            selection_commands::save_selections,
+            selection_commands::get_selections,
+            selection_commands::clear_selections,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

@@ -13,7 +13,6 @@ import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcri
 import { useModelDownload } from './hooks/use-model-download';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/core';
 import { Brain } from 'lucide-react';
 
 // App screen states
@@ -44,7 +43,11 @@ function App() {
   const toggleWordSelection = useTranscriptStore(s => s.toggleWordSelection);
   const setSelection = useTranscriptStore(s => s.setSelection);
   const clearSelection = useTranscriptStore(s => s.clearSelection);
-  const [showTimestamps, setShowTimestamps] = useState(false);
+  const toggleSelectionRange = useTranscriptStore(s => s.toggleSelectionRange);
+  const setSelectionFromIndices = useTranscriptStore(s => s.setSelectionFromIndices);
+  const loadSelections = useTranscriptStore(s => s.loadSelections);
+  const startAutoSave = useTranscriptStore(s => s.startAutoSave);
+  const stopAutoSave = useTranscriptStore(s => s.stopAutoSave);
 
   // Search functionality
   const {
@@ -65,9 +68,7 @@ function App() {
     retryDownload,
   } = useModelDownload();
 
-  // Model preloading state
-  const [isModelLoading, setIsModelLoading] = useState(false);
-  const [isModelReady, setIsModelReady] = useState(false);
+
 
   // Load all projects on mount
   useEffect(() => {
@@ -99,53 +100,19 @@ function App() {
     }
   }, [currentProject, loadTranscript]);
 
-  // Listen to model preloading events
+  // Load selections when transcript is available & manage auto-save lifecycle
   useEffect(() => {
-    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
-      return;
+    if (transcript && currentProject && typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+      loadSelections(currentProject.id);
+      startAutoSave();
     }
-
-    let unlistenModelLoading: (() => void) | undefined;
-    let unlistenModelReady: (() => void) | undefined;
-    let unlistenModelError: (() => void) | undefined;
-
-    const setupModelListeners = async () => {
-      // Listen for model loading start
-      unlistenModelLoading = await listen('model:loading', () => {
-        setIsModelLoading(true);
-      });
-
-      // Listen for model ready
-      unlistenModelReady = await listen('model:ready', () => {
-        setIsModelLoading(false);
-        setIsModelReady(true);
-      });
-
-      // Listen for model loading errors
-      unlistenModelError = await listen<{ message: string }>('model:error', (event) => {
-        setIsModelLoading(false);
-        setIsModelReady(false);
-        toast.error('Erreur de chargement du modèle', {
-          description: event.payload.message,
-        });
-      });
-    };
-
-    setupModelListeners();
-
-    // Trigger model preload in background
-    invoke('preload_parakeet_model').catch((error) => {
-      console.error('Failed to preload model:', error);
-      setIsModelLoading(false);
-      setIsModelReady(false);
-    });
-
     return () => {
-      if (unlistenModelLoading) unlistenModelLoading();
-      if (unlistenModelReady) unlistenModelReady();
-      if (unlistenModelError) unlistenModelError();
+      // Save pending selections and stop auto-save on cleanup
+      useTranscriptStore.getState().saveSelections();
+      stopAutoSave();
     };
-  }, []);
+  }, [transcript, currentProject, loadSelections, startAutoSave, stopAutoSave]);
+
 
   // Listen to transcription events
   useEffect(() => {
@@ -256,7 +223,7 @@ function App() {
           <TopBar />
           <Toaster />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 relative">
+      <main className={`flex-1 flex flex-col relative ${currentScreen === 'editor' ? 'overflow-hidden' : 'items-center justify-center p-6 sm:p-10'}`}>
         {/* Abstract Background Gradient for depth - only for import and project-details */}
         {currentScreen !== 'transcribing' && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -367,7 +334,7 @@ function App() {
                     );
                   }
                 }}
-                disabled={isTranscribing || !isReady || isModelLoading || !isModelReady}
+                disabled={isTranscribing || !isReady}
               >
                 {isTranscribing ? (
                   <>
@@ -375,12 +342,7 @@ function App() {
                     Transcription en cours...
                   </>
                 ) : !isReady ? (
-                  'Modèle Parakeet en téléchargement...'
-                ) : isModelLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                    Chargement du modèle en arrière-plan...
-                  </>
+                  'Modèle en préparation...'
                 ) : (
                   <>
                     <Brain className="w-5 h-5 mr-2" />
@@ -391,11 +353,6 @@ function App() {
               {!isReady && (
                 <p className="text-slate-400 text-xs">
                   Le modèle de transcription se télécharge au premier lancement
-                </p>
-              )}
-              {isModelLoading && (
-                <p className="text-slate-400 text-xs">
-                  Préchargement du modèle en arrière-plan pour des transcriptions instantanées
                 </p>
               )}
             </div>
@@ -411,9 +368,6 @@ function App() {
               totalMatches={matches.length}
               onNextMatch={nextMatch}
               onPrevMatch={prevMatch}
-              showTimestamps={showTimestamps}
-              onToggleTimestamps={() => setShowTimestamps(!showTimestamps)}
-              onClearSelection={clearSelection}
             />
             <div className="flex-1 overflow-hidden">
               <TranscriptViewer
@@ -421,8 +375,9 @@ function App() {
                 selectedIndices={selectedWordIndices}
                 onWordClick={toggleWordSelection}
                 onSelectionChange={setSelection}
+                onToggleRange={toggleSelectionRange}
+                onSetIndices={setSelectionFromIndices}
                 onClearSelection={clearSelection}
-                showTimestamps={showTimestamps}
                 searchQuery={searchQuery}
               />
             </div>

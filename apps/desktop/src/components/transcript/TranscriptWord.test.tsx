@@ -40,7 +40,7 @@ describe('TranscriptWord', () => {
     );
 
     const wordElement = screen.getByText('Hello');
-    expect(wordElement).toHaveClass('bg-primary/20');
+    expect(wordElement).toHaveClass('bg-emerald-500/30');
     expect(wordElement).toHaveClass('text-white');
   });
 

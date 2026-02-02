@@ -2,14 +2,15 @@ use sqlx::SqlitePool;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::collections::HashMap;
-use crate::domain::repositories::{VideoRepository, TranscriptRepository};
-use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository};
+use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository};
+use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository};
 
 /// Application state managed by Tauri
 pub struct AppState {
     pub db_pool: SqlitePool,
     pub video_repository: Arc<dyn VideoRepository>,
     pub transcript_repository: Arc<dyn TranscriptRepository>,
+    pub selection_repository: Arc<dyn SelectionRepository>,
     /// Cancellation flags for ongoing transcriptions (video_id -> cancel_flag)
     pub transcription_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
 }
@@ -22,10 +23,14 @@ impl AppState {
         let transcript_repository: Arc<dyn TranscriptRepository> =
             Arc::new(SqliteTranscriptRepository::new(db_pool.clone()));
 
+        let selection_repository: Arc<dyn SelectionRepository> =
+            Arc::new(SqliteSelectionRepository::new(db_pool.clone()));
+
         Self {
             db_pool,
             video_repository,
             transcript_repository,
+            selection_repository,
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
         }
     }

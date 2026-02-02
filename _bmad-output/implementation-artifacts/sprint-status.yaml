@@ -63,11 +63,11 @@ development_status:
   2-2-transcription-backend-integration: done  # Code review: 22/22 issues fixed (10 HIGH, 8 MEDIUM, 4 LOW). All ACs satisfied: confidence scores, security, performance RTF, validations. Documented: cancellation limitation (Story 2.4+), memory limits (2.3GB for 2h video)
   2-3-transcript-data-storage: done  # Core persistence implemented: SQLite schema, repositories, use cases, Tauri commands. Auto-save (NFR25) and crash recovery (NFR26) deferred to Story 2.4+ (complexity vs MVP value).
   2-4-transcription-ui-progress-tracking: done  # Core UI implemented: modal, progress tracking, cancellation. Toast success/error. Adaptive display (>10min: bar, <10min: spinner). Tests created.
-  2-5-transcript-display-editor-component: review  # COMPLETE: 42/42 tests passing, integrated in App.tsx, performance 16-142x faster than targets
+  2-5-transcript-display-editor-component: done  # COMPLETE: 42/42 tests passing, integrated in App.tsx, performance 16-142x faster than targets
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-text-selection-highlighting: backlog
+  epic-3: in-progress
+  3-1-text-selection-highlighting: review
   3-2-de-selection-selection-management: backlog
   3-3-timeline-visualization-sync: backlog
   3-4-selection-statistics-feedback: backlog
