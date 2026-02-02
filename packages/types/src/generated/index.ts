@@ -4,3 +4,4 @@ export type { Timecode } from './Timecode';
 export type { DomainError } from './DomainError';
 export type { Word } from './Word';
 export type { TranscriptionResult } from './TranscriptionResult';
+export type { Cut } from './Cut';

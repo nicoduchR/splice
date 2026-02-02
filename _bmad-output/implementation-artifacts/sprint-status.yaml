@@ -75,7 +75,7 @@ development_status:
 
   epic-4: in-progress
   4-0-video-proxy-generation: done  # Code review: 7 issues fixed (2 HIGH, 4 MEDIUM). Fixed height=None proxy bug, extracted shared ffmpeg_path, removed fake progress, shared event structs, fixed isGeneratingProxy heuristic. All tests passing.
-  4-1-cut-generation-backend-logic: backlog
+  4-1-cut-generation-backend-logic: done  # Code review: 2 issues fixed (1 HIGH, 1 LOW). Added UNIQUE(project_id, segment_index) constraint, added info log for empty selections. All ACs satisfied. Frontend wiring moved to new story 4-2.
   4-2-ffmpeg-video-segmentation: backlog
   4-3-cut-processing-ui-with-progress: backlog
   4-4-cut-validation-quality-checks: backlog
