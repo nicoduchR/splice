@@ -5,6 +5,7 @@ pub mod selection_use_cases;
 pub mod generate_cuts;
 pub mod segment_video;
 pub mod validate_segments;
+pub mod prepare_preview;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -15,3 +16,4 @@ pub use selection_use_cases::{SaveSelectionsUseCase, GetSelectionsUseCase, Clear
 pub use generate_cuts::GenerateCutsUseCase;
 pub use segment_video::SegmentVideoUseCase;
 pub use validate_segments::ValidateSegmentsUseCase;
+pub use prepare_preview::PreparePreviewUseCase;

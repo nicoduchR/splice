@@ -9,11 +9,12 @@ interface TopBarProps {
   hasSelections?: boolean;
   isSegmenting?: boolean;
   canPreview?: boolean;
+  isPreparingPreview?: boolean;
   onPreview?: () => void;
   onBackToEditor?: () => void;
 }
 
-export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, onPreview, onBackToEditor }: TopBarProps) {
+export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, isPreparingPreview = false, onPreview, onBackToEditor }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-[#21344a] bg-[#101923] shrink-0">
       <div className="flex items-center gap-4">
@@ -55,9 +56,18 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
 
         {/* Preview button */}
         {currentScreen === 'editor' && canPreview && onPreview && (
-          <Button size="sm" variant="default" onClick={onPreview}>
-            <Play className="w-4 h-4 mr-1.5" />
-            Prévisualiser
+          <Button size="sm" variant="default" onClick={onPreview} disabled={isPreparingPreview}>
+            {isPreparingPreview ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1.5" />
+                Préparation...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-1.5" />
+                Prévisualiser
+              </>
+            )}
           </Button>
         )}
 

@@ -199,4 +199,101 @@ describe('useSegmentationStore', () => {
     useSegmentationStore.getState().resetSegmentation();
     expect(useSegmentationStore.getState().stats).toBeNull();
   });
+
+  // Preview tests (Story 5.2)
+  describe('preview state', () => {
+    it('should have initial preview state', () => {
+      const state = useSegmentationStore.getState();
+      expect(state.isPreparingPreview).toBe(false);
+      expect(state.previewPath).toBeNull();
+      expect(state.previewError).toBeNull();
+    });
+
+    it('setPreviewReady sets path and clears preparing/error', () => {
+      useSegmentationStore.setState({ isPreparingPreview: true, previewError: 'old error' });
+      useSegmentationStore.getState().setPreviewReady('/path/to/preview.mp4');
+
+      const state = useSegmentationStore.getState();
+      expect(state.previewPath).toBe('/path/to/preview.mp4');
+      expect(state.isPreparingPreview).toBe(false);
+      expect(state.previewError).toBeNull();
+    });
+
+    it('setPreviewError sets error and clears preparing', () => {
+      useSegmentationStore.setState({ isPreparingPreview: true });
+      useSegmentationStore.getState().setPreviewError('Something went wrong');
+
+      const state = useSegmentationStore.getState();
+      expect(state.previewError).toBe('Something went wrong');
+      expect(state.isPreparingPreview).toBe(false);
+    });
+
+    it('resetPreview clears all preview state', () => {
+      useSegmentationStore.setState({
+        isPreparingPreview: true,
+        previewPath: '/some/path.mp4',
+        previewError: 'error',
+      });
+      useSegmentationStore.getState().resetPreview();
+
+      const state = useSegmentationStore.getState();
+      expect(state.isPreparingPreview).toBe(false);
+      expect(state.previewPath).toBeNull();
+      expect(state.previewError).toBeNull();
+    });
+
+    it('preparePreview sets isPreparingPreview and calls invoke', async () => {
+      mockInvoke.mockResolvedValueOnce('/preview/path.mp4');
+
+      const promise = useSegmentationStore.getState().preparePreview('test-project');
+      expect(useSegmentationStore.getState().isPreparingPreview).toBe(true);
+      expect(useSegmentationStore.getState().previewError).toBeNull();
+
+      await promise;
+
+      expect(mockInvoke).toHaveBeenCalledWith('prepare_preview', { projectId: 'test-project' });
+      expect(useSegmentationStore.getState().isPreparingPreview).toBe(false);
+      expect(useSegmentationStore.getState().previewPath).toBe('/preview/path.mp4');
+    });
+
+    it('preparePreview handles error', async () => {
+      mockInvoke.mockRejectedValueOnce('Segments not found');
+
+      await useSegmentationStore.getState().preparePreview('test-project');
+
+      const state = useSegmentationStore.getState();
+      expect(state.isPreparingPreview).toBe(false);
+      expect(state.previewError).toBe('Segments not found');
+    });
+
+    it('resetSegmentation clears preview path but keeps finalVideoPath', () => {
+      useSegmentationStore.setState({
+        isSegmenting: true,
+        previewPath: '/old/preview.mp4',
+        finalVideoPath: '/some/final.mp4',
+      });
+
+      useSegmentationStore.getState().resetSegmentation();
+
+      const state = useSegmentationStore.getState();
+      expect(state.previewPath).toBeNull();
+      expect(state.finalVideoPath).toBe('/some/final.mp4');
+    });
+
+    it('preparePreview after re-segmentation triggers new invoke', async () => {
+      // First preview
+      mockInvoke.mockResolvedValueOnce('/preview/v1.mp4');
+      await useSegmentationStore.getState().preparePreview('project-1');
+      expect(useSegmentationStore.getState().previewPath).toBe('/preview/v1.mp4');
+
+      // Simulate re-segmentation reset
+      useSegmentationStore.getState().resetSegmentation();
+      expect(useSegmentationStore.getState().previewPath).toBeNull();
+
+      // Second preview after re-segmentation
+      mockInvoke.mockResolvedValueOnce('/preview/v2.mp4');
+      await useSegmentationStore.getState().preparePreview('project-1');
+      expect(useSegmentationStore.getState().previewPath).toBe('/preview/v2.mp4');
+    });
+  });
 });

@@ -27,6 +27,9 @@ interface SegmentationStore {
   stats: SegmentationStats | null;
   error: string | null;
   finalVideoPath: string | null;
+  isPreparingPreview: boolean;
+  previewPath: string | null;
+  previewError: string | null;
 
   // Actions
   startSegmentation: (projectId: string) => Promise<void>;
@@ -37,6 +40,10 @@ interface SegmentationStore {
   setStats: (stats: SegmentationStats) => void;
   setFinalVideoPath: (path: string) => void;
   resetSegmentation: () => void;
+  preparePreview: (projectId: string) => Promise<void>;
+  setPreviewReady: (path: string) => void;
+  setPreviewError: (error: string) => void;
+  resetPreview: () => void;
 }
 
 export const useSegmentationStore = create<SegmentationStore>()(
@@ -51,6 +58,9 @@ export const useSegmentationStore = create<SegmentationStore>()(
       stats: null,
       error: null,
       finalVideoPath: null,
+      isPreparingPreview: false,
+      previewPath: null,
+      previewError: null,
 
       startSegmentation: async (projectId) => {
         set({ isSegmenting: true, segmentationProgress: null, error: null });
@@ -101,6 +111,34 @@ export const useSegmentationStore = create<SegmentationStore>()(
       resetSegmentation: () => {
         set({ isSegmenting: false, segmentationProgress: null, isValidating: false, validationProgress: null, isConcatenating: false, stats: null, error: null });
         // Note: finalVideoPath is intentionally NOT reset — it persists for preview
+        // Also reset preview state since segments may have changed
+        set({ previewPath: null, previewError: null });
+      },
+
+      preparePreview: async (projectId) => {
+        set({ isPreparingPreview: true, previewError: null });
+        try {
+          const previewPath = await invoke<string>('prepare_preview', { projectId });
+          set({ previewPath: previewPath, isPreparingPreview: false });
+        } catch (e) {
+          const errorMsg = String(e);
+          set({ previewError: errorMsg, isPreparingPreview: false });
+          toast.error('Erreur lors de la préparation du preview', {
+            description: errorMsg,
+          });
+        }
+      },
+
+      setPreviewReady: (path) => {
+        set({ previewPath: path, isPreparingPreview: false, previewError: null });
+      },
+
+      setPreviewError: (error) => {
+        set({ previewError: error, isPreparingPreview: false });
+      },
+
+      resetPreview: () => {
+        set({ isPreparingPreview: false, previewPath: null, previewError: null });
       },
     }),
     { name: 'SegmentationStore' }

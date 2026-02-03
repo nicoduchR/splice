@@ -162,9 +162,11 @@ impl SegmentValidator {
         let valid_codecs = ["h264", "hevc", "h265"];
         let codec_valid = valid_codecs.contains(&codec.as_str());
 
-        // Validate duration (±0.5s tolerance)
+        // Validate duration (±1.0s tolerance)
+        // With -c copy (stream copy), FFmpeg cuts at nearest keyframe, not exact timestamps.
+        // H.264 GOP is typically 2-5s, so ±1.0s difference is normal and unavoidable without re-encoding.
         let duration_diff = (duration - expected_duration).abs();
-        let duration_valid = duration_diff <= 0.5;
+        let duration_valid = duration_diff <= 1.0;
 
         let is_valid = codec_valid && duration_valid;
         let error_message = if !is_valid {

@@ -68,6 +68,9 @@ function App() {
   const isConcatenating = useSegmentationStore(s => s.isConcatenating);
   const segmentationStats = useSegmentationStore(s => s.stats);
   const finalVideoPath = useSegmentationStore(s => s.finalVideoPath);
+  const isPreparingPreview = useSegmentationStore(s => s.isPreparingPreview);
+  const previewPath = useSegmentationStore(s => s.previewPath);
+  const previewError = useSegmentationStore(s => s.previewError);
 
   // Search functionality
   const {
@@ -228,6 +231,9 @@ function App() {
     let unlistenValidating: (() => void) | undefined;
     let unlistenConcatenating: (() => void) | undefined;
     let unlistenStats: (() => void) | undefined;
+    // Note: preview:ready and preview:error events are NOT listened here.
+    // The preparePreview store action handles state via invoke return value,
+    // avoiding a race condition from dual state updates.
 
     const setupListeners = async () => {
       unlistenStats = await listen<{
@@ -295,6 +301,9 @@ function App() {
           });
         }
       );
+
+      // preview:ready and preview:error are handled by the preparePreview
+      // store action via invoke return, not via events (avoids dual state updates).
     };
 
     setupListeners();
@@ -357,7 +366,13 @@ function App() {
             isSegmenting={isSegmenting}
             hasSelections={hasSelections}
             canPreview={!!finalVideoPath}
-            onPreview={() => setCurrentScreen('preview')}
+            isPreparingPreview={isPreparingPreview}
+            onPreview={() => {
+              if (currentProject) {
+                useSegmentationStore.getState().preparePreview(currentProject.id);
+                setCurrentScreen('preview');
+              }
+            }}
             onBackToEditor={() => setCurrentScreen('editor')}
           />
           <Toaster />
@@ -498,9 +513,29 @@ function App() {
           </div>
         )}
 
-        {currentScreen === 'preview' && finalVideoPath && (
+        {currentScreen === 'preview' && (
           <div className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
-            <PreviewPlayer filePath={finalVideoPath} />
+            {isPreparingPreview && (
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                <p className="text-sm text-gray-400">Préparation du preview...</p>
+              </div>
+            )}
+            {previewError && (
+              <div className="flex flex-col items-center gap-3 text-center px-4">
+                <p className="text-red-400 text-sm">{previewError}</p>
+                <button
+                  type="button"
+                  className="text-primary text-sm underline"
+                  onClick={() => setCurrentScreen('editor')}
+                >
+                  Retour à l'éditeur
+                </button>
+              </div>
+            )}
+            {!isPreparingPreview && !previewError && (previewPath || finalVideoPath) && (
+              <PreviewPlayer filePath={previewPath || finalVideoPath!} />
+            )}
           </div>
         )}
 
