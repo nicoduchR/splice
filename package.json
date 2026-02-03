@@ -4,6 +4,12 @@
   "scripts": {
     "dev": "pnpm --filter @splice/desktop dev",
     "tauri:dev": "pnpm --filter @splice/desktop tauri dev",
+    "api:dev": "pnpm --filter @splice/backend-api start:dev",
+    "api:build": "pnpm --filter @splice/backend-api build",
+    "api:test": "pnpm --filter @splice/backend-api test",
+    "db:up": "docker compose -f apps/backend-api/docker-compose.yml up -d postgres",
+    "db:down": "docker compose -f apps/backend-api/docker-compose.yml down",
+    "db:studio": "pnpm --filter @splice/backend-api prisma:studio",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint"

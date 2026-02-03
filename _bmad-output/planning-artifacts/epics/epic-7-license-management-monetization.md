@@ -110,6 +110,7 @@ So that I understand the value of upgrading and can easily do so.
 
 **Acceptance Criteria:**
 
+**AC1: Export Blocker Modal**
 **Given** freemium user completes preview and clicks "Export" (FR37, FR38)
 **When** export attempted
 **Then** export blocked with modal:
@@ -123,8 +124,28 @@ So that I understand the value of upgrading and can easily do so.
   - Pricing: "19€/mois ou 99€/an"
   - "Upgrade to Pro" button (prominent, emerald green)
   - "Maybe Later" button (subtle)
-**And** clicking "Upgrade to Pro" opens Stripe Checkout
-**And** after successful payment, license upgraded immediately
+
+**AC2: Stripe Checkout Session Creation (Backend)**
+**Given** user clicks "Upgrade to Pro"
+**When** desktop app requests checkout session
+**Then** backend endpoint `POST /api/v1/stripe/checkout` implemented:
+  - Request: `{ email: string, priceId: string }`
+  - Response: `{ checkoutUrl: string, sessionId: string }`
+**And** Stripe Checkout session created with:
+  - `mode: 'subscription'`
+  - `success_url` and `cancel_url` pointing to app deep links
+  - `customer_email` pre-filled
+  - Metadata linking to user
+**And** error handling for Stripe API failures
+
+**AC3: Checkout Flow Integration (Desktop)**
+**Given** checkout session URL received
+**When** "Upgrade to Pro" clicked
+**Then** system browser opens with Stripe Checkout URL
+**And** app listens for success via:
+  - Option A: Deep link callback (`splice://payment-success`)
+  - Option B: Polling license status until upgraded
+**And** after successful payment, license upgraded immediately (via webhook)
 **And** user can export without restarting app
 **And** conversion message: "Bienvenue dans Splice Pro! Vous pouvez maintenant exporter." (FR38)
 

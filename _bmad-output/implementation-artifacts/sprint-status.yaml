@@ -94,9 +94,9 @@ development_status:
   6-4-export-completion-file-access: done  # Code review: 6 issues fixed (2 HIGH, 4 MEDIUM). Added missing ExportDialog tests, OS-adaptive button text, toast error feedback, extracted format-utils.ts. 60 tests passing.
   epic-6-retrospective: optional
 
-  epic-7: backlog
-  7-1-backend-api-license-service-setup: backlog
-  7-2-license-verification-on-app-startup: backlog
+  epic-7: in-progress
+  7-1-backend-api-license-service-setup: done  # Code review: 6 issues fixed (4 HIGH, 2 MEDIUM). Prisma migration, ESLint config, rawBody for Stripe, CI cache. 16 unit tests passing.
+  7-2-license-verification-on-app-startup: ready-for-dev
   7-3-freemium-limitations-enforcement: backlog
   7-4-export-blocker-conversion-flow: backlog
   7-5-early-adopter-codes-lifetime-access: backlog
