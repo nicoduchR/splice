@@ -18,7 +18,9 @@ import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
+import { useExportStore } from './stores/export-store';
 import { SegmentationProgressDialog } from './components/segmentation';
+import { ExportDialog } from './components/export';
 import { PreviewPlayer } from './components/preview/PreviewPlayer';
 import type { SegmentationProgress } from '@splice/types/generated';
 
@@ -375,6 +377,7 @@ function App() {
               }
             }}
             onBackToEditor={() => setCurrentScreen('editor')}
+            onExport={() => useExportStore.getState().openExportDialog()}
           />
           <Toaster />
 
@@ -614,6 +617,9 @@ function App() {
           }
         }}
       />
+
+      {/* Export Dialog */}
+      <ExportDialog />
 
       {/* Transcription Error Dialog - shown as overlay on any screen */}
       {currentProject && (

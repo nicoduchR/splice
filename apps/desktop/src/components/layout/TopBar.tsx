@@ -12,9 +12,10 @@ interface TopBarProps {
   isPreparingPreview?: boolean;
   onPreview?: () => void;
   onBackToEditor?: () => void;
+  onExport?: () => void;
 }
 
-export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, isPreparingPreview = false, onPreview, onBackToEditor }: TopBarProps) {
+export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, isPreparingPreview = false, onPreview, onBackToEditor, onExport }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-[#21344a] bg-[#101923] shrink-0">
       <div className="flex items-center gap-4">
@@ -46,9 +47,9 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
           </Button>
         )}
 
-        {/* Export button (preview mode) — disabled for MVP (Epic 6) */}
-        {currentScreen === 'preview' && (
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled title="Bientôt disponible">
+        {/* Export button (preview mode) */}
+        {currentScreen === 'preview' && onExport && (
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onExport}>
             <Download className="w-4 h-4 mr-1.5" />
             Exporter
           </Button>

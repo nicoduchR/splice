@@ -87,8 +87,8 @@ development_status:
   5-3-preview-validation-editing-controls: done  # Code review: 2 issues fixed (1 HIGH, 1 MEDIUM). Added problem notes textarea (AC #5), updated File List. H1 retracted after investigation (margins already in cuts). 52/52 tests passing.
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-export-configuration-options: backlog
+  epic-6: in-progress
+  6-1-export-configuration-options: done  # Code review: 7 issues fixed (2 HIGH, 4 MEDIUM, 1 LOW). Enum ExportQuality typé, validation export button, tests re-estimation/browse/disabled, toast corrigé, File List complétée.
   6-2-ffmpeg-export-processing: backlog
   6-3-export-progress-real-time-feedback: backlog
   6-4-export-completion-file-access: backlog
