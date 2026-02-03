@@ -16,6 +16,7 @@ import { useTimelineSync } from './hooks/use-timeline-sync';
 import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { useLicenseVerification } from './hooks/use-license-verification';
+import { useLicenseStore } from './stores/license-store';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
@@ -23,7 +24,7 @@ import { useExportStore } from './stores/export-store';
 import { SegmentationProgressDialog } from './components/segmentation';
 import { ExportDialog } from './components/export';
 import { PreviewPlayer } from './components/preview/PreviewPlayer';
-import { GracePeriodWarning, ExportBlockedDialog } from './components/license-modal';
+import { GracePeriodWarning, ExportBlockedDialog, EarlyAdopterCodeDialog } from './components/license-modal';
 import type { SegmentationProgress } from '@splice/types/generated';
 
 // App screen states
@@ -67,6 +68,15 @@ function App() {
   // Export blocked dialog state (for freemium users)
   const showExportBlockedDialog = useExportStore(s => s.showExportBlockedDialog);
   const closeExportBlockedDialog = useExportStore(s => s.closeExportBlockedDialog);
+  const isUpgrading = useExportStore(s => s.isUpgrading);
+  const startUpgradeFlow = useExportStore(s => s.startUpgradeFlow);
+
+  // Early adopter dialog state
+  const [showEarlyAdopterDialog, setShowEarlyAdopterDialog] = useState(false);
+  const isActivatingCode = useLicenseStore(s => s.isActivatingCode);
+  const activationError = useLicenseStore(s => s.activationError);
+  const activateEarlyAdopterCode = useLicenseStore(s => s.activateEarlyAdopterCode);
+  const clearActivationError = useLicenseStore(s => s.clearActivationError);
 
   // Segmentation state
   const isSegmenting = useSegmentationStore(s => s.isSegmenting);
@@ -637,11 +647,37 @@ function App() {
       {/* Export Blocked Dialog for freemium users */}
       <ExportBlockedDialog
         isOpen={showExportBlockedDialog}
+        isUpgrading={isUpgrading}
         onUpgrade={() => {
-          closeExportBlockedDialog();
-          // TODO Story 7.4: Trigger upgrade flow
+          // Story 7.4: Trigger upgrade flow
+          // Default email - in production, should be from user input or license store
+          const email = import.meta.env.VITE_DEFAULT_CHECKOUT_EMAIL || 'user@splice.app';
+          const priceId = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY || 'price_monthly';
+          startUpgradeFlow(email, priceId);
         }}
         onClose={closeExportBlockedDialog}
+        onEarlyAdopterClick={() => {
+          closeExportBlockedDialog();
+          setShowEarlyAdopterDialog(true);
+        }}
+      />
+
+      {/* Early Adopter Code Dialog */}
+      <EarlyAdopterCodeDialog
+        isOpen={showEarlyAdopterDialog}
+        isActivating={isActivatingCode}
+        error={activationError}
+        onActivate={async (code, email) => {
+          const success = await activateEarlyAdopterCode(code, email);
+          if (success) {
+            setShowEarlyAdopterDialog(false);
+            toast.success('Code activé! Bienvenue dans Splice Pro - Accès lifetime.');
+          }
+        }}
+        onClose={() => {
+          setShowEarlyAdopterDialog(false);
+          clearActivationError();
+        }}
       />
 
       {/* Transcription Error Dialog - shown as overlay on any screen */}
@@ -666,6 +702,10 @@ function App() {
           if (!open && !isLicenseBlocked) {
             dismissGraceWarning();
           }
+        }}
+        onEarlyAdopterClick={() => {
+          dismissGraceWarning();
+          setShowEarlyAdopterDialog(true);
         }}
       />
     </>

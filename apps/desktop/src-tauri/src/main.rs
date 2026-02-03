@@ -46,6 +46,7 @@ async fn main() {
             license_commands::get_license_status,
             license_commands::update_license_cache,
             license_commands::clear_license,
+            license_commands::redeem_early_adopter_code,
             model_commands::check_model_status,
             model_commands::download_parakeet_model,
             model_commands::cancel_model_download,

@@ -153,6 +153,17 @@ export class License {
     });
   }
 
+  /**
+   * Link license to a user (used when redeeming early adopter codes)
+   * Updates the userId from placeholder to actual user
+   */
+  linkToUser(userId: string): License {
+    return new License({
+      ...this.props,
+      userId,
+    });
+  }
+
   toPlainObject(): LicenseProps {
     return { ...this.props };
   }

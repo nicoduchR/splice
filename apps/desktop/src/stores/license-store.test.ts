@@ -14,6 +14,7 @@ vi.mock('../services/license-api', () => ({
     onLicenseVerified: vi.fn(),
     onLicenseExpired: vi.fn(),
     onGraceWarning: vi.fn(),
+    redeemEarlyAdopterCode: vi.fn(),
   },
   LICENSE_PLAN: {
     FREE: 'free',
@@ -37,6 +38,9 @@ describe('useLicenseStore', () => {
       daysUntilGraceExpires: 0,
       isBlocked: false,
       isLicenseExpired: false,
+      // Early adopter state
+      isActivatingCode: false,
+      activationError: null,
     });
     vi.clearAllMocks();
   });
@@ -261,6 +265,119 @@ describe('useLicenseStore', () => {
 
       useLicenseStore.getState().setError(null);
       expect(useLicenseStore.getState().error).toBeNull();
+    });
+  });
+
+  describe('activateEarlyAdopterCode', () => {
+    const validCode = 'SPLICE-EA01-2026-BETA';
+    const validEmail = 'early.adopter@example.com';
+
+    it('should set isActivatingCode to true during activation', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({
+          success: true,
+          data: { licenseKey: validCode, plan: 'pro' as const, expiresAt: null },
+        }), 100))
+      );
+      vi.mocked(LicenseApi.storeLicenseKey).mockResolvedValue(undefined);
+
+      const promise = useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      // Check that isActivatingCode is true during activation
+      expect(useLicenseStore.getState().isActivatingCode).toBe(true);
+
+      await promise;
+
+      // Check that isActivatingCode is false after activation
+      expect(useLicenseStore.getState().isActivatingCode).toBe(false);
+    });
+
+    it('should store license key and update state on successful activation', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockResolvedValue({
+        success: true,
+        data: { licenseKey: validCode, plan: 'pro', expiresAt: null },
+      });
+      vi.mocked(LicenseApi.storeLicenseKey).mockResolvedValue(undefined);
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      expect(result).toBe(true);
+      expect(LicenseApi.storeLicenseKey).toHaveBeenCalledWith(validCode);
+      expect(useLicenseStore.getState().licenseKey).toBe(validCode);
+      expect(useLicenseStore.getState().plan).toBe('pro');
+      expect(useLicenseStore.getState().isVerified).toBe(true);
+      expect(useLicenseStore.getState().expiresAt).toBeNull(); // Lifetime
+      expect(useLicenseStore.getState().isBlocked).toBe(false);
+      expect(useLicenseStore.getState().activationError).toBeNull();
+    });
+
+    it('should set activationError on invalid code', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockResolvedValue({
+        success: false,
+        error: { code: 'EARLY_ADOPTER_CODE_INVALID', message: 'Code not found' },
+      });
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode('INVALID-CODE', validEmail);
+
+      expect(result).toBe(false);
+      expect(useLicenseStore.getState().activationError).toBe('Code invalide. Vérifiez le format et réessayez.');
+      expect(useLicenseStore.getState().isActivatingCode).toBe(false);
+    });
+
+    it('should set activationError on already used code', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockResolvedValue({
+        success: false,
+        error: { code: 'EARLY_ADOPTER_CODE_ALREADY_USED', message: 'Already used' },
+      });
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      expect(result).toBe(false);
+      expect(useLicenseStore.getState().activationError).toBe('Ce code a déjà été utilisé.');
+    });
+
+    it('should set activationError on expired code', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockResolvedValue({
+        success: false,
+        error: { code: 'EARLY_ADOPTER_CODE_EXPIRED', message: 'Code expired' },
+      });
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      expect(result).toBe(false);
+      expect(useLicenseStore.getState().activationError).toBe("Ce code n'est plus valide.");
+    });
+
+    it('should set activationError on network error', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockResolvedValue({
+        success: false,
+        error: { code: 'NETWORK_ERROR', message: 'Connection failed' },
+      });
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      expect(result).toBe(false);
+      expect(useLicenseStore.getState().activationError).toBe('Erreur de connexion. Vérifiez votre connexion internet.');
+    });
+
+    it('should handle thrown exceptions', async () => {
+      vi.mocked(LicenseApi.redeemEarlyAdopterCode).mockRejectedValue(new Error('Network failure'));
+
+      const result = await useLicenseStore.getState().activateEarlyAdopterCode(validCode, validEmail);
+
+      expect(result).toBe(false);
+      expect(useLicenseStore.getState().activationError).toContain('Network failure');
+      expect(useLicenseStore.getState().isActivatingCode).toBe(false);
+    });
+  });
+
+  describe('clearActivationError', () => {
+    it('should clear activationError state', () => {
+      useLicenseStore.setState({ activationError: 'Some error' });
+
+      useLicenseStore.getState().clearActivationError();
+
+      expect(useLicenseStore.getState().activationError).toBeNull();
     });
   });
 });

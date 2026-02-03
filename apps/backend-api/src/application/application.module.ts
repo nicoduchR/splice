@@ -3,6 +3,8 @@ import { InfrastructureModule } from '@infrastructure/infrastructure.module';
 import { VerifyLicenseUseCase } from './use-cases/verify-license.use-case';
 import { ActivateLicenseUseCase } from './use-cases/activate-license.use-case';
 import { HandleStripeWebhookUseCase } from './use-cases/handle-stripe-webhook.use-case';
+import { CreateCheckoutSessionUseCase } from './use-cases/create-checkout-session.use-case';
+import { RedeemEarlyAdopterCodeUseCase } from './use-cases/redeem-early-adopter-code.use-case';
 import { LicenseKeyGeneratorService } from './services/license-key-generator.service';
 
 /**
@@ -24,12 +26,16 @@ import { LicenseKeyGeneratorService } from './services/license-key-generator.ser
     VerifyLicenseUseCase,
     ActivateLicenseUseCase,
     HandleStripeWebhookUseCase,
+    CreateCheckoutSessionUseCase,
+    RedeemEarlyAdopterCodeUseCase,
     LicenseKeyGeneratorService,
   ],
   exports: [
     VerifyLicenseUseCase,
     ActivateLicenseUseCase,
     HandleStripeWebhookUseCase,
+    CreateCheckoutSessionUseCase,
+    RedeemEarlyAdopterCodeUseCase,
     LicenseKeyGeneratorService,
   ],
 })

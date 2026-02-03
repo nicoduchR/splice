@@ -5,10 +5,16 @@ export const ErrorCodes = {
   LICENSE_EXPIRED: 'LICENSE_EXPIRED',
   LICENSE_ALREADY_ACTIVATED: 'LICENSE_ALREADY_ACTIVATED',
 
+  // Early Adopter errors
+  EARLY_ADOPTER_CODE_INVALID: 'EARLY_ADOPTER_CODE_INVALID',
+  EARLY_ADOPTER_CODE_ALREADY_USED: 'EARLY_ADOPTER_CODE_ALREADY_USED',
+  EARLY_ADOPTER_CODE_EXPIRED: 'EARLY_ADOPTER_CODE_EXPIRED',
+
   // Stripe errors
   STRIPE_WEBHOOK_INVALID: 'STRIPE_WEBHOOK_INVALID',
   STRIPE_CUSTOMER_NOT_FOUND: 'STRIPE_CUSTOMER_NOT_FOUND',
   STRIPE_SUBSCRIPTION_NOT_FOUND: 'STRIPE_SUBSCRIPTION_NOT_FOUND',
+  STRIPE_CHECKOUT_FAILED: 'STRIPE_CHECKOUT_FAILED',
 
   // General errors
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
@@ -42,6 +48,18 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<ErrorDefinition, 'code'>> = {
     message: 'This license has already been activated',
     httpStatus: 409,
   },
+  [ErrorCodes.EARLY_ADOPTER_CODE_INVALID]: {
+    message: 'Le code early adopter n\'existe pas',
+    httpStatus: 404,
+  },
+  [ErrorCodes.EARLY_ADOPTER_CODE_ALREADY_USED]: {
+    message: 'Ce code a déjà été utilisé',
+    httpStatus: 409,
+  },
+  [ErrorCodes.EARLY_ADOPTER_CODE_EXPIRED]: {
+    message: 'Ce code n\'est plus valide',
+    httpStatus: 410,
+  },
   [ErrorCodes.STRIPE_WEBHOOK_INVALID]: {
     message: 'Invalid webhook signature',
     httpStatus: 400,
@@ -53,6 +71,10 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<ErrorDefinition, 'code'>> = {
   [ErrorCodes.STRIPE_SUBSCRIPTION_NOT_FOUND]: {
     message: 'Stripe subscription not found',
     httpStatus: 404,
+  },
+  [ErrorCodes.STRIPE_CHECKOUT_FAILED]: {
+    message: 'Failed to create Stripe checkout session',
+    httpStatus: 500,
   },
   [ErrorCodes.RATE_LIMIT_EXCEEDED]: {
     message: 'Too many requests. Please try again later',

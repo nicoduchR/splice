@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::domain::ports::{
     LicenseApiClient, LicenseApiError, LicenseData, LicenseVerifyResponse,
+    RedeemEarlyAdopterData, RedeemEarlyAdopterResponse,
 };
 
 /// Default API URL - DEVELOPMENT ONLY. Set SPLICE_API_URL env var in production.
@@ -18,6 +19,13 @@ const INITIAL_BACKOFF_MS: u64 = 500;
 #[serde(rename_all = "camelCase")]
 struct VerifyRequest {
     license_key: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RedeemRequest {
+    code: String,
+    email: String,
 }
 
 /// HTTP implementation of LicenseApiClient
@@ -189,6 +197,71 @@ impl Default for HttpLicenseApiClient {
 impl LicenseApiClient for HttpLicenseApiClient {
     async fn verify_license(&self, license_key: &str) -> Result<LicenseData, LicenseApiError> {
         self.verify_with_retry(license_key).await
+    }
+
+    async fn redeem_early_adopter_code(
+        &self,
+        code: &str,
+        email: &str,
+    ) -> Result<RedeemEarlyAdopterData, LicenseApiError> {
+        let url = format!("{}/api/v1/license/redeem", self.base_url);
+
+        let request_body = RedeemRequest {
+            code: code.to_string(),
+            email: email.to_string(),
+        };
+
+        let mut request = self.client.post(&url).json(&request_body);
+
+        // Add API key header if configured
+        if let Some(ref api_key) = self.api_key {
+            request = request.header("X-API-Key", api_key);
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_timeout() {
+                    LicenseApiError::Timeout
+                } else if e.is_connect() {
+                    LicenseApiError::NetworkError(format!("Connection failed: {}", e))
+                } else {
+                    LicenseApiError::NetworkError(e.to_string())
+                }
+            })?;
+
+        let status = response.status();
+
+        if status.is_server_error() {
+            return Err(LicenseApiError::ServerError(format!(
+                "Server returned {}",
+                status
+            )));
+        }
+
+        let body: RedeemEarlyAdopterResponse = response
+            .json()
+            .await
+            .map_err(|e| LicenseApiError::InvalidResponse(e.to_string()))?;
+
+        if body.success {
+            body.data
+                .ok_or_else(|| LicenseApiError::InvalidResponse("Missing data in response".to_string()))
+        } else {
+            // Handle error response
+            let error = body.error.unwrap_or_else(|| crate::domain::ports::LicenseErrorData {
+                code: "UNKNOWN".to_string(),
+                message: "Unknown error".to_string(),
+            });
+
+            match error.code.as_str() {
+                "EARLY_ADOPTER_CODE_INVALID" => Err(LicenseApiError::EarlyAdopterCodeInvalid),
+                "EARLY_ADOPTER_CODE_ALREADY_USED" => Err(LicenseApiError::EarlyAdopterCodeAlreadyUsed),
+                "EARLY_ADOPTER_CODE_EXPIRED" => Err(LicenseApiError::EarlyAdopterCodeExpired),
+                _ => Err(LicenseApiError::ServerError(error.message)),
+            }
+        }
     }
 }
 

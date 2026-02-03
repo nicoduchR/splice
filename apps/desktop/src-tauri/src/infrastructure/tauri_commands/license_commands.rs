@@ -7,7 +7,7 @@ use crate::application::use_cases::{
     CheckGracePeriodUseCase, GetLicenseStatusUseCase, GracePeriodStatus, LicenseStatus,
     UpdateLicenseCacheUseCase, VerifyLicenseOnlineUseCase, VerifyLicenseResult,
 };
-use crate::domain::ports::SecureCredentialStore;
+use crate::domain::ports::{LicenseApiClient, SecureCredentialStore};
 use crate::domain::value_objects::LicensePlan;
 use crate::infrastructure::adapters::{
     HttpLicenseApiClient, SqliteLicenseRepository,
@@ -234,6 +234,122 @@ pub async fn clear_license(state: State<'_, AppState>) -> Result<(), String> {
 
     tracing::info!("License cleared successfully");
     Ok(())
+}
+
+/// Result type for redeem early adopter code command
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct RedeemEarlyAdopterResult {
+    pub success: bool,
+    #[serde(default)]
+    pub data: Option<RedeemEarlyAdopterDataResult>,
+    #[serde(default)]
+    pub error: Option<RedeemEarlyAdopterError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct RedeemEarlyAdopterDataResult {
+    pub license_key: String,
+    pub plan: String,
+    pub expires_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct RedeemEarlyAdopterError {
+    pub code: String,
+    pub message: String,
+}
+
+/// Redeem an early adopter code for lifetime Pro access
+#[tauri::command]
+pub async fn redeem_early_adopter_code(
+    code: String,
+    email: String,
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<RedeemEarlyAdopterResult, String> {
+    // Validate code format
+    validate_license_key_format(&code)?;
+
+    let api_client = HttpLicenseApiClient::new();
+
+    match api_client.redeem_early_adopter_code(&code, &email).await {
+        Ok(data) => {
+            // Store the license key in secure storage
+            let store = get_credential_store();
+            if let Err(e) = store.store(LICENSE_KEY_CREDENTIAL, &data.license_key) {
+                tracing::warn!("Failed to store license key in credential store: {}", e);
+            }
+
+            // Update local license cache
+            let pool = state.db_pool.clone();
+            let repo = Arc::new(SqliteLicenseRepository::new(pool));
+            let use_case = UpdateLicenseCacheUseCase::new(repo);
+
+            if let Err(e) = use_case.execute(LicensePlan::Pro, None).await {
+                tracing::warn!("Failed to update license cache: {}", e);
+            }
+
+            // Emit license verified event
+            let _ = app.emit(
+                "license:verified",
+                LicenseVerifiedEvent {
+                    plan: "pro".to_string(),
+                    expires_at: None, // Lifetime
+                },
+            );
+
+            tracing::info!("Early adopter code redeemed successfully for {}", email);
+
+            Ok(RedeemEarlyAdopterResult {
+                success: true,
+                data: Some(RedeemEarlyAdopterDataResult {
+                    license_key: data.license_key,
+                    plan: data.plan,
+                    expires_at: data.expires_at,
+                }),
+                error: None,
+            })
+        }
+        Err(e) => {
+            let (code_str, message) = match e {
+                crate::domain::ports::LicenseApiError::EarlyAdopterCodeInvalid => {
+                    ("EARLY_ADOPTER_CODE_INVALID", "Le code early adopter n'existe pas")
+                }
+                crate::domain::ports::LicenseApiError::EarlyAdopterCodeAlreadyUsed => {
+                    ("EARLY_ADOPTER_CODE_ALREADY_USED", "Ce code a déjà été utilisé")
+                }
+                crate::domain::ports::LicenseApiError::EarlyAdopterCodeExpired => {
+                    ("EARLY_ADOPTER_CODE_EXPIRED", "Ce code n'est plus valide")
+                }
+                crate::domain::ports::LicenseApiError::NetworkError(ref msg) => {
+                    tracing::error!("Network error during code redemption: {}", msg);
+                    ("NETWORK_ERROR", "Erreur de connexion. Vérifiez votre connexion internet.")
+                }
+                crate::domain::ports::LicenseApiError::Timeout => {
+                    ("TIMEOUT", "Le serveur ne répond pas. Réessayez plus tard.")
+                }
+                _ => {
+                    tracing::error!("Unexpected error during code redemption: {:?}", e);
+                    ("INTERNAL_ERROR", "Une erreur inattendue s'est produite")
+                }
+            };
+
+            Ok(RedeemEarlyAdopterResult {
+                success: false,
+                data: None,
+                error: Some(RedeemEarlyAdopterError {
+                    code: code_str.to_string(),
+                    message: message.to_string(),
+                }),
+            })
+        }
+    }
 }
 
 #[cfg(test)]

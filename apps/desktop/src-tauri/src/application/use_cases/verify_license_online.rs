@@ -80,6 +80,9 @@ impl<R: LicenseRepository, C: LicenseApiClient> VerifyLicenseOnlineUseCase<R, C>
             LicenseApiError::InvalidResponse(msg) => format!("Invalid response: {}", msg),
             LicenseApiError::Timeout => "Request timed out".to_string(),
             LicenseApiError::ServerError(msg) => format!("Server error: {}", msg),
+            LicenseApiError::EarlyAdopterCodeInvalid => "Early adopter code invalid".to_string(),
+            LicenseApiError::EarlyAdopterCodeAlreadyUsed => "Early adopter code already used".to_string(),
+            LicenseApiError::EarlyAdopterCodeExpired => "Early adopter code expired".to_string(),
         };
 
         VerifyLicenseResult {

@@ -29,6 +29,25 @@ export interface WebhookEvent {
 }
 
 /**
+ * Input for creating a checkout session
+ */
+export interface CreateCheckoutSessionInput {
+  email: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Result of creating a checkout session
+ */
+export interface CreateCheckoutSessionOutput {
+  checkoutUrl: string;
+  sessionId: string;
+}
+
+/**
  * Payment Gateway Port - Interface for payment provider integration
  *
  * This port defines the contract for interacting with payment providers (Stripe).
@@ -60,4 +79,9 @@ export interface IPaymentGateway {
    * Cancel a subscription
    */
   cancelSubscription(subscriptionId: string): Promise<void>;
+
+  /**
+   * Create a Stripe Checkout session for subscription
+   */
+  createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionOutput>;
 }

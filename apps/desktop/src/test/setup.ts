@@ -9,3 +9,6 @@ expect.extend(matchers);
 afterEach(() => {
   cleanup();
 });
+
+// Note: @tauri-apps/plugin-shell is mocked via alias in vitest.config.ts
+// pointing to src/test/mocks/tauri-shell.ts for consistent mock behavior

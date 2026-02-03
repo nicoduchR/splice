@@ -49,6 +49,19 @@ export interface LicenseGraceWarningEvent {
   message: string;
 }
 
+export interface RedeemEarlyAdopterResult {
+  success: boolean;
+  data?: {
+    licenseKey: string;
+    plan: 'pro';
+    expiresAt: null;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
 export class LicenseApi {
   /**
    * Store license key in secure credential storage (Keychain/Credential Manager)
@@ -165,5 +178,23 @@ export class LicenseApi {
     return await listen<LicenseGraceWarningEvent>('license:grace_warning', (event) => {
       callback(event.payload);
     });
+  }
+
+  /**
+   * Redeem an early adopter code for lifetime Pro access
+   */
+  static async redeemEarlyAdopterCode(
+    code: string,
+    email: string
+  ): Promise<RedeemEarlyAdopterResult> {
+    try {
+      return await invoke<RedeemEarlyAdopterResult>('redeem_early_adopter_code', {
+        code,
+        email,
+      });
+    } catch (error) {
+      console.error('Failed to redeem early adopter code:', error);
+      throw new Error(`Échec de l'activation du code: ${error}`);
+    }
   }
 }

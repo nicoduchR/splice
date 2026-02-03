@@ -98,8 +98,8 @@ development_status:
   7-1-backend-api-license-service-setup: done  # Code review: 6 issues fixed (4 HIGH, 2 MEDIUM). Prisma migration, ESLint config, rawBody for Stripe, CI cache. 16 unit tests passing.
   7-2-license-verification-on-app-startup: done  # Code review: 8 issues fixed (4 HIGH, 4 MEDIUM). API key header, license format validation, subtle grace indicator, retry count corrected, log masking. 50 Rust + 17 TS license tests passing.
   7-3-freemium-limitations-enforcement: done  # Code review: 4 MEDIUM, 2 LOW fixed. Defensive license check (!== PRO), console.log removed, LICENSE_PLAN constants consistency. 44 tests passing.
-  7-4-export-blocker-conversion-flow: backlog
-  7-5-early-adopter-codes-lifetime-access: backlog
+  7-4-export-blocker-conversion-flow: done  # Code review: 5 HIGH, 5 MEDIUM fixed. PriceId validation (security), toast message AC4, network error handling, logger silencing, tests added. 38 backend + 27 frontend tests passing.
+  7-5-early-adopter-codes-lifetime-access: done  # Code review: 6 issues fixed (2 HIGH, 4 MEDIUM). License-user linking, email input, GracePeriodWarning link, tests. 11 backend + 26+18 frontend tests passing.
   epic-7-retrospective: optional
 
   epic-8: backlog

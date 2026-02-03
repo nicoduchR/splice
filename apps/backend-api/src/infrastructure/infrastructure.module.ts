@@ -19,6 +19,7 @@ import { PAYMENT_GATEWAY } from '@domain/ports/payment.gateway.port';
 // Controllers
 import { LicenseController } from './controllers/license.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
+import { StripeCheckoutController } from './controllers/stripe-checkout.controller';
 import { AnalyticsController } from './controllers/analytics.controller';
 import { HealthController } from './controllers/health.controller';
 
@@ -71,7 +72,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
     // API Key guard (applied via decorator)
     ApiKeyGuard,
   ],
-  controllers: [LicenseController, StripeWebhookController, AnalyticsController, HealthController],
+  controllers: [LicenseController, StripeWebhookController, StripeCheckoutController, AnalyticsController, HealthController],
   exports: [LICENSE_REPOSITORY, USER_REPOSITORY, PAYMENT_GATEWAY, PrismaService],
 })
 export class InfrastructureModule {}

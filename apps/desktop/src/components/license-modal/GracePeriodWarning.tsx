@@ -14,13 +14,14 @@ import { useLicenseStore } from '@/stores/license-store';
 interface GracePeriodWarningProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEarlyAdopterClick?: () => void;
 }
 
 /**
  * Modal displayed when the grace period has expired
  * Blocks app functionality until successful verification
  */
-export function GracePeriodWarning({ open, onOpenChange }: GracePeriodWarningProps) {
+export function GracePeriodWarning({ open, onOpenChange, onEarlyAdopterClick }: GracePeriodWarningProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const { licenseKey, verifyOnStartup, lastVerifiedAt, error } = useLicenseStore();
 
@@ -90,6 +91,18 @@ export function GracePeriodWarning({ open, onOpenChange }: GracePeriodWarningPro
             )}
           </Button>
         </AlertDialogFooter>
+        {onEarlyAdopterClick && (
+          <div className="text-center pt-2 pb-1">
+            <button
+              type="button"
+              onClick={onEarlyAdopterClick}
+              disabled={isRetrying}
+              className="text-gray-400 text-sm hover:text-gray-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Vous avez un code early adopter?
+            </button>
+          </div>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );

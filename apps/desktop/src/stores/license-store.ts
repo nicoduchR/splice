@@ -22,6 +22,9 @@ interface LicenseStore {
   daysUntilGraceExpires: number;
   isBlocked: boolean;
   isLicenseExpired: boolean;
+  // Early adopter activation state
+  isActivatingCode: boolean;
+  activationError: string | null;
 
   // Actions
   verifyOnStartup: () => Promise<void>;
@@ -31,6 +34,9 @@ interface LicenseStore {
   getLicenseStatus: () => Promise<LicenseStatus>;
   clearLicense: () => Promise<void>;
   setError: (error: string | null) => void;
+  // Early adopter activation
+  activateEarlyAdopterCode: (code: string, email: string) => Promise<boolean>;
+  clearActivationError: () => void;
 }
 
 export const useLicenseStore = create<LicenseStore>()(
@@ -49,6 +55,9 @@ export const useLicenseStore = create<LicenseStore>()(
       daysUntilGraceExpires: 0,
       isBlocked: false,
       isLicenseExpired: false,
+      // Early adopter activation state
+      isActivatingCode: false,
+      activationError: null,
 
       /**
        * Verify license on app startup
@@ -276,6 +285,80 @@ export const useLicenseStore = create<LicenseStore>()(
        */
       setError: (error) => {
         set({ error });
+      },
+
+      /**
+       * Activate an early adopter code for lifetime Pro access
+       */
+      activateEarlyAdopterCode: async (code, email) => {
+        set({ isActivatingCode: true, activationError: null });
+
+        try {
+          const result = await LicenseApi.redeemEarlyAdopterCode(code, email);
+
+          if (result.success && result.data) {
+            // Store the license key
+            await LicenseApi.storeLicenseKey(result.data.licenseKey);
+
+            // Update store state
+            set({
+              licenseKey: result.data.licenseKey,
+              plan: LICENSE_PLAN.PRO,
+              isVerified: true,
+              expiresAt: null, // Lifetime access
+              isBlocked: false,
+              isLicenseExpired: false,
+              isActivatingCode: false,
+              activationError: null,
+              error: null,
+            });
+
+            return true;
+          } else {
+            // Map error codes to user-friendly messages
+            let errorMessage = 'Code invalide';
+            if (result.error) {
+              switch (result.error.code) {
+                case 'EARLY_ADOPTER_CODE_INVALID':
+                  errorMessage = 'Code invalide. Vérifiez le format et réessayez.';
+                  break;
+                case 'EARLY_ADOPTER_CODE_ALREADY_USED':
+                  errorMessage = 'Ce code a déjà été utilisé.';
+                  break;
+                case 'EARLY_ADOPTER_CODE_EXPIRED':
+                  errorMessage = "Ce code n'est plus valide.";
+                  break;
+                case 'NETWORK_ERROR':
+                  errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
+                  break;
+                case 'TIMEOUT':
+                  errorMessage = 'Le serveur ne répond pas. Réessayez plus tard.';
+                  break;
+                default:
+                  errorMessage = result.error.message || 'Une erreur inattendue s\'est produite';
+              }
+            }
+
+            set({
+              isActivatingCode: false,
+              activationError: errorMessage,
+            });
+            return false;
+          }
+        } catch (e) {
+          set({
+            isActivatingCode: false,
+            activationError: String(e),
+          });
+          return false;
+        }
+      },
+
+      /**
+       * Clear activation error
+       */
+      clearActivationError: () => {
+        set({ activationError: null });
       },
     }),
     { name: 'LicenseStore' }

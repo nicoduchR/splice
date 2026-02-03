@@ -42,6 +42,7 @@ describe('HandleStripeWebhookUseCase', () => {
       getCustomer: jest.fn(),
       getCheckoutSession: jest.fn(),
       cancelSubscription: jest.fn(),
+      createCheckoutSession: jest.fn(),
     };
 
     useCase = new HandleStripeWebhookUseCase(

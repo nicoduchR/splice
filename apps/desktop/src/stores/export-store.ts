@@ -4,7 +4,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { toast } from 'sonner';
 import { useLicenseStore } from './license-store';
-import { LICENSE_PLAN } from '../services/license-api';
+import { LICENSE_PLAN, LicenseApi } from '../services/license-api';
+import { createCheckoutSession } from '../services/checkout-api';
 
 export type ExportQuality = 'preserve' | 'high' | 'medium' | 'low';
 
@@ -54,6 +55,9 @@ interface ExportState {
   exportResult: ExportResult | null;
   _exportingProjectId: string | null;
   _unlisteners: UnlistenFn[];
+  // Upgrade state (for story 7.4)
+  isUpgrading: boolean;
+  _upgradePollingInterval: ReturnType<typeof setInterval> | null;
 }
 
 interface ExportActions {
@@ -66,6 +70,9 @@ interface ExportActions {
   cancelExport: () => void;
   resetExport: () => void;
   closeExportResult: () => void;
+  // Upgrade actions (for story 7.4)
+  startUpgradeFlow: (email: string, priceId: string) => Promise<void>;
+  stopUpgradeFlow: () => void;
 }
 
 type ExportStore = ExportState & ExportActions;
@@ -97,6 +104,8 @@ export const useExportStore = create<ExportStore>()(
         exportResult: null,
         _exportingProjectId: null,
         _unlisteners: [],
+        isUpgrading: false,
+        _upgradePollingInterval: null,
 
         openExportDialog: () => {
           const plan = useLicenseStore.getState().plan;
@@ -284,6 +293,69 @@ export const useExportStore = create<ExportStore>()(
 
         closeExportResult: () => {
           set({ exportResult: null });
+        },
+
+        startUpgradeFlow: async (email, priceId) => {
+          set({ isUpgrading: true });
+
+          try {
+            // Create checkout session
+            const { checkoutUrl } = await createCheckoutSession(email, priceId);
+
+            // Open in system browser
+            const { open } = await import('@tauri-apps/plugin-shell');
+            await open(checkoutUrl);
+
+            // Start polling for license change
+            const startTime = Date.now();
+            const MAX_POLLING_TIME = 5 * 60 * 1000; // 5 minutes
+            const POLL_INTERVAL = 3000; // 3 seconds
+
+            const intervalId = setInterval(async () => {
+              // Check timeout
+              if (Date.now() - startTime > MAX_POLLING_TIME) {
+                clearInterval(intervalId);
+                set({ isUpgrading: false, _upgradePollingInterval: null });
+                return;
+              }
+
+              try {
+                // Check license status
+                const status = await LicenseApi.getLicenseStatus();
+                if (status.plan === LICENSE_PLAN.PRO) {
+                  clearInterval(intervalId);
+                  set({
+                    isUpgrading: false,
+                    showExportBlockedDialog: false,
+                    _upgradePollingInterval: null,
+                  });
+                  // Update license store
+                  useLicenseStore.getState().getLicenseStatus();
+                  // Show success toast (AC4: exact message from spec)
+                  toast.success('Bienvenue dans Splice Pro! Vous pouvez maintenant exporter.', {
+                    duration: 5000,
+                  });
+                }
+              } catch {
+                // Ignore polling errors, continue trying
+              }
+            }, POLL_INTERVAL);
+
+            set({ _upgradePollingInterval: intervalId });
+          } catch (error) {
+            set({ isUpgrading: false });
+            toast.error('Erreur lors de la création du checkout', {
+              description: String(error),
+            });
+          }
+        },
+
+        stopUpgradeFlow: () => {
+          const intervalId = get()._upgradePollingInterval;
+          if (intervalId) {
+            clearInterval(intervalId);
+          }
+          set({ isUpgrading: false, _upgradePollingInterval: null });
         },
       }),
       {

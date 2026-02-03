@@ -7,6 +7,8 @@ import {
   StripeSubscription,
   StripeCustomer,
   StripeCheckoutSession,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionOutput,
 } from '@domain/ports/payment.gateway.port';
 import { DomainError, ErrorCodes } from '@shared/errors/error-codes';
 
@@ -112,6 +114,39 @@ export class StripePaymentGateway implements IPaymentGateway {
     } catch (error) {
       this.logger.error(`Failed to cancel subscription: ${subscriptionId}`, error);
       throw error;
+    }
+  }
+
+  async createCheckoutSession(
+    input: CreateCheckoutSessionInput,
+  ): Promise<CreateCheckoutSessionOutput> {
+    try {
+      const session = await this.stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: input.priceId,
+            quantity: 1,
+          },
+        ],
+        customer_email: input.email,
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
+        metadata: input.metadata,
+      });
+
+      if (!session.url) {
+        throw new Error('Stripe session URL is null');
+      }
+
+      return {
+        checkoutUrl: session.url,
+        sessionId: session.id,
+      };
+    } catch (error) {
+      this.logger.error('Failed to create checkout session', error);
+      throw DomainError.fromCode(ErrorCodes.STRIPE_CHECKOUT_FAILED);
     }
   }
 

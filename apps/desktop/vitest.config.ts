@@ -20,11 +20,17 @@ export default defineConfig({
         '**/generated/**',
       ],
     },
+    deps: {
+      // Inline Tauri modules so they can be mocked
+      inline: [/@tauri-apps/],
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@splice/types': path.resolve(__dirname, '../../packages/types/src'),
+      // Mock Tauri shell plugin for tests
+      '@tauri-apps/plugin-shell': path.resolve(__dirname, './src/test/mocks/tauri-shell.ts'),
     },
   },
 });
