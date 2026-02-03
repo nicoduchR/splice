@@ -225,7 +225,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_and_get_selections() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-sel").await;
@@ -247,7 +247,7 @@ mod tests {
         assert_eq!(retrieved[1].end_word_index, 15);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_replaces_existing() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-replace").await;
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(retrieved[1].id, "sel-new-2");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_delete_selection() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-del").await;
@@ -291,7 +291,7 @@ mod tests {
         assert_eq!(retrieved[0].id, "sel-2");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_delete_all_selections() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-clear").await;
@@ -310,7 +310,7 @@ mod tests {
         assert_eq!(retrieved.len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_get_selections_empty() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-empty").await;
@@ -321,7 +321,7 @@ mod tests {
         assert_eq!(retrieved.len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_selections_ordered_by_start_index() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-order").await;

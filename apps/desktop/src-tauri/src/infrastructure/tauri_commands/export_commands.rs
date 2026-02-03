@@ -1,6 +1,9 @@
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use crate::application::use_cases::export_video::ExportVideoUseCase;
 use crate::infrastructure::config::app_state::AppState;
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 use ts_rs::TS;
 
 /// Export quality setting
@@ -179,5 +182,161 @@ mod tests {
         let (_, speed) = compute_estimate(&ExportQuality::Preserve, 120.0, 625_000.0);
         let estimated_time = 120.0 / speed;
         assert!((estimated_time - 12.0).abs() < f64::EPSILON);
+    }
+}
+
+/// Export progress event payload
+#[derive(Clone, Serialize, TS)]
+#[ts(export, export_to = "../../../../../packages/types/src/generated/")]
+pub struct ExportProgress {
+    pub project_id: String,
+    pub progress: f64,
+    pub current_time: f64,
+    pub total_duration: f64,
+    pub encoding_speed: f64,
+}
+
+/// Export completed event payload
+#[derive(Clone, Serialize, TS)]
+#[ts(export, export_to = "../../../../../packages/types/src/generated/")]
+pub struct ExportCompleted {
+    pub project_id: String,
+    pub output_path: String,
+    pub file_size: u64,
+}
+
+/// Export video using FFmpeg with the specified quality setting.
+#[tauri::command]
+pub async fn export_video<R: tauri::Runtime>(
+    project_id: String,
+    quality: ExportQuality,
+    output_path: String,
+    file_name: String,
+    app_handle: AppHandle<R>,
+    app_state: State<'_, AppState>,
+) -> Result<String, String> {
+    tracing::info!(
+        event = "export_video_command",
+        project_id = %project_id,
+        quality = %quality,
+        output_path = %output_path,
+        file_name = %file_name,
+    );
+
+    if project_id.trim().is_empty() {
+        return Err("L'identifiant du projet ne peut pas être vide".to_string());
+    }
+
+    if output_path.trim().is_empty() {
+        return Err("Le chemin de sortie ne peut pas être vide".to_string());
+    }
+
+    if file_name.trim().is_empty() {
+        return Err("Le nom du fichier ne peut pas être vide".to_string());
+    }
+
+    // Build full output path
+    let full_output = std::path::Path::new(&output_path).join(&file_name);
+    // Ensure .mp4 extension
+    let full_output = if full_output.extension().is_some_and(|e| e == "mp4") {
+        full_output
+    } else {
+        full_output.with_extension("mp4")
+    };
+
+    // Create cancel flag
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    {
+        let mut flags = app_state.export_cancel_flags.lock().unwrap();
+        flags.insert(project_id.clone(), cancel_flag.clone());
+    }
+
+    let quality_str = quality.to_string();
+    let video_repo = app_state.video_repository.clone();
+    let cut_repo = app_state.cut_repository.clone();
+    let project_id_progress = project_id.clone();
+    let app_handle_progress = app_handle.clone();
+
+    // Get total duration for progress events
+    let cuts = app_state
+        .cut_repository
+        .get_cuts(&project_id)
+        .map_err(|e| format!("Erreur lors de la récupération des cuts: {}", e))?;
+    let total_duration: f64 = cuts.iter().map(|c| c.end_time - c.start_time).sum();
+
+    let result = tokio::task::spawn_blocking(move || {
+        ExportVideoUseCase::execute(
+            &project_id_progress,
+            &quality_str,
+            &full_output,
+            &cancel_flag,
+            |progress, current_time, speed| {
+                let _ = app_handle_progress.emit("export:progress", ExportProgress {
+                    project_id: project_id_progress.clone(),
+                    progress,
+                    current_time,
+                    total_duration,
+                    encoding_speed: speed,
+                });
+            },
+            &video_repo,
+            &cut_repo,
+        )
+        .map(|p| p.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("La tâche d'export a échoué: {}", e))?;
+
+    // Clean up cancel flag
+    {
+        let mut flags = app_state.export_cancel_flags.lock().unwrap();
+        flags.remove(&project_id);
+    }
+
+    // Emit completed or error event
+    match &result {
+        Ok(output_path_str) => {
+            let file_size = std::fs::metadata(output_path_str)
+                .map(|m| m.len())
+                .unwrap_or(0);
+            let _ = app_handle.emit("export:completed", ExportCompleted {
+                project_id: project_id.clone(),
+                output_path: output_path_str.clone(),
+                file_size,
+            });
+        }
+        Err(err) => {
+            let _ = app_handle.emit("export:error", serde_json::json!({
+                "project_id": project_id,
+                "error": err,
+            }));
+        }
+    }
+
+    result
+}
+
+/// Cancel an ongoing export
+#[tauri::command]
+pub async fn cancel_export(
+    project_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<(), String> {
+    tracing::info!(
+        event = "cancel_export_command",
+        project_id = %project_id,
+    );
+
+    let flags = app_state.export_cancel_flags.lock().unwrap();
+    if let Some(flag) = flags.get(&project_id) {
+        flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        tracing::info!(
+            event = "export_cancel_requested",
+            project_id = %project_id,
+        );
+        Ok(())
+    } else {
+        Err(format!("Aucun export en cours pour le projet: {}", project_id))
     }
 }

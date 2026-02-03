@@ -16,6 +16,8 @@ pub struct AppState {
     pub transcription_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     /// Cancellation flags for ongoing segmentations (project_id -> cancel_flag)
     pub segmentation_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    /// Cancellation flags for ongoing exports (project_id -> cancel_flag)
+    pub export_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
 }
 
 impl AppState {
@@ -40,6 +42,7 @@ impl AppState {
             cut_repository,
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             segmentation_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
+            export_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 

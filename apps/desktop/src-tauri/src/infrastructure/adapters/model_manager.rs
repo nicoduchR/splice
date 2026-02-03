@@ -266,8 +266,8 @@ mod tests {
         std::fs::create_dir_all(&model_dir).unwrap();
 
         // Create all required files
-        for file in PARAKEET_FILES {
-            std::fs::write(model_dir.join(file), b"test").unwrap();
+        for (file_name, _size) in PARAKEET_FILES {
+            std::fs::write(model_dir.join(file_name), b"test").unwrap();
         }
 
         let exists = manager.check_model_exists(PARAKEET_MODEL_NAME).await.unwrap();
@@ -283,7 +283,7 @@ mod tests {
         std::fs::create_dir_all(&model_dir).unwrap();
 
         // Only create first file
-        std::fs::write(model_dir.join(PARAKEET_FILES[0]), b"test").unwrap();
+        std::fs::write(model_dir.join(PARAKEET_FILES[0].0), b"test").unwrap();
 
         let exists = manager.check_model_exists(PARAKEET_MODEL_NAME).await.unwrap();
         assert!(!exists, "Model should not exist when only partial files are present");

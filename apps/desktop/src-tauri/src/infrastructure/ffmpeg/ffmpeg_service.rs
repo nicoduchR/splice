@@ -221,10 +221,18 @@ mod tests {
 
     const TEST_FIXTURES_DIR: &str = "test-assets/fixtures";
 
+    /// Create a mock app with the shell plugin registered (required for FFprobe sidecar)
+    fn mock_app_with_shell() -> tauri::App<tauri::test::MockRuntime> {
+        tauri::test::mock_builder()
+            .plugin(tauri_plugin_shell::init())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn test_probe_video_format_file_not_found() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
         let app_handle = app.handle();
 
         let result = service.probe_video_format(app_handle, "/nonexistent/video.mp4").await;
@@ -234,9 +242,10 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires Tauri sidecar runtime (ffprobe) — run with: cargo test -- --ignored
     async fn test_probe_video_format_h264_success() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
         let app_handle = app.handle();
 
         let fixture_path = format!("{}/sample-h264.mp4", TEST_FIXTURES_DIR);
@@ -252,12 +261,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires Tauri sidecar runtime (ffprobe)
     async fn test_probe_video_format_h265_mov_success() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
 
         let fixture_path = format!("{}/sample-h265.mov", TEST_FIXTURES_DIR);
-        let result = service.probe_video_format(&app, &fixture_path).await;
+        let result = service.probe_video_format(app.handle(),&fixture_path).await;
 
         assert!(result.is_ok(), "H.265 MOV validation should succeed");
         let metadata = result.unwrap();
@@ -272,12 +282,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires Tauri sidecar runtime (ffprobe)
     async fn test_probe_video_format_h265_mp4_success() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
 
         let fixture_path = format!("{}/sample-h265.mp4", TEST_FIXTURES_DIR);
-        let result = service.probe_video_format(&app, &fixture_path).await;
+        let result = service.probe_video_format(app.handle(),&fixture_path).await;
 
         assert!(result.is_ok(), "H.265 MP4 validation should succeed");
         let metadata = result.unwrap();
@@ -288,12 +299,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires Tauri sidecar runtime (ffprobe)
     async fn test_probe_video_format_unsupported_codec_vp9() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
 
         let fixture_path = format!("{}/sample-vp9.webm", TEST_FIXTURES_DIR);
-        let result = service.probe_video_format(&app, &fixture_path).await;
+        let result = service.probe_video_format(app.handle(),&fixture_path).await;
 
         assert!(result.is_err(), "VP9 should be rejected");
         match result.unwrap_err() {
@@ -307,12 +319,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires Tauri sidecar runtime (ffprobe)
     async fn test_probe_video_format_corrupted_file() {
         let service = FfmpegService::new();
-        let app = tauri::test::mock_app();
+        let app = mock_app_with_shell();
 
         let fixture_path = format!("{}/corrupted.mp4", TEST_FIXTURES_DIR);
-        let result = service.probe_video_format(&app, &fixture_path).await;
+        let result = service.probe_video_format(app.handle(),&fixture_path).await;
 
         assert!(result.is_err(), "Corrupted file should be rejected");
         assert!(

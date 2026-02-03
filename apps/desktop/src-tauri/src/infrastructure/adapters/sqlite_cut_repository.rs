@@ -200,7 +200,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_and_get_cuts() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-cut").await;
@@ -222,7 +222,7 @@ mod tests {
         assert_eq!(retrieved[1].start_time, 5.0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_replaces_existing() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-replace").await;
@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(retrieved[1].id, "cut-new-2");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_delete_cuts() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-del").await;
@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(retrieved.len(), 0);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_get_cuts_ordered_by_segment_index() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-order").await;

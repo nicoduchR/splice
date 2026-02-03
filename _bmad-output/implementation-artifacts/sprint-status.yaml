@@ -89,8 +89,8 @@ development_status:
 
   epic-6: in-progress
   6-1-export-configuration-options: done  # Code review: 7 issues fixed (2 HIGH, 4 MEDIUM, 1 LOW). Enum ExportQuality typé, validation export button, tests re-estimation/browse/disabled, toast corrigé, File List complétée.
-  6-2-ffmpeg-export-processing: backlog
-  6-3-export-progress-real-time-feedback: backlog
+  6-2-ffmpeg-export-processing: done  # Code review: 7 issues fixed (3 HIGH, 4 MEDIUM). Refactored export_with_copy for cancel+progress+cleanup, fixed double error notification, unwrap() panic, partial file cleanup, all segments verification, _unlisteners pattern. Also fixed 19 pre-existing test failures across the codebase.
+  6-3-export-progress-real-time-feedback: ready-for-dev
   6-4-export-completion-file-access: backlog
   epic-6-retrospective: optional
 

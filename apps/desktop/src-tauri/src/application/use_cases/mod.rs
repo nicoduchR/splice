@@ -6,6 +6,7 @@ pub mod generate_cuts;
 pub mod segment_video;
 pub mod validate_segments;
 pub mod prepare_preview;
+pub mod export_video;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -17,3 +18,4 @@ pub use generate_cuts::GenerateCutsUseCase;
 pub use segment_video::SegmentVideoUseCase;
 pub use validate_segments::ValidateSegmentsUseCase;
 pub use prepare_preview::PreparePreviewUseCase;
+pub use export_video::ExportVideoUseCase;

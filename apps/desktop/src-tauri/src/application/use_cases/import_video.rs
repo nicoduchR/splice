@@ -151,7 +151,7 @@ mod tests {
         let use_case = ImportVideoUseCase::new(repo);
         let app = tauri::test::mock_app();
 
-        let result = use_case.execute(&app, "/nonexistent/video.mp4").await;
+        let result = use_case.execute(app.handle(), "/nonexistent/video.mp4").await;
 
         assert!(result.is_err());
         assert!(matches!(result, Err(DomainError::FileNotFound(_))));
@@ -169,7 +169,7 @@ mod tests {
         let mut file = File::create(&file_path).unwrap();
         file.write_all(b"fake video content").unwrap();
 
-        let result = use_case.execute(&app, file_path.to_str().unwrap()).await;
+        let result = use_case.execute(app.handle(), file_path.to_str().unwrap()).await;
 
         assert!(result.is_err());
         match result {
@@ -207,7 +207,7 @@ mod tests {
         // let use_case = ImportVideoUseCase::new(repo);
         // let app = tauri::test::mock_app();
         //
-        // let result = use_case.execute(&app, "test-assets/large/test_10gb.mp4").await;
+        // let result = use_case.execute(app.handle(),"test-assets/large/test_10gb.mp4").await;
         // assert!(result.is_ok(), "Large file import should succeed");
     }
 
@@ -218,7 +218,7 @@ mod tests {
         let use_case = ImportVideoUseCase::new(repo.clone());
         let app = tauri::test::mock_app();
 
-        let result = use_case.execute(&app, "test-assets/fixtures/sample-h264.mp4").await;
+        let result = use_case.execute(app.handle(),"test-assets/fixtures/sample-h264.mp4").await;
 
         assert!(result.is_ok(), "H.264 MP4 import should succeed");
         let project = result.unwrap();
@@ -248,7 +248,7 @@ mod tests {
         let use_case = ImportVideoUseCase::new(repo);
         let app = tauri::test::mock_app();
 
-        let result = use_case.execute(&app, "test-assets/fixtures/sample-h265.mov").await;
+        let result = use_case.execute(app.handle(),"test-assets/fixtures/sample-h265.mov").await;
 
         assert!(result.is_ok(), "H.265 MOV import should succeed");
         let project = result.unwrap();
@@ -268,7 +268,7 @@ mod tests {
         let use_case = ImportVideoUseCase::new(repo);
         let app = tauri::test::mock_app();
 
-        let result = use_case.execute(&app, "test-assets/fixtures/sample-vp9.webm").await;
+        let result = use_case.execute(app.handle(),"test-assets/fixtures/sample-vp9.webm").await;
 
         assert!(result.is_err(), "VP9 WebM should be rejected");
         match result.unwrap_err() {
@@ -286,7 +286,7 @@ mod tests {
         let use_case = ImportVideoUseCase::new(repo);
         let app = tauri::test::mock_app();
 
-        let result = use_case.execute(&app, "test-assets/fixtures/corrupted.mp4").await;
+        let result = use_case.execute(app.handle(),"test-assets/fixtures/corrupted.mp4").await;
 
         assert!(result.is_err(), "Corrupted file should be rejected");
         assert!(

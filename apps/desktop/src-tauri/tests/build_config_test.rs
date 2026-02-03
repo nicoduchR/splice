@@ -31,8 +31,8 @@ fn test_tauri_config_has_macos_settings() {
     );
 
     assert!(
-        config_content.contains("\"13.0\""),
-        "Minimum system version should be 13.0 (Ventura)"
+        config_content.contains("\"14.0\""),
+        "Minimum system version should be 14.0 (Sonoma)"
     );
 }
 

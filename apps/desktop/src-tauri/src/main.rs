@@ -60,6 +60,8 @@ async fn main() {
             preview_commands::invalidate_preview_cache,
             preview_commands::get_segment_boundaries,
             export_commands::estimate_export,
+            export_commands::export_video,
+            export_commands::cancel_export,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

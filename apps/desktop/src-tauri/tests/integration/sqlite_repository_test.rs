@@ -4,7 +4,7 @@ use splice::domain::repositories::VideoRepository;
 use splice::infrastructure::adapters::SqliteVideoRepository;
 use splice::infrastructure::ffmpeg::VideoMetadata;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_save_and_find_project() {
     // Create in-memory database
     let pool = SqlitePool::connect("sqlite::memory:")
@@ -49,7 +49,7 @@ async fn test_save_and_find_project() {
     assert!(deleted.is_none());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_find_all_returns_multiple_projects() {
     let pool = SqlitePool::connect("sqlite::memory:")
         .await
@@ -101,7 +101,7 @@ async fn test_find_all_returns_multiple_projects() {
     assert!(ids.contains(&"test-3".to_string()));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_migration_idempotence() {
     let pool = SqlitePool::connect("sqlite::memory:")
         .await
@@ -121,7 +121,7 @@ async fn test_migration_idempotence() {
     // Should not error - migrations are idempotent
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_update_project() {
     let pool = SqlitePool::connect("sqlite::memory:")
         .await
@@ -160,7 +160,7 @@ async fn test_update_project() {
     assert_eq!(all.len(), 1);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_save_and_retrieve_project_with_metadata() {
     // Story 1.6: Test complete metadata round-trip (save → retrieve → verify)
     let pool = SqlitePool::connect("sqlite::memory:")
@@ -216,7 +216,7 @@ async fn test_save_and_retrieve_project_with_metadata() {
     assert_eq!(retrieved.codec, Some("h264".to_string()), "Codec should be persisted in SQLite");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_save_project_without_metadata_null_values() {
     // Story 1.6: Test backward compatibility - projects without metadata should have NULL
     let pool = SqlitePool::connect("sqlite::memory:")

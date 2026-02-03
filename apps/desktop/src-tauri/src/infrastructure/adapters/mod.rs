@@ -10,6 +10,7 @@ pub mod sqlite_cut_repository;
 pub mod video_segmenter;
 pub mod segment_validator;
 pub mod video_concatenator;
+pub mod video_exporter;
 
 // Used in tests
 #[allow(unused_imports)]

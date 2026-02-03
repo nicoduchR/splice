@@ -257,7 +257,7 @@ mod tests {
         .expect("Failed to create test project");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_and_retrieve_transcript() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-456").await;
@@ -321,7 +321,7 @@ mod tests {
         assert_eq!(retrieved_words[2].word, "monde");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_save_large_transcript_performance() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-perf").await;
@@ -358,7 +358,7 @@ mod tests {
         assert!(duration.as_millis() < 500, "Save took {}ms", duration.as_millis());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_words_ordered_by_index() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-order").await;
@@ -419,7 +419,7 @@ mod tests {
         assert_eq!(retrieved[2].word, "five");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_upsert_transcript() {
         let pool = create_test_pool().await;
         create_test_project(&pool, "project-upsert").await;
