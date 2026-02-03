@@ -1,6 +1,6 @@
 # Story 7.2: License Verification on App Startup
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -62,79 +62,79 @@ So that I can access features according to my subscription plan.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add Secure Credential Storage Dependencies (AC: #1)
-  - [ ] 1.1 Add `security-framework` crate for macOS Keychain
-  - [ ] 1.2 Add `windows-credentials` (or `keyring` crate) for Windows Credential Manager
-  - [ ] 1.3 Create cross-platform `SecureCredentialStore` trait in domain/ports
-  - [ ] 1.4 Implement `MacOSCredentialStore` adapter
-  - [ ] 1.5 Implement `WindowsCredentialStore` adapter
-  - [ ] 1.6 Add feature flags for platform-specific compilation
+- [x] Task 1: Add Secure Credential Storage Dependencies (AC: #1)
+  - [x] 1.1 Add `security-framework` crate for macOS Keychain
+  - [x] 1.2 Add `windows-credentials` (or `keyring` crate) for Windows Credential Manager
+  - [x] 1.3 Create cross-platform `SecureCredentialStore` trait in domain/ports
+  - [x] 1.4 Implement `MacOSCredentialStore` adapter
+  - [x] 1.5 Implement `WindowsCredentialStore` adapter
+  - [x] 1.6 Add feature flags for platform-specific compilation
 
-- [ ] Task 2: Create License Cache SQLite Migration (AC: #2)
-  - [ ] 2.1 Create migration `20260203000008_license_cache.sql`
-  - [ ] 2.2 Define `license_cache` table schema (single-row pattern)
-  - [ ] 2.3 Add unit tests for migration
+- [x] Task 2: Create License Cache SQLite Migration (AC: #2)
+  - [x] 2.1 Create migration `20260203000008_license_cache.sql`
+  - [x] 2.2 Define `license_cache` table schema (single-row pattern)
+  - [x] 2.3 Add unit tests for migration
 
-- [ ] Task 3: Implement License Domain Entities (AC: #2, #3)
-  - [ ] 3.1 Create `domain/entities/license_cache.rs` entity
-  - [ ] 3.2 Create `domain/value_objects/license_plan.rs` enum (free/pro)
-  - [ ] 3.3 Create `domain/repositories/license_repository.rs` port
-  - [ ] 3.4 Implement `SqliteLicenseRepository` adapter
+- [x] Task 3: Implement License Domain Entities (AC: #2, #3)
+  - [x] 3.1 Create `domain/entities/license_cache.rs` entity
+  - [x] 3.2 Create `domain/value_objects/license_plan.rs` enum (free/pro)
+  - [x] 3.3 Create `domain/repositories/license_repository.rs` port
+  - [x] 3.4 Implement `SqliteLicenseRepository` adapter
 
-- [ ] Task 4: Implement HTTP Client for Backend API (AC: #2)
-  - [ ] 4.1 Add `reqwest` crate with TLS support
-  - [ ] 4.2 Create `domain/ports/license_api_client.rs` trait
-  - [ ] 4.3 Implement `HttpLicenseApiClient` adapter with:
+- [x] Task 4: Implement HTTP Client for Backend API (AC: #2)
+  - [x] 4.1 Add `reqwest` crate with TLS support
+  - [x] 4.2 Create `domain/ports/license_api_client.rs` trait
+  - [x] 4.3 Implement `HttpLicenseApiClient` adapter with:
      - Base URL from environment variable
      - API key header
      - Retry logic (3 attempts, exponential backoff)
      - Timeout configuration (5s)
-  - [ ] 4.4 Create response types matching backend DTOs
+  - [x] 4.4 Create response types matching backend DTOs
 
-- [ ] Task 5: Implement License Verification Use Cases (AC: #2, #3, #4, #5)
-  - [ ] 5.1 Create `application/use_cases/verify_license_online.rs`
-  - [ ] 5.2 Create `application/use_cases/check_grace_period.rs`
-  - [ ] 5.3 Create `application/use_cases/update_license_cache.rs`
-  - [ ] 5.4 Create `application/use_cases/get_license_status.rs`
-  - [ ] 5.5 Write unit tests for all use cases
+- [x] Task 5: Implement License Verification Use Cases (AC: #2, #3, #4, #5)
+  - [x] 5.1 Create `application/use_cases/verify_license_online.rs`
+  - [x] 5.2 Create `application/use_cases/check_grace_period.rs`
+  - [x] 5.3 Create `application/use_cases/update_license_cache.rs`
+  - [x] 5.4 Create `application/use_cases/get_license_status.rs`
+  - [x] 5.5 Write unit tests for all use cases
 
-- [ ] Task 6: Update Tauri License Commands (AC: #6)
-  - [ ] 6.1 Rewrite `verify_license` command with real implementation
-  - [ ] 6.2 Rewrite `check_grace_period` command with SQLite check
-  - [ ] 6.3 Add `store_license_key` command (secure storage)
-  - [ ] 6.4 Add `get_license_key` command (from secure storage)
-  - [ ] 6.5 Add `get_license_status` command (returns full status)
-  - [ ] 6.6 Add `update_license_cache` command
-  - [ ] 6.7 Register new commands in main.rs
+- [x] Task 6: Update Tauri License Commands (AC: #6)
+  - [x] 6.1 Rewrite `verify_license` command with real implementation
+  - [x] 6.2 Rewrite `check_grace_period` command with SQLite check
+  - [x] 6.3 Add `store_license_key` command (secure storage)
+  - [x] 6.4 Add `get_license_key` command (from secure storage)
+  - [x] 6.5 Add `get_license_status` command (returns full status)
+  - [x] 6.6 Add `update_license_cache` command
+  - [x] 6.7 Register new commands in main.rs
 
-- [ ] Task 7: Frontend License Service & Store Updates (AC: #6)
-  - [ ] 7.1 Create `services/license-api.ts` for backend communication
-  - [ ] 7.2 Update `license-store.ts` with:
+- [x] Task 7: Frontend License Service & Store Updates (AC: #6)
+  - [x] 7.1 Create `services/license-api.ts` for backend communication
+  - [x] 7.2 Update `license-store.ts` with:
      - `verifyOnStartup()` action
      - `expiresAt` state
      - `gracePeriodEndsAt` state
      - `daysUntilGraceExpires` computed
      - `isInGracePeriod` computed
-  - [ ] 7.3 Remove localStorage persistence (use secure Tauri storage)
-  - [ ] 7.4 Add event listeners for `license:expired` Tauri event
+  - [x] 7.3 Remove localStorage persistence (use secure Tauri storage)
+  - [x] 7.4 Add event listeners for `license:expired` Tauri event
 
-- [ ] Task 8: Implement License Warning Modal UI (AC: #4)
-  - [ ] 8.1 Create `components/license-modal/GracePeriodWarning.tsx`
-  - [ ] 8.2 Add retry functionality with loading state
-  - [ ] 8.3 Style with shadcn/ui AlertDialog
-  - [ ] 8.4 Add French translations
+- [x] Task 8: Implement License Warning Modal UI (AC: #4)
+  - [x] 8.1 Create `components/license-modal/GracePeriodWarning.tsx`
+  - [x] 8.2 Add retry functionality with loading state
+  - [x] 8.3 Style with shadcn/ui AlertDialog
+  - [x] 8.4 Add French translations
 
-- [ ] Task 9: Integrate Startup Verification (AC: #6)
-  - [ ] 9.1 Add `useLicenseVerification` hook
-  - [ ] 9.2 Call verification in App.tsx on mount
-  - [ ] 9.3 Show GracePeriodWarning if grace expired
-  - [ ] 9.4 Handle edge cases (no license key, first launch)
+- [x] Task 9: Integrate Startup Verification (AC: #6)
+  - [x] 9.1 Add `useLicenseVerification` hook
+  - [x] 9.2 Call verification in App.tsx on mount
+  - [x] 9.3 Show GracePeriodWarning if grace expired
+  - [x] 9.4 Handle edge cases (no license key, first launch)
 
-- [ ] Task 10: Write Integration Tests
-  - [ ] 10.1 Test online verification flow
-  - [ ] 10.2 Test offline with valid grace period
-  - [ ] 10.3 Test offline with expired grace period
-  - [ ] 10.4 Test keychain/credential manager storage
+- [x] Task 10: Write Integration Tests
+  - [x] 10.1 Test online verification flow
+  - [x] 10.2 Test offline with valid grace period
+  - [x] 10.3 Test offline with expired grace period
+  - [x] 10.4 Test keychain/credential manager storage
 
 ## Dev Notes
 
@@ -421,11 +421,80 @@ keyring = "3.5"  # Cross-platform but uses Credential Manager on Windows
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- All 209 Rust unit tests passing
+- All 17 frontend license tests passing
+- macOS Keychain integration tests passing (4 tests)
+
 ### Completion Notes List
 
+- ✅ Implemented cross-platform secure credential storage (macOS Keychain via security-framework, Windows Credential Manager via keyring crate)
+- ✅ Created SQLite license_cache table with single-row pattern for offline grace period support
+- ✅ Implemented Clean Architecture: Domain entities (LicenseCache, LicensePlan), ports (SecureCredentialStore, LicenseApiClient, LicenseRepository), use cases (VerifyLicenseOnline, CheckGracePeriod, UpdateLicenseCache, GetLicenseStatus)
+- ✅ HTTP client with 4 attempts (1 initial + 3 retries per AC3), exponential backoff, 5s timeout, TLS support
+- ✅ 7 new Tauri commands: verify_license, check_grace_period, store_license_key, get_license_key, get_license_status, update_license_cache, clear_license
+- ✅ Frontend license-api.ts service with Tauri event listeners
+- ✅ Zustand store updated with verifyOnStartup(), grace period state, blocked state (localStorage persistence removed)
+- ✅ GracePeriodWarning modal with French translations, shadcn/ui AlertDialog, retry button
+- ✅ useLicenseVerification hook integrated in App.tsx on mount
+- ✅ Tauri events: license:verified, license:expired, license:grace_warning
+
+### Code Review Fixes (2026-02-03)
+
+- ✅ **HIGH-1 Fixed**: Added X-API-Key header support to HttpLicenseApiClient (reads from SPLICE_API_KEY env var)
+- ✅ **HIGH-4 Fixed**: Added license key format validation (SPLICE-XXXX-XXXX-XXXX) in store_license_key command
+- ✅ **MEDIUM-1 Fixed**: Added subtle GracePeriodIndicator component in TopBar (shows days remaining when offline)
+- ✅ **MEDIUM-2 Fixed**: Added warning logs when SPLICE_API_URL or SPLICE_API_KEY not set
+- ✅ **MEDIUM-4 Fixed**: Masked license key in debug logs (only shows first 6 chars)
+- ✅ **MEDIUM-5 Fixed**: Corrected retry logic to MAX_ATTEMPTS=4 (1 initial + 3 retries per AC3 "after 3 retries")
+- ✅ **LOW-1 Fixed**: Removed unused AlertDialogAction import
+- ✅ **File List Updated**: Added Cargo.lock, bindings/, GracePeriodIndicator.tsx, TopBar.tsx
+
 ### File List
+
+**Backend (Rust):**
+- apps/desktop/src-tauri/Cargo.toml (modified)
+- apps/desktop/src-tauri/Cargo.lock (modified)
+- apps/desktop/src-tauri/migrations/20260203000008_license_cache.sql (new)
+- apps/desktop/src-tauri/bindings/ (generated TypeScript types)
+- apps/desktop/src-tauri/src/domain/mod.rs (modified)
+- apps/desktop/src-tauri/src/domain/ports/mod.rs (new)
+- apps/desktop/src-tauri/src/domain/ports/secure_credential_store.rs (new)
+- apps/desktop/src-tauri/src/domain/ports/license_api_client.rs (new)
+- apps/desktop/src-tauri/src/domain/entities/mod.rs (modified)
+- apps/desktop/src-tauri/src/domain/entities/license_cache.rs (new)
+- apps/desktop/src-tauri/src/domain/value_objects/mod.rs (modified)
+- apps/desktop/src-tauri/src/domain/value_objects/license_plan.rs (new)
+- apps/desktop/src-tauri/src/domain/repositories/mod.rs (modified)
+- apps/desktop/src-tauri/src/domain/repositories/license_repository.rs (new)
+- apps/desktop/src-tauri/src/application/use_cases/mod.rs (modified)
+- apps/desktop/src-tauri/src/application/use_cases/verify_license_online.rs (new)
+- apps/desktop/src-tauri/src/application/use_cases/check_grace_period.rs (new)
+- apps/desktop/src-tauri/src/application/use_cases/update_license_cache.rs (new)
+- apps/desktop/src-tauri/src/application/use_cases/get_license_status.rs (new)
+- apps/desktop/src-tauri/src/infrastructure/adapters/mod.rs (modified)
+- apps/desktop/src-tauri/src/infrastructure/adapters/macos_credential_store.rs (new)
+- apps/desktop/src-tauri/src/infrastructure/adapters/windows_credential_store.rs (new)
+- apps/desktop/src-tauri/src/infrastructure/adapters/sqlite_license_repository.rs (new)
+- apps/desktop/src-tauri/src/infrastructure/adapters/http_license_api_client.rs (new)
+- apps/desktop/src-tauri/src/infrastructure/tauri_commands/license_commands.rs (modified)
+- apps/desktop/src-tauri/src/main.rs (modified)
+
+**Frontend (TypeScript/React):**
+- apps/desktop/src/services/license-api.ts (new)
+- apps/desktop/src/stores/license-store.ts (modified)
+- apps/desktop/src/stores/license-store.test.ts (new)
+- apps/desktop/src/components/license-modal/GracePeriodWarning.tsx (new)
+- apps/desktop/src/components/license-modal/GracePeriodWarning.test.tsx (new)
+- apps/desktop/src/components/license-modal/GracePeriodIndicator.tsx (new) - AC3 subtle indicator
+- apps/desktop/src/components/license-modal/index.ts (modified)
+- apps/desktop/src/components/layout/TopBar.tsx (modified) - Added GracePeriodIndicator
+- apps/desktop/src/hooks/use-license-verification.ts (new)
+- apps/desktop/src/App.tsx (modified)
+
+**Config:**
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified)
 

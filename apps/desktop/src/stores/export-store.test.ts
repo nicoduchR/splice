@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useExportStore } from './export-store';
+import { useLicenseStore } from './license-store';
+import { LICENSE_PLAN } from '../services/license-api';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
@@ -26,7 +28,10 @@ describe('useExportStore', () => {
   beforeEach(() => {
     useExportStore.getState().resetExport();
     useExportStore.getState().closeExportDialog();
+    useExportStore.getState().closeExportBlockedDialog();
     useExportStore.getState().updateSettings({ quality: 'preserve', outputPath: '', fileName: '' });
+    // Reset license store to 'pro' by default for existing tests
+    useLicenseStore.setState({ plan: LICENSE_PLAN.PRO });
     vi.clearAllMocks();
   });
 
@@ -305,5 +310,64 @@ describe('useExportStore', () => {
     expect(useExportStore.getState().exportResult).toBeNull();
     expect(useExportStore.getState().isExporting).toBe(false);
     expect(useExportStore.getState().exportProgress).toBeNull();
+  });
+
+  describe('License check on export', () => {
+    it('openExportDialog with free plan shows ExportBlockedDialog', () => {
+      useLicenseStore.setState({ plan: LICENSE_PLAN.FREE });
+
+      useExportStore.getState().openExportDialog();
+
+      expect(useExportStore.getState().showExportBlockedDialog).toBe(true);
+      expect(useExportStore.getState().isExportDialogOpen).toBe(false);
+    });
+
+    it('openExportDialog with pro plan opens ExportDialog normally', () => {
+      useLicenseStore.setState({ plan: LICENSE_PLAN.PRO });
+
+      useExportStore.getState().openExportDialog();
+
+      expect(useExportStore.getState().showExportBlockedDialog).toBe(false);
+      expect(useExportStore.getState().isExportDialogOpen).toBe(true);
+    });
+
+    it('closeExportBlockedDialog sets showExportBlockedDialog to false', () => {
+      useExportStore.setState({ showExportBlockedDialog: true });
+
+      useExportStore.getState().closeExportBlockedDialog();
+
+      expect(useExportStore.getState().showExportBlockedDialog).toBe(false);
+    });
+
+    it('openExportDialog clears error even for free users', () => {
+      useLicenseStore.setState({ plan: LICENSE_PLAN.FREE });
+      useExportStore.setState({ exportError: 'previous error' });
+
+      useExportStore.getState().openExportDialog();
+
+      expect(useExportStore.getState().exportError).toBeNull();
+    });
+
+    it('openExportDialog blocks export when plan is undefined (defensive)', () => {
+      // Simulate corrupted state where plan is undefined
+      useLicenseStore.setState({ plan: undefined as unknown as 'free' | 'pro' });
+
+      useExportStore.getState().openExportDialog();
+
+      // Should block export (show blocked dialog) for any non-pro state
+      expect(useExportStore.getState().showExportBlockedDialog).toBe(true);
+      expect(useExportStore.getState().isExportDialogOpen).toBe(false);
+    });
+
+    it('openExportDialog blocks export when plan is unexpected value (defensive)', () => {
+      // Simulate corrupted state with unexpected plan value
+      useLicenseStore.setState({ plan: 'invalid' as unknown as 'free' | 'pro' });
+
+      useExportStore.getState().openExportDialog();
+
+      // Should block export for any non-pro state
+      expect(useExportStore.getState().showExportBlockedDialog).toBe(true);
+      expect(useExportStore.getState().isExportDialogOpen).toBe(false);
+    });
   });
 });

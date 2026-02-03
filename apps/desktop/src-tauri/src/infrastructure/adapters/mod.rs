@@ -11,6 +11,10 @@ pub mod video_segmenter;
 pub mod segment_validator;
 pub mod video_concatenator;
 pub mod video_exporter;
+pub mod macos_credential_store;
+pub mod windows_credential_store;
+pub mod sqlite_license_repository;
+pub mod http_license_api_client;
 
 // Used in tests
 #[allow(unused_imports)]
@@ -24,3 +28,7 @@ pub use sqlite_cut_repository::SqliteCutRepository;
 pub use model_manager::HuggingFaceModelManager;
 pub use fluidaudio_transcription_service::FluidAudioTranscriptionService;
 pub use audio_extractor::{AudioExtractor, ffmpeg_path};
+pub use macos_credential_store::MacOSCredentialStore;
+pub use windows_credential_store::WindowsCredentialStore;
+pub use sqlite_license_repository::SqliteLicenseRepository;
+pub use http_license_api_client::HttpLicenseApiClient;

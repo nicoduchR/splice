@@ -7,6 +7,10 @@ pub mod segment_video;
 pub mod validate_segments;
 pub mod prepare_preview;
 pub mod export_video;
+pub mod verify_license_online;
+pub mod check_grace_period;
+pub mod update_license_cache;
+pub mod get_license_status;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -19,3 +23,7 @@ pub use segment_video::SegmentVideoUseCase;
 pub use validate_segments::ValidateSegmentsUseCase;
 pub use prepare_preview::PreparePreviewUseCase;
 pub use export_video::ExportVideoUseCase;
+pub use verify_license_online::{VerifyLicenseOnlineUseCase, VerifyLicenseResult};
+pub use check_grace_period::{CheckGracePeriodUseCase, GracePeriodStatus};
+pub use update_license_cache::UpdateLicenseCacheUseCase;
+pub use get_license_status::{GetLicenseStatusUseCase, LicenseStatus};

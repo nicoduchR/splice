@@ -1,5 +1,6 @@
 import { Settings, Scissors, Play, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '../ui/button';
+import { GracePeriodIndicator } from '../license-modal';
 import type { VideoProject } from '@splice/types/generated';
 
 interface TopBarProps {
@@ -36,6 +37,9 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
             </span>
           </>
         )}
+
+        {/* Subtle grace period indicator (AC3) */}
+        <GracePeriodIndicator />
       </div>
 
       <div className="flex items-center gap-3">

@@ -3,6 +3,8 @@ import { devtools, persist } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { toast } from 'sonner';
+import { useLicenseStore } from './license-store';
+import { LICENSE_PLAN } from '../services/license-api';
 
 export type ExportQuality = 'preserve' | 'high' | 'medium' | 'low';
 
@@ -38,6 +40,7 @@ export interface ExportResult {
 interface ExportState {
   // Dialog state
   isExportDialogOpen: boolean;
+  showExportBlockedDialog: boolean;
   // Settings
   exportSettings: ExportSettings;
   // Estimates
@@ -56,6 +59,7 @@ interface ExportState {
 interface ExportActions {
   openExportDialog: () => void;
   closeExportDialog: () => void;
+  closeExportBlockedDialog: () => void;
   updateSettings: (partial: Partial<ExportSettings>) => void;
   estimateExportSize: (projectId: string, quality: ExportQuality) => Promise<void>;
   startExport: (projectId: string) => Promise<void>;
@@ -78,6 +82,7 @@ export const useExportStore = create<ExportStore>()(
       (set, get) => ({
         // Initial state
         isExportDialogOpen: false,
+        showExportBlockedDialog: false,
         exportSettings: {
           quality: 'preserve' as ExportQuality,
           outputPath: '',
@@ -94,11 +99,23 @@ export const useExportStore = create<ExportStore>()(
         _unlisteners: [],
 
         openExportDialog: () => {
+          const plan = useLicenseStore.getState().plan;
+
+          // Defensive: block export for any non-pro state (free, undefined, corrupted)
+          if (plan !== LICENSE_PLAN.PRO) {
+            set({ showExportBlockedDialog: true, exportError: null });
+            return;
+          }
+
           set({ isExportDialogOpen: true, exportError: null });
         },
 
         closeExportDialog: () => {
           set({ isExportDialogOpen: false });
+        },
+
+        closeExportBlockedDialog: () => {
+          set({ showExportBlockedDialog: false });
         },
 
         updateSettings: (partial) => {

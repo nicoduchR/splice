@@ -6,6 +6,7 @@ pub mod transcript_stored;
 pub mod selection;
 pub mod cut;
 pub mod segment_validation;
+pub mod license_cache;
 
 pub use video::VideoProject;
 // Used in future stories
@@ -18,3 +19,4 @@ pub use transcript_stored::{TranscriptStored, TranscriptWordStored};
 pub use selection::Selection;
 pub use cut::Cut;
 pub use segment_validation::SegmentValidation;
+pub use license_cache::LicenseCache;

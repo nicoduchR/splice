@@ -39,7 +39,14 @@ async-trait = "0.1"
 hf-hub = { version = "0.3", features = ["tokio"] }
 futures-util = "0.3"
 backoff = { version = "0.4", features = ["tokio"] }
-reqwest = "0.12"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Platform-specific secure credential storage (Story 7.2)
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = "3"
 
 [dev-dependencies]
 tempfile = "3.8"

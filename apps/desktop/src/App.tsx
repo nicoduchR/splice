@@ -15,6 +15,7 @@ import { useModelDownload } from './hooks/use-model-download';
 import { useTimelineSync } from './hooks/use-timeline-sync';
 import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
+import { useLicenseVerification } from './hooks/use-license-verification';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
@@ -22,6 +23,7 @@ import { useExportStore } from './stores/export-store';
 import { SegmentationProgressDialog } from './components/segmentation';
 import { ExportDialog } from './components/export';
 import { PreviewPlayer } from './components/preview/PreviewPlayer';
+import { GracePeriodWarning, ExportBlockedDialog } from './components/license-modal';
 import type { SegmentationProgress } from '@splice/types/generated';
 
 // App screen states
@@ -61,6 +63,10 @@ function App() {
   const loadSelections = useTranscriptStore(s => s.loadSelections);
   const startAutoSave = useTranscriptStore(s => s.startAutoSave);
   const stopAutoSave = useTranscriptStore(s => s.stopAutoSave);
+
+  // Export blocked dialog state (for freemium users)
+  const showExportBlockedDialog = useExportStore(s => s.showExportBlockedDialog);
+  const closeExportBlockedDialog = useExportStore(s => s.closeExportBlockedDialog);
 
   // Segmentation state
   const isSegmenting = useSegmentationStore(s => s.isSegmenting);
@@ -104,6 +110,13 @@ function App() {
     cancelDownload,
     retryDownload,
   } = useModelDownload();
+
+  // License verification on startup
+  const {
+    isBlocked: isLicenseBlocked,
+    showGraceWarning,
+    dismissGraceWarning,
+  } = useLicenseVerification();
 
 
 
@@ -621,6 +634,16 @@ function App() {
       {/* Export Dialog */}
       <ExportDialog />
 
+      {/* Export Blocked Dialog for freemium users */}
+      <ExportBlockedDialog
+        isOpen={showExportBlockedDialog}
+        onUpgrade={() => {
+          closeExportBlockedDialog();
+          // TODO Story 7.4: Trigger upgrade flow
+        }}
+        onClose={closeExportBlockedDialog}
+      />
+
       {/* Transcription Error Dialog - shown as overlay on any screen */}
       {currentProject && (
         <TranscriptionErrorDialog
@@ -634,6 +657,17 @@ function App() {
           onClose={() => setTranscriptionError(null)}
         />
       )}
+
+      {/* Grace Period Warning Modal - blocks app when offline too long */}
+      <GracePeriodWarning
+        open={showGraceWarning}
+        onOpenChange={(open) => {
+          // Only allow closing if not blocked
+          if (!open && !isLicenseBlocked) {
+            dismissGraceWarning();
+          }
+        }}
+      />
     </>
   );
 }
