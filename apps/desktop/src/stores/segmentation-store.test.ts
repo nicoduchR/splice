@@ -280,6 +280,52 @@ describe('useSegmentationStore', () => {
       expect(state.finalVideoPath).toBe('/some/final.mp4');
     });
 
+    it('preparePreview fetches segment boundaries on success', async () => {
+      mockInvoke
+        .mockResolvedValueOnce('/preview/path.mp4') // prepare_preview
+        .mockResolvedValueOnce([              // get_segment_boundaries
+          { index: 0, start_time: 0, end_time: 5 },
+          { index: 1, start_time: 5, end_time: 12 },
+        ]);
+
+      await useSegmentationStore.getState().preparePreview('test-project');
+
+      const state = useSegmentationStore.getState();
+      expect(state.segmentBoundaries).toHaveLength(2);
+      expect(state.segmentBoundaries[0]).toEqual({ index: 0, start_time: 0, end_time: 5 });
+      expect(state.segmentBoundaries[1]).toEqual({ index: 1, start_time: 5, end_time: 12 });
+      expect(mockInvoke).toHaveBeenCalledWith('get_segment_boundaries', { projectId: 'test-project' });
+    });
+
+    it('preparePreview still works when boundaries fetch fails', async () => {
+      mockInvoke
+        .mockResolvedValueOnce('/preview/path.mp4') // prepare_preview
+        .mockRejectedValueOnce('boundaries error');  // get_segment_boundaries
+
+      await useSegmentationStore.getState().preparePreview('test-project');
+
+      const state = useSegmentationStore.getState();
+      expect(state.previewPath).toBe('/preview/path.mp4');
+      expect(state.isPreparingPreview).toBe(false);
+      // boundaries should remain empty (not cause error)
+    });
+
+    it('resetPreview clears segmentBoundaries', () => {
+      useSegmentationStore.setState({
+        segmentBoundaries: [{ index: 0, start_time: 0, end_time: 5 }],
+      });
+      useSegmentationStore.getState().resetPreview();
+      expect(useSegmentationStore.getState().segmentBoundaries).toEqual([]);
+    });
+
+    it('resetSegmentation clears segmentBoundaries', () => {
+      useSegmentationStore.setState({
+        segmentBoundaries: [{ index: 0, start_time: 0, end_time: 5 }],
+      });
+      useSegmentationStore.getState().resetSegmentation();
+      expect(useSegmentationStore.getState().segmentBoundaries).toEqual([]);
+    });
+
     it('preparePreview after re-segmentation triggers new invoke', async () => {
       // First preview
       mockInvoke.mockResolvedValueOnce('/preview/v1.mp4');

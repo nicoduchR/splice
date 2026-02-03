@@ -58,6 +58,7 @@ async fn main() {
             segmentation_commands::cleanup_segments,
             preview_commands::prepare_preview,
             preview_commands::invalidate_preview_cache,
+            preview_commands::get_segment_boundaries,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

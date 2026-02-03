@@ -24,6 +24,15 @@ pub struct PreviewError {
     pub error: String,
 }
 
+/// A single segment boundary in the concatenated preview timeline
+#[derive(Clone, Serialize, TS)]
+#[ts(export, export_to = "../../../../../packages/types/src/generated/")]
+pub struct SegmentBoundary {
+    pub index: u32,
+    pub start_time: f64,
+    pub end_time: f64,
+}
+
 /// Prepare preview by concatenating segments with cache support.
 ///
 /// If segments haven't changed since last preview, returns cached file immediately.
@@ -141,6 +150,52 @@ pub async fn prepare_preview<R: tauri::Runtime>(
     result
 }
 
+/// Get segment boundaries (cumulative positions) for the concatenated preview.
+///
+/// Computes where each segment starts and ends in the preview timeline
+/// based on the cut durations (end_time - start_time for each cut).
+#[tauri::command]
+pub async fn get_segment_boundaries(
+    project_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<Vec<SegmentBoundary>, String> {
+    tracing::info!(
+        event = "get_segment_boundaries_command",
+        project_id = %project_id,
+    );
+
+    if project_id.trim().is_empty() {
+        return Err("L'identifiant du projet ne peut pas être vide".to_string());
+    }
+
+    let cuts = app_state
+        .cut_repository
+        .get_cuts(&project_id)
+        .map_err(|e| format!("Erreur lors de la récupération des cuts: {}", e))?;
+
+    if cuts.is_empty() {
+        return Err("Aucun cut trouvé.".to_string());
+    }
+
+    Ok(compute_segment_boundaries(&cuts))
+}
+
+/// Pure computation: build cumulative segment boundaries from cuts.
+pub fn compute_segment_boundaries(cuts: &[crate::domain::entities::cut::Cut]) -> Vec<SegmentBoundary> {
+    let mut boundaries = Vec::with_capacity(cuts.len());
+    let mut cumulative = 0.0_f64;
+    for cut in cuts {
+        let duration = cut.end_time - cut.start_time;
+        boundaries.push(SegmentBoundary {
+            index: cut.segment_index as u32,
+            start_time: cumulative,
+            end_time: cumulative + duration,
+        });
+        cumulative += duration;
+    }
+    boundaries
+}
+
 /// Invalidate the preview cache for a project (e.g., after re-segmentation)
 #[tauri::command]
 pub async fn invalidate_preview_cache(
@@ -153,4 +208,60 @@ pub async fn invalidate_preview_cache(
 
     PreparePreviewUseCase::invalidate_cache(&project_id)
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::cut::Cut;
+
+    fn make_cut(index: i64, start: f64, end: f64) -> Cut {
+        Cut {
+            id: format!("cut-{}", index),
+            project_id: "test-project".to_string(),
+            segment_index: index,
+            start_time: start,
+            end_time: end,
+            created_at: 0,
+        }
+    }
+
+    #[test]
+    fn test_compute_segment_boundaries_single_cut() {
+        let cuts = vec![make_cut(0, 10.0, 15.0)];
+        let boundaries = compute_segment_boundaries(&cuts);
+        assert_eq!(boundaries.len(), 1);
+        assert_eq!(boundaries[0].index, 0);
+        assert!((boundaries[0].start_time - 0.0).abs() < f64::EPSILON);
+        assert!((boundaries[0].end_time - 5.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_compute_segment_boundaries_multiple_cuts() {
+        let cuts = vec![
+            make_cut(0, 2.0, 7.0),   // duration 5s → preview 0-5
+            make_cut(1, 20.0, 27.0),  // duration 7s → preview 5-12
+            make_cut(2, 40.0, 43.0),  // duration 3s → preview 12-15
+        ];
+        let boundaries = compute_segment_boundaries(&cuts);
+        assert_eq!(boundaries.len(), 3);
+
+        assert_eq!(boundaries[0].index, 0);
+        assert!((boundaries[0].start_time - 0.0).abs() < f64::EPSILON);
+        assert!((boundaries[0].end_time - 5.0).abs() < f64::EPSILON);
+
+        assert_eq!(boundaries[1].index, 1);
+        assert!((boundaries[1].start_time - 5.0).abs() < f64::EPSILON);
+        assert!((boundaries[1].end_time - 12.0).abs() < f64::EPSILON);
+
+        assert_eq!(boundaries[2].index, 2);
+        assert!((boundaries[2].start_time - 12.0).abs() < f64::EPSILON);
+        assert!((boundaries[2].end_time - 15.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_compute_segment_boundaries_empty_cuts() {
+        let boundaries = compute_segment_boundaries(&[]);
+        assert!(boundaries.is_empty());
+    }
 }

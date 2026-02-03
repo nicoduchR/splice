@@ -1,4 +1,4 @@
-import { Settings, Scissors, Play, ArrowLeft } from 'lucide-react';
+import { Settings, Scissors, Play, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '../ui/button';
 import type { VideoProject } from '@splice/types/generated';
 
@@ -43,6 +43,14 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
           <Button variant="outline" size="sm" onClick={onBackToEditor}>
             <ArrowLeft className="w-4 h-4 mr-1.5" />
             Retour à l'éditeur
+          </Button>
+        )}
+
+        {/* Export button (preview mode) — disabled for MVP (Epic 6) */}
+        {currentScreen === 'preview' && (
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled title="Bientôt disponible">
+            <Download className="w-4 h-4 mr-1.5" />
+            Exporter
           </Button>
         )}
 

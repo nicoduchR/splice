@@ -71,6 +71,7 @@ function App() {
   const isPreparingPreview = useSegmentationStore(s => s.isPreparingPreview);
   const previewPath = useSegmentationStore(s => s.previewPath);
   const previewError = useSegmentationStore(s => s.previewError);
+  const segmentBoundaries = useSegmentationStore(s => s.segmentBoundaries);
 
   // Search functionality
   const {
@@ -515,27 +516,27 @@ function App() {
 
         {currentScreen === 'preview' && (
           <div className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
-            {isPreparingPreview && (
-              <div className="flex flex-col items-center gap-3">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                <p className="text-sm text-gray-400">Préparation du preview...</p>
-              </div>
-            )}
-            {previewError && (
-              <div className="flex flex-col items-center gap-3 text-center px-4">
-                <p className="text-red-400 text-sm">{previewError}</p>
-                <button
-                  type="button"
-                  className="text-primary text-sm underline"
-                  onClick={() => setCurrentScreen('editor')}
-                >
-                  Retour à l'éditeur
-                </button>
-              </div>
-            )}
-            {!isPreparingPreview && !previewError && (previewPath || finalVideoPath) && (
-              <PreviewPlayer filePath={previewPath || finalVideoPath!} />
-            )}
+              {isPreparingPreview && (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                  <p className="text-sm text-gray-400">Préparation du preview...</p>
+                </div>
+              )}
+              {previewError && (
+                <div className="flex flex-col items-center gap-3 text-center px-4">
+                  <p className="text-red-400 text-sm">{previewError}</p>
+                  <button
+                    type="button"
+                    className="text-primary text-sm underline"
+                    onClick={() => setCurrentScreen('editor')}
+                  >
+                    Retour à l'éditeur
+                  </button>
+                </div>
+              )}
+              {!isPreparingPreview && !previewError && (previewPath || finalVideoPath) && (
+                <PreviewPlayer filePath={previewPath || finalVideoPath!} segmentBoundaries={segmentBoundaries} />
+              )}
           </div>
         )}
 

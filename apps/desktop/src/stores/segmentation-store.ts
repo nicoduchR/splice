@@ -17,6 +17,12 @@ export interface SegmentationStats {
   reduction_percent: number;
 }
 
+export interface SegmentBoundary {
+  index: number;
+  start_time: number;
+  end_time: number;
+}
+
 interface SegmentationStore {
   // State
   isSegmenting: boolean;
@@ -30,6 +36,7 @@ interface SegmentationStore {
   isPreparingPreview: boolean;
   previewPath: string | null;
   previewError: string | null;
+  segmentBoundaries: SegmentBoundary[];
 
   // Actions
   startSegmentation: (projectId: string) => Promise<void>;
@@ -43,6 +50,7 @@ interface SegmentationStore {
   preparePreview: (projectId: string) => Promise<void>;
   setPreviewReady: (path: string) => void;
   setPreviewError: (error: string) => void;
+  setSegmentBoundaries: (boundaries: SegmentBoundary[]) => void;
   resetPreview: () => void;
 }
 
@@ -61,6 +69,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
       isPreparingPreview: false,
       previewPath: null,
       previewError: null,
+      segmentBoundaries: [],
 
       startSegmentation: async (projectId) => {
         set({ isSegmenting: true, segmentationProgress: null, error: null });
@@ -112,14 +121,21 @@ export const useSegmentationStore = create<SegmentationStore>()(
         set({ isSegmenting: false, segmentationProgress: null, isValidating: false, validationProgress: null, isConcatenating: false, stats: null, error: null });
         // Note: finalVideoPath is intentionally NOT reset — it persists for preview
         // Also reset preview state since segments may have changed
-        set({ previewPath: null, previewError: null });
+        set({ previewPath: null, previewError: null, segmentBoundaries: [] });
       },
 
       preparePreview: async (projectId) => {
         set({ isPreparingPreview: true, previewError: null });
         try {
           const previewPath = await invoke<string>('prepare_preview', { projectId });
-          set({ previewPath: previewPath, isPreparingPreview: false });
+          // Fetch segment boundaries for timeline markers
+          try {
+            const boundaries = await invoke<SegmentBoundary[]>('get_segment_boundaries', { projectId });
+            set({ previewPath, isPreparingPreview: false, segmentBoundaries: boundaries });
+          } catch {
+            // Boundaries fetch failed — still show preview without markers
+            set({ previewPath, isPreparingPreview: false });
+          }
         } catch (e) {
           const errorMsg = String(e);
           set({ previewError: errorMsg, isPreparingPreview: false });
@@ -137,8 +153,12 @@ export const useSegmentationStore = create<SegmentationStore>()(
         set({ previewError: error, isPreparingPreview: false });
       },
 
+      setSegmentBoundaries: (boundaries) => {
+        set({ segmentBoundaries: boundaries });
+      },
+
       resetPreview: () => {
-        set({ isPreparingPreview: false, previewPath: null, previewError: null });
+        set({ isPreparingPreview: false, previewPath: null, previewError: null, segmentBoundaries: [] });
       },
     }),
     { name: 'SegmentationStore' }

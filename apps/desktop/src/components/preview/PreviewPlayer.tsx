@@ -2,12 +2,14 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { formatTimecode } from '../../lib/format-timecode';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
+import type { SegmentBoundary } from '../../stores/segmentation-store';
 
 interface PreviewPlayerProps {
   filePath: string;
+  segmentBoundaries?: SegmentBoundary[];
 }
 
-export function PreviewPlayer({ filePath }: PreviewPlayerProps) {
+export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrubberRef = useRef<HTMLDivElement>(null);
@@ -18,6 +20,7 @@ export function PreviewPlayer({ filePath }: PreviewPlayerProps) {
   const [volume, setVolume] = useState(0.7);
   const [previousVolume, setPreviousVolume] = useState(0.7);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hoveredBoundary, setHoveredBoundary] = useState<number | null>(null);
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
 
@@ -241,6 +244,33 @@ export function PreviewPlayer({ filePath }: PreviewPlayerProps) {
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white shadow-md pointer-events-none transition-[left] duration-75 group-hover:scale-125"
             style={{ left: `${playheadPercent}%` }}
           />
+          {/* Segment boundary markers */}
+          {duration > 0 && segmentBoundaries.map((boundary, i) => {
+            // Show markers at segment start positions (skip first segment — starts at 0)
+            if (i === 0) return null;
+            const percent = (boundary.start_time / duration) * 100;
+            if (percent <= 0 || percent >= 100) return null;
+            return (
+              <div
+                key={boundary.index}
+                className="absolute top-0 h-full cursor-pointer z-10"
+                style={{ left: `${percent}%`, width: 8, transform: 'translateX(-50%)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSeek(boundary.start_time);
+                }}
+                onMouseEnter={() => setHoveredBoundary(i)}
+                onMouseLeave={() => setHoveredBoundary(null)}
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-full bg-gray-400/50" />
+                {hoveredBoundary === i && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap pointer-events-none">
+                    Segment {boundary.index + 1} — {formatTimecode(boundary.start_time)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

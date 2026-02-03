@@ -120,6 +120,73 @@ describe('PreviewPlayer', () => {
   });
 });
 
+describe('PreviewPlayer segment markers', () => {
+  const boundaries = [
+    { index: 0, start_time: 0, end_time: 5 },
+    { index: 1, start_time: 5, end_time: 12 },
+    { index: 2, start_time: 12, end_time: 15 },
+  ];
+
+  it('renders segment boundary markers on the scrubber when duration > 0', () => {
+    const { container } = render(
+      <PreviewPlayer filePath="/test/final.mp4" segmentBoundaries={boundaries} />
+    );
+    const video = container.querySelector('video')!;
+
+    // Set duration so markers render
+    Object.defineProperty(video, 'duration', { value: 15, writable: true });
+    fireEvent.loadedMetadata(video);
+
+    // Should render markers for boundaries at index 1 and 2 (skip first at 0%)
+    const markers = container.querySelectorAll('[class*="cursor-pointer"][class*="z-10"]');
+    expect(markers.length).toBe(2);
+  });
+
+  it('does not render markers when no boundaries provided', () => {
+    const { container } = render(<PreviewPlayer filePath="/test/final.mp4" />);
+    const video = container.querySelector('video')!;
+
+    Object.defineProperty(video, 'duration', { value: 15, writable: true });
+    fireEvent.loadedMetadata(video);
+
+    const markers = container.querySelectorAll('[class*="cursor-pointer"][class*="z-10"]');
+    expect(markers.length).toBe(0);
+  });
+
+  it('clicking a marker seeks to the boundary time', () => {
+    const { container } = render(
+      <PreviewPlayer filePath="/test/final.mp4" segmentBoundaries={boundaries} />
+    );
+    const video = container.querySelector('video')!;
+
+    Object.defineProperty(video, 'duration', { value: 15, writable: true });
+    Object.defineProperty(video, 'currentTime', { value: 0, writable: true, configurable: true });
+    fireEvent.loadedMetadata(video);
+
+    const markers = container.querySelectorAll('[class*="cursor-pointer"][class*="z-10"]');
+    // Click the first marker (boundary index 1, start_time 5)
+    fireEvent.click(markers[0]);
+
+    expect(video.currentTime).toBe(5);
+  });
+
+  it('shows tooltip on marker hover', () => {
+    const { container } = render(
+      <PreviewPlayer filePath="/test/final.mp4" segmentBoundaries={boundaries} />
+    );
+    const video = container.querySelector('video')!;
+
+    Object.defineProperty(video, 'duration', { value: 15, writable: true });
+    fireEvent.loadedMetadata(video);
+
+    const markers = container.querySelectorAll('[class*="cursor-pointer"][class*="z-10"]');
+    fireEvent.mouseEnter(markers[0]);
+
+    // Should show tooltip with segment number
+    expect(container.textContent).toContain('Segment 2');
+  });
+});
+
 describe('PreviewPlayer navigation', () => {
   it('renders without crashing', () => {
     const { container } = render(<PreviewPlayer filePath="/test/final.mp4" />);

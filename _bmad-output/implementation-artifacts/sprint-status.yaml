@@ -84,7 +84,7 @@ development_status:
   epic-5: in-progress
   5-1-video-preview-player-component: done  # Code review: 4 issues fixed (1 HIGH, 3 MEDIUM). Fixed test mock (window.HTMLMediaElement), volume ref to avoid listener churn, seek bar WCAG keyboard handler. H2 reclassified LOW after backend verification. 14/14 tests passing.
   5-2-preview-playback-backend: done  # Code review: 7 issues fixed (4 HIGH, 3 MEDIUM). Fixed segment path reconstruction, unwrap() panic, race condition dual state update, enhanced validation, temp file cleanup, non-UTF8 path handling, updated File List.
-  5-3-preview-validation-editing-controls: backlog
+  5-3-preview-validation-editing-controls: done  # Code review: 2 issues fixed (1 HIGH, 1 MEDIUM). Added problem notes textarea (AC #5), updated File List. H1 retracted after investigation (margins already in cuts). 52/52 tests passing.
   epic-5-retrospective: optional
 
   epic-6: backlog
