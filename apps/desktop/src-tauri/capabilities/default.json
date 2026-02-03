@@ -16,7 +16,8 @@
     "core:path:allow-normalize",
     "dialog:allow-open",
     "dialog:default",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "shell:allow-open"
   ],
   "platforms": ["macOS", "windows", "linux"]
 }
