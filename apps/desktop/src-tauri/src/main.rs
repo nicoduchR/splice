@@ -31,6 +31,7 @@ async fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             video_commands::get_video_info,
@@ -62,6 +63,8 @@ async fn main() {
             export_commands::estimate_export,
             export_commands::export_video,
             export_commands::cancel_export,
+            export_commands::open_file,
+            export_commands::show_in_folder,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

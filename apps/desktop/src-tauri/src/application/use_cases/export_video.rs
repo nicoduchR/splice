@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::domain::errors::DomainError;
 use crate::domain::repositories::{CutRepository, VideoRepository};
-use crate::infrastructure::adapters::video_exporter::VideoExporter;
+use crate::infrastructure::adapters::video_exporter::{FfmpegProgressInfo, VideoExporter};
 
 /// Use case for exporting the final video from segments.
 ///
@@ -20,7 +20,7 @@ impl ExportVideoUseCase {
     /// - `quality`: "preserve", "high", "medium", or "low"
     /// - `output_path`: Full path for the exported file
     /// - `cancel_flag`: Atomic flag to cancel the operation
-    /// - `on_progress`: Callback for progress updates (percent, current_time, speed)
+    /// - `on_progress`: Callback for rich progress updates
     /// - `video_repository`: Repository to fetch project metadata
     /// - `cut_repository`: Repository to fetch cuts
     pub fn execute(
@@ -28,7 +28,7 @@ impl ExportVideoUseCase {
         quality: &str,
         output_path: &Path,
         cancel_flag: &Arc<AtomicBool>,
-        on_progress: impl Fn(f64, f64, f64) + Send,
+        on_progress: impl Fn(FfmpegProgressInfo) + Send,
         video_repository: &Arc<dyn VideoRepository>,
         cut_repository: &Arc<dyn CutRepository>,
     ) -> Result<PathBuf, DomainError> {
@@ -115,7 +115,7 @@ impl ExportVideoUseCase {
         quality: &str,
         total_duration_secs: f64,
         cancel_flag: &Arc<AtomicBool>,
-        on_progress: impl Fn(f64, f64, f64) + Send,
+        on_progress: impl Fn(FfmpegProgressInfo) + Send,
     ) -> Result<PathBuf, DomainError> {
         match quality {
             "preserve" => VideoExporter::export_with_copy(segment_paths, output_path, total_duration_secs, cancel_flag, on_progress),
@@ -145,7 +145,7 @@ mod tests {
             "preserve",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         // Should attempt copy mode and fail on FFmpeg execution (not a wrong-mode error)
         assert!(result.is_err());
@@ -160,7 +160,7 @@ mod tests {
             "high",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
     }
@@ -174,7 +174,7 @@ mod tests {
             "medium",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
     }
@@ -188,7 +188,7 @@ mod tests {
             "low",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
     }

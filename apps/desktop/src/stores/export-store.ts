@@ -17,6 +17,24 @@ export interface ExportEstimate {
   estimated_duration_seconds: number;
 }
 
+export interface ExportProgressInfo {
+  percent: number;
+  currentFrame?: number;
+  totalFrames?: number;
+  speed?: number;
+  fps?: number;
+  elapsedSecs?: number;
+  eta?: number;
+  fileSizeBytes?: number;
+  estimatedTotalBytes?: number;
+}
+
+export interface ExportResult {
+  outputPath: string;
+  fileSizeBytes: number;
+  durationSeconds: number;
+}
+
 interface ExportState {
   // Dialog state
   isExportDialogOpen: boolean;
@@ -28,8 +46,9 @@ interface ExportState {
   isEstimating: boolean;
   // Export state (for story 6.2+)
   isExporting: boolean;
-  exportProgress: number | null;
+  exportProgress: ExportProgressInfo | null;
   exportError: string | null;
+  exportResult: ExportResult | null;
   _exportingProjectId: string | null;
   _unlisteners: UnlistenFn[];
 }
@@ -42,6 +61,7 @@ interface ExportActions {
   startExport: (projectId: string) => Promise<void>;
   cancelExport: () => void;
   resetExport: () => void;
+  closeExportResult: () => void;
 }
 
 type ExportStore = ExportState & ExportActions;
@@ -69,6 +89,7 @@ export const useExportStore = create<ExportStore>()(
         isExporting: false,
         exportProgress: null,
         exportError: null,
+        exportResult: null,
         _exportingProjectId: null,
         _unlisteners: [],
 
@@ -105,7 +126,7 @@ export const useExportStore = create<ExportStore>()(
 
         startExport: async (projectId) => {
           const { exportSettings } = get();
-          set({ isExporting: true, exportProgress: 0, exportError: null, _exportingProjectId: projectId });
+          set({ isExporting: true, exportProgress: { percent: 0 }, exportError: null, _exportingProjectId: projectId });
 
           // Set up event listeners
           const unlisteners: UnlistenFn[] = [];
@@ -117,8 +138,28 @@ export const useExportStore = create<ExportStore>()(
               current_time: number;
               total_duration: number;
               encoding_speed: number;
+              current_frame: number | null;
+              total_frames: number | null;
+              fps: number | null;
+              elapsed_secs: number;
+              eta_secs: number | null;
+              file_size_bytes: number | null;
+              estimated_total_bytes: number | null;
             }>('export:progress', (event) => {
-              set({ exportProgress: event.payload.progress });
+              const p = event.payload;
+              set({
+                exportProgress: {
+                  percent: p.progress,
+                  currentFrame: p.current_frame ?? undefined,
+                  totalFrames: p.total_frames ?? undefined,
+                  speed: p.encoding_speed,
+                  fps: p.fps ?? undefined,
+                  elapsedSecs: p.elapsed_secs,
+                  eta: p.eta_secs ?? undefined,
+                  fileSizeBytes: p.file_size_bytes ?? undefined,
+                  estimatedTotalBytes: p.estimated_total_bytes ?? undefined,
+                },
+              });
             });
             unlisteners.push(unlistenProgress);
 
@@ -126,9 +167,41 @@ export const useExportStore = create<ExportStore>()(
               project_id: string;
               output_path: string;
               file_size: number;
-            }>('export:completed', (event) => {
-              set({ isExporting: false, exportProgress: 100 });
-              toast.success(`Export terminé : ${event.payload.output_path}`);
+              duration_seconds: number;
+            }>('export:completed', async (event) => {
+              // Extract filename from path for cleaner toast
+              const fileName = event.payload.output_path.split('/').pop() || event.payload.output_path;
+              set({
+                isExporting: false,
+                exportProgress: { percent: 100 },
+                exportResult: {
+                  outputPath: event.payload.output_path,
+                  fileSizeBytes: event.payload.file_size,
+                  durationSeconds: event.payload.duration_seconds,
+                },
+              });
+              toast.success(`Vidéo exportée: ${fileName}`);
+
+              // Send system notification if app is not in foreground
+              if (document.hidden) {
+                try {
+                  const { isPermissionGranted, requestPermission, sendNotification } = await import('@tauri-apps/plugin-notification');
+                  let granted = await isPermissionGranted();
+                  if (!granted) {
+                    const permission = await requestPermission();
+                    granted = permission === 'granted';
+                  }
+                  if (granted) {
+                    const fileName = event.payload.output_path.split('/').pop() || 'video';
+                    sendNotification({
+                      title: 'Export terminé',
+                      body: `${fileName} exporté avec succès`,
+                    });
+                  }
+                } catch (e) {
+                  console.warn('Notification not available:', e);
+                }
+              }
             });
             unlisteners.push(unlistenCompleted);
 
@@ -187,8 +260,13 @@ export const useExportStore = create<ExportStore>()(
             isExporting: false,
             exportProgress: null,
             exportError: null,
+            exportResult: null,
             _unlisteners: [],
           });
+        },
+
+        closeExportResult: () => {
+          set({ exportResult: null });
         },
       }),
       {

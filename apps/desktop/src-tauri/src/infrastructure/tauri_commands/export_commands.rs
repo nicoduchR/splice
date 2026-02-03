@@ -183,6 +183,21 @@ mod tests {
         let estimated_time = 120.0 / speed;
         assert!((estimated_time - 12.0).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn test_export_completed_struct_has_duration() {
+        // Verify that ExportCompleted has all required fields including duration_seconds
+        let completed = ExportCompleted {
+            project_id: "test-project".to_string(),
+            output_path: "/path/to/video.mp4".to_string(),
+            file_size: 50_000_000,
+            duration_seconds: 125.5,
+        };
+        assert_eq!(completed.project_id, "test-project");
+        assert_eq!(completed.output_path, "/path/to/video.mp4");
+        assert_eq!(completed.file_size, 50_000_000);
+        assert!((completed.duration_seconds - 125.5).abs() < f64::EPSILON);
+    }
 }
 
 /// Export progress event payload
@@ -194,6 +209,13 @@ pub struct ExportProgress {
     pub current_time: f64,
     pub total_duration: f64,
     pub encoding_speed: f64,
+    pub current_frame: Option<u64>,
+    pub total_frames: Option<u64>,
+    pub fps: Option<f64>,
+    pub elapsed_secs: f64,
+    pub eta_secs: Option<f64>,
+    pub file_size_bytes: Option<u64>,
+    pub estimated_total_bytes: Option<u64>,
 }
 
 /// Export completed event payload
@@ -203,6 +225,7 @@ pub struct ExportCompleted {
     pub project_id: String,
     pub output_path: String,
     pub file_size: u64,
+    pub duration_seconds: f64,
 }
 
 /// Export video using FFmpeg with the specified quality setting.
@@ -270,13 +293,20 @@ pub async fn export_video<R: tauri::Runtime>(
             &quality_str,
             &full_output,
             &cancel_flag,
-            |progress, current_time, speed| {
+            |info| {
                 let _ = app_handle_progress.emit("export:progress", ExportProgress {
                     project_id: project_id_progress.clone(),
-                    progress,
-                    current_time,
+                    progress: info.percent,
+                    current_time: info.current_time,
                     total_duration,
-                    encoding_speed: speed,
+                    encoding_speed: info.speed,
+                    current_frame: info.current_frame,
+                    total_frames: info.total_frames,
+                    fps: info.fps,
+                    elapsed_secs: info.elapsed_secs,
+                    eta_secs: info.eta_secs,
+                    file_size_bytes: info.file_size_bytes,
+                    estimated_total_bytes: info.estimated_total_bytes,
                 });
             },
             &video_repo,
@@ -304,6 +334,7 @@ pub async fn export_video<R: tauri::Runtime>(
                 project_id: project_id.clone(),
                 output_path: output_path_str.clone(),
                 file_size,
+                duration_seconds: total_duration,
             });
         }
         Err(err) => {
@@ -339,4 +370,91 @@ pub async fn cancel_export(
     } else {
         Err(format!("Aucun export en cours pour le projet: {}", project_id))
     }
+}
+
+/// Open a file with the system's default application
+#[tauri::command]
+pub async fn open_file(path: String) -> Result<(), String> {
+    tracing::info!(event = "open_file_command", path = %path);
+
+    if path.trim().is_empty() {
+        return Err("Le chemin du fichier ne peut pas être vide".to_string());
+    }
+
+    let path_buf = std::path::Path::new(&path);
+    if !path_buf.exists() {
+        return Err(format!("Le fichier n'existe pas: {}", path));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le fichier: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", &path])
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le fichier: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le fichier: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// Show a file in the system's file browser (Finder on macOS, Explorer on Windows)
+#[tauri::command]
+pub async fn show_in_folder(path: String) -> Result<(), String> {
+    tracing::info!(event = "show_in_folder_command", path = %path);
+
+    if path.trim().is_empty() {
+        return Err("Le chemin du fichier ne peut pas être vide".to_string());
+    }
+
+    let path_buf = std::path::Path::new(&path);
+    if !path_buf.exists() {
+        return Err(format!("Le fichier n'existe pas: {}", path));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| format!("Impossible d'afficher le fichier dans le Finder: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .args(["/select,", &path])
+            .spawn()
+            .map_err(|e| format!("Impossible d'afficher le fichier dans l'Explorateur: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Try xdg-open on the parent directory
+        if let Some(parent) = path_buf.parent() {
+            std::process::Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .map_err(|e| format!("Impossible d'afficher le dossier: {}", e))?;
+        } else {
+            return Err("Impossible de déterminer le dossier parent".to_string());
+        }
+    }
+
+    Ok(())
 }

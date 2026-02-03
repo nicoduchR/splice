@@ -163,4 +163,36 @@ describe('ExportDialog', () => {
     const exportBtn = screen.getByText('Exporter').closest('button');
     expect(exportBtn?.disabled).toBe(true);
   });
+
+  it('displays ExportComplete when exportResult is set', () => {
+    useExportStore.setState({
+      isExportDialogOpen: true,
+      exportResult: {
+        outputPath: '/Users/test/Videos/exported.mp4',
+        fileSizeBytes: 50_000_000,
+        durationSeconds: 125,
+      },
+      isExporting: false,
+    });
+
+    render(<ExportDialog />);
+
+    expect(screen.getByText('Export terminé')).toBeTruthy();
+    expect(screen.getByText('Export terminé avec succès!')).toBeTruthy();
+    expect(screen.getByText('Ouvrir le fichier')).toBeTruthy();
+    expect(screen.getByText('Terminé')).toBeTruthy();
+  });
+
+  it('displays ExportProgress when isExporting is true', () => {
+    useExportStore.setState({
+      isExportDialogOpen: true,
+      isExporting: true,
+      exportProgress: { percent: 45 },
+      exportResult: null,
+    });
+
+    render(<ExportDialog />);
+
+    expect(screen.getByText('Export de la vidéo')).toBeTruthy();
+  });
 });

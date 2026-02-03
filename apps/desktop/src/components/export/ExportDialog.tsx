@@ -8,6 +8,9 @@ import { Badge } from '../ui/badge';
 import { save } from '@tauri-apps/plugin-dialog';
 import { useExportStore, type ExportQuality } from '../../stores/export-store';
 import { useVideoStore } from '../../stores/video-store';
+import { ExportProgress } from './ExportProgress';
+import { ExportComplete } from './ExportComplete';
+import { formatFileSize, formatEstimatedDuration } from '../../lib/format-utils';
 
 const QUALITY_OPTIONS: { value: ExportQuality; label: string; description: string }[] = [
   { value: 'preserve', label: 'Préserver l\'original', description: 'Copie directe sans ré-encodage — qualité identique, très rapide' },
@@ -15,18 +18,6 @@ const QUALITY_OPTIONS: { value: ExportQuality; label: string; description: strin
   { value: 'medium', label: 'Moyenne', description: 'CRF 23 — ~4 Mbps, bon pour le partage' },
   { value: 'low', label: 'Basse', description: 'CRF 28 — ~2 Mbps, fichier compact' },
 ];
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `~${Math.ceil(seconds)} secondes`;
-  const mins = Math.ceil(seconds / 60);
-  return `~${mins} minute${mins > 1 ? 's' : ''}`;
-}
 
 export function ExportDialog() {
   const isOpen = useExportStore(s => s.isExportDialogOpen);
@@ -38,6 +29,9 @@ export function ExportDialog() {
   const isEstimating = useExportStore(s => s.isEstimating);
   const estimateExportSize = useExportStore(s => s.estimateExportSize);
   const startExport = useExportStore(s => s.startExport);
+  const isExporting = useExportStore(s => s.isExporting);
+  const exportResult = useExportStore(s => s.exportResult);
+  const resetExport = useExportStore(s => s.resetExport);
   const currentProject = useVideoStore(s => s.currentProject);
 
   // Auto-suggest filename when dialog opens
@@ -80,9 +74,45 @@ export function ExportDialog() {
     }
   };
 
+  const handleExportAnother = () => {
+    resetExport();
+    // Settings are preserved, dialog stays open for new export
+  };
+
+  const handleCloseComplete = () => {
+    resetExport();
+    closeDialog();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isExporting && !exportResult) closeDialog(); }}>
       <DialogContent className="bg-gray-950 border border-gray-800 sm:max-w-[500px]">
+        {exportResult ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-white">Export terminé</DialogTitle>
+              <DialogDescription className="text-gray-500">
+                Votre vidéo a été exportée avec succès.
+              </DialogDescription>
+            </DialogHeader>
+            <ExportComplete
+              result={exportResult}
+              onExportAnother={handleExportAnother}
+              onClose={handleCloseComplete}
+            />
+          </>
+        ) : isExporting ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-white">Export de la vidéo</DialogTitle>
+              <DialogDescription className="text-gray-500">
+                Veuillez patienter pendant que votre vidéo est exportée.
+              </DialogDescription>
+            </DialogHeader>
+            <ExportProgress />
+          </>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle className="text-white">Exporter la vidéo</DialogTitle>
           <DialogDescription className="text-gray-500">
@@ -161,7 +191,7 @@ export function ExportDialog() {
             <div>
               <span className="text-gray-500">Temps estimé : </span>
               <span className="text-gray-300">
-                {isEstimating ? '...' : estimatedDuration != null ? formatDuration(estimatedDuration) : '—'}
+                {isEstimating ? '...' : estimatedDuration != null ? formatEstimatedDuration(estimatedDuration) : '—'}
               </span>
             </div>
           </div>
@@ -186,6 +216,8 @@ export function ExportDialog() {
             </Button>
           </div>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

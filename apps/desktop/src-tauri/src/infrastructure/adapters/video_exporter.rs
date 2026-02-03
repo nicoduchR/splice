@@ -3,10 +3,26 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
 use tracing::{info, error};
 
 use crate::domain::errors::DomainError;
 use super::audio_extractor::ffmpeg_path;
+
+/// Rich progress info parsed from FFmpeg stderr
+#[derive(Debug, Clone)]
+pub struct FfmpegProgressInfo {
+    pub percent: f64,
+    pub current_time: f64,
+    pub speed: f64,
+    pub current_frame: Option<u64>,
+    pub total_frames: Option<u64>,
+    pub fps: Option<f64>,
+    pub file_size_bytes: Option<u64>,
+    pub elapsed_secs: f64,
+    pub eta_secs: Option<f64>,
+    pub estimated_total_bytes: Option<u64>,
+}
 
 /// VideoExporter - exports video using FFmpeg concat demuxer with copy or re-encode modes
 pub struct VideoExporter;
@@ -25,7 +41,7 @@ impl VideoExporter {
         output_path: &Path,
         total_duration_secs: f64,
         cancel_flag: &Arc<AtomicBool>,
-        on_progress: impl Fn(f64, f64, f64) + Send,
+        on_progress: impl Fn(FfmpegProgressInfo) + Send,
     ) -> Result<PathBuf, DomainError> {
         if cancel_flag.load(Ordering::Relaxed) {
             return Err(DomainError::OperationCancelled(
@@ -89,6 +105,8 @@ impl VideoExporter {
             })?;
 
         // Parse stderr for progress and support cancellation during execution
+        let start_time = Instant::now();
+        let mut last_emit = Instant::now() - std::time::Duration::from_secs(1); // ensure first emit
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
@@ -103,13 +121,13 @@ impl VideoExporter {
                 }
 
                 if let Ok(line) = line {
-                    if let Some((current_time, speed)) = Self::parse_progress_line(&line, total_duration_secs) {
-                        let progress = if total_duration_secs > 0.0 {
-                            (current_time / total_duration_secs * 100.0).min(100.0)
-                        } else {
-                            0.0
-                        };
-                        on_progress(progress, current_time, speed);
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    if let Some(info) = Self::parse_progress_line_rich(&line, total_duration_secs, elapsed) {
+                        // Throttle: emit at most every 500ms
+                        if last_emit.elapsed() >= std::time::Duration::from_millis(500) {
+                            on_progress(info);
+                            last_emit = Instant::now();
+                        }
                     }
                 }
             }
@@ -151,7 +169,7 @@ impl VideoExporter {
         quality: &str,
         total_duration_secs: f64,
         cancel_flag: &Arc<AtomicBool>,
-        on_progress: impl Fn(f64, f64, f64) + Send, // (progress_percent, current_time, encoding_speed)
+        on_progress: impl Fn(FfmpegProgressInfo) + Send,
     ) -> Result<PathBuf, DomainError> {
         if cancel_flag.load(Ordering::Relaxed) {
             return Err(DomainError::OperationCancelled(
@@ -227,6 +245,8 @@ impl VideoExporter {
             })?;
 
         // Parse stderr for progress
+        let start_time = Instant::now();
+        let mut last_emit = Instant::now() - std::time::Duration::from_secs(1);
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
@@ -241,13 +261,12 @@ impl VideoExporter {
                 }
 
                 if let Ok(line) = line {
-                    if let Some((current_time, speed)) = Self::parse_progress_line(&line, total_duration_secs) {
-                        let progress = if total_duration_secs > 0.0 {
-                            (current_time / total_duration_secs * 100.0).min(100.0)
-                        } else {
-                            0.0
-                        };
-                        on_progress(progress, current_time, speed);
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    if let Some(info) = Self::parse_progress_line_rich(&line, total_duration_secs, elapsed) {
+                        if last_emit.elapsed() >= std::time::Duration::from_millis(500) {
+                            on_progress(info);
+                            last_emit = Instant::now();
+                        }
                     }
                 }
             }
@@ -282,9 +301,8 @@ impl VideoExporter {
     }
 
     /// Parse a line of FFmpeg stderr output to extract progress info.
-    /// Returns (current_time_secs, speed) if parseable.
+    /// Returns (current_time_secs, speed) if parseable (legacy API).
     pub fn parse_progress_line(line: &str, _total_duration: f64) -> Option<(f64, f64)> {
-        // FFmpeg outputs lines like: frame= 1234 fps=45.2 ... time=00:01:23.45 ... speed=1.23x
         if !line.contains("time=") {
             return None;
         }
@@ -293,6 +311,63 @@ impl VideoExporter {
         let speed = Self::extract_speed(line).unwrap_or(0.0);
 
         Some((current_time, speed))
+    }
+
+    /// Parse a line of FFmpeg stderr output to extract rich progress info.
+    pub fn parse_progress_line_rich(line: &str, total_duration: f64, elapsed_secs: f64) -> Option<FfmpegProgressInfo> {
+        if !line.contains("time=") {
+            return None;
+        }
+
+        let current_time = Self::extract_time(line)?;
+        let speed = Self::extract_speed(line).unwrap_or(0.0);
+        let percent = if total_duration > 0.0 {
+            (current_time / total_duration * 100.0).min(100.0)
+        } else {
+            0.0
+        };
+
+        let current_frame = Self::extract_frame(line);
+        let fps = Self::extract_fps(line);
+        let file_size_bytes = Self::extract_size(line);
+
+        // ETA based on percent and elapsed time
+        let eta_secs = if percent > 0.0 && elapsed_secs > 0.0 {
+            Some((elapsed_secs / percent * (100.0 - percent)).max(0.0))
+        } else {
+            None
+        };
+
+        // Estimated total bytes based on current size and progress
+        let estimated_total_bytes = file_size_bytes.and_then(|size| {
+            if percent > 1.0 {
+                Some((size as f64 / percent * 100.0) as u64)
+            } else {
+                None
+            }
+        });
+
+        // Estimated total frames based on current frame and progress
+        let total_frames = current_frame.and_then(|frame| {
+            if percent > 1.0 {
+                Some((frame as f64 / percent * 100.0) as u64)
+            } else {
+                None
+            }
+        });
+
+        Some(FfmpegProgressInfo {
+            percent,
+            current_time,
+            speed,
+            current_frame,
+            total_frames,
+            fps,
+            file_size_bytes,
+            elapsed_secs,
+            eta_secs,
+            estimated_total_bytes,
+        })
     }
 
     /// Extract time=HH:MM:SS.xx from an FFmpeg line and convert to seconds.
@@ -322,6 +397,37 @@ impl VideoExporter {
         let end = after_speed.find('x').unwrap_or(after_speed.len());
         let speed_str = after_speed[..end].trim();
         speed_str.parse().ok()
+    }
+
+    /// Extract frame= NNN from an FFmpeg line.
+    fn extract_frame(line: &str) -> Option<u64> {
+        let idx = line.find("frame=")?;
+        let after = &line[idx + 6..];
+        let trimmed = after.trim_start();
+        let end = trimmed.find(|c: char| !c.is_ascii_digit()).unwrap_or(trimmed.len());
+        if end == 0 { return None; }
+        trimmed[..end].parse().ok()
+    }
+
+    /// Extract fps= NN.N from an FFmpeg line.
+    fn extract_fps(line: &str) -> Option<f64> {
+        let idx = line.find("fps=")?;
+        let after = &line[idx + 4..];
+        let trimmed = after.trim_start();
+        let end = trimmed.find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(trimmed.len());
+        if end == 0 { return None; }
+        trimmed[..end].parse().ok()
+    }
+
+    /// Extract size= NNNkB from an FFmpeg line (returns bytes).
+    fn extract_size(line: &str) -> Option<u64> {
+        let idx = line.find("size=")?;
+        let after = &line[idx + 5..];
+        let trimmed = after.trim_start();
+        let end = trimmed.find(|c: char| !c.is_ascii_digit()).unwrap_or(trimmed.len());
+        if end == 0 { return None; }
+        let kb: u64 = trimmed[..end].parse().ok()?;
+        Some(kb * 1024)
     }
 
     /// Get encoding parameters for the given quality level.
@@ -372,7 +478,7 @@ mod tests {
             Path::new("/tmp/output.mp4"),
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Aucun segment"));
@@ -386,7 +492,7 @@ mod tests {
             Path::new("/tmp/output.mp4"),
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -404,7 +510,7 @@ mod tests {
             "high",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Aucun segment"));
@@ -419,13 +525,86 @@ mod tests {
             "high",
             60.0,
             &cancel_flag,
-            |_, _, _| {},
+            |_| {},
         );
         assert!(result.is_err());
         match result.unwrap_err() {
             DomainError::OperationCancelled(_) => {}
             other => panic!("Expected OperationCancelled, got: {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_parse_progress_line_rich_full() {
+        let line = "frame= 1234 fps=45.2 q=28.0 size=   12345kB time=00:01:23.45 bitrate=1234.5kbits/s speed=1.23x";
+        let result = VideoExporter::parse_progress_line_rich(line, 120.0, 30.0);
+        assert!(result.is_some());
+        let info = result.unwrap();
+        assert!((info.current_time - 83.45).abs() < 0.01);
+        assert!((info.speed - 1.23).abs() < 0.01);
+        assert_eq!(info.current_frame, Some(1234));
+        assert!((info.fps.unwrap() - 45.2).abs() < 0.1);
+        assert_eq!(info.file_size_bytes, Some(12345 * 1024));
+        assert!((info.elapsed_secs - 30.0).abs() < 0.01);
+        assert!(info.eta_secs.is_some());
+        assert!(info.estimated_total_bytes.is_some());
+        // Verify total_frames is calculated from current_frame and percent
+        assert!(info.total_frames.is_some());
+        // percent ≈ 69.5% (83.45/120*100), so total_frames ≈ 1234 / 0.695 ≈ 1775
+        let total = info.total_frames.unwrap();
+        assert!(total > 1700 && total < 1850, "total_frames {} should be ~1775", total);
+    }
+
+    #[test]
+    fn test_parse_progress_line_rich_no_time() {
+        let line = "configuration: --enable-libx264";
+        let result = VideoExporter::parse_progress_line_rich(line, 120.0, 5.0);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_frame() {
+        assert_eq!(VideoExporter::extract_frame("frame= 1234 fps=30"), Some(1234));
+        assert_eq!(VideoExporter::extract_frame("no frame here"), None);
+    }
+
+    #[test]
+    fn test_extract_fps() {
+        assert!((VideoExporter::extract_fps("fps=45.2 q=28").unwrap() - 45.2).abs() < 0.01);
+        assert!(VideoExporter::extract_fps("no fps").is_none());
+    }
+
+    #[test]
+    fn test_extract_size() {
+        assert_eq!(VideoExporter::extract_size("size=   12345kB time="), Some(12345 * 1024));
+        assert!(VideoExporter::extract_size("no size").is_none());
+    }
+
+    #[test]
+    fn test_eta_calculation() {
+        let line = "frame= 500 fps=30 size= 1000kB time=00:01:00.00 speed=2.00x";
+        let info = VideoExporter::parse_progress_line_rich(line, 120.0, 30.0).unwrap();
+        // 50% done in 30s → ETA ~30s
+        assert!(info.eta_secs.is_some());
+        assert!((info.eta_secs.unwrap() - 30.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn test_throttling_logic() {
+        // Test that the throttling logic correctly tracks elapsed time
+        let throttle_interval = std::time::Duration::from_millis(500);
+        let mut last_emit = Instant::now() - std::time::Duration::from_secs(1); // First emit always allowed
+
+        // First call should be allowed (more than 500ms since init)
+        assert!(last_emit.elapsed() >= throttle_interval, "First emit should be allowed");
+        last_emit = Instant::now();
+
+        // Immediate second call should be blocked
+        assert!(last_emit.elapsed() < throttle_interval, "Immediate second emit should be blocked");
+
+        // After waiting, call should be allowed again
+        std::thread::sleep(std::time::Duration::from_millis(510));
+        assert!(last_emit.elapsed() >= throttle_interval, "Emit after 500ms+ should be allowed");
     }
 
     #[test]

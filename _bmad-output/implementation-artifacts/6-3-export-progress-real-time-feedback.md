@@ -1,6 +1,6 @@
 # Story 6.3: Export Progress & Real-time Feedback
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,44 +34,44 @@ so that I know how long to wait and can track completion.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Enrichir les events de progress backend (AC: #1, #2)
-  - [ ] 1.1 Ajouter `current_frame`, `total_frames`, `speed`, `elapsed_secs`, `file_size_bytes`, `estimated_total_bytes` aux payloads `export:progress` dans `video_exporter.rs`
-  - [ ] 1.2 Parser les infos FFmpeg stderr: `frame=`, `fps=`, `speed=`, `total_size=` en plus du `time=` déjà parsé
-  - [ ] 1.3 Calculer ETA basé sur percent et elapsed time
-  - [ ] 1.4 Émettre les events enrichis toutes les 500ms max (throttle côté Rust)
+- [x] Task 1 — Enrichir les events de progress backend (AC: #1, #2)
+  - [x] 1.1 Ajouter `current_frame`, `total_frames`, `speed`, `elapsed_secs`, `file_size_bytes`, `estimated_total_bytes` aux payloads `export:progress` dans `video_exporter.rs`
+  - [x] 1.2 Parser les infos FFmpeg stderr: `frame=`, `fps=`, `speed=`, `total_size=` en plus du `time=` déjà parsé
+  - [x] 1.3 Calculer ETA basé sur percent et elapsed time
+  - [x] 1.4 Émettre les events enrichis toutes les 500ms max (throttle côté Rust)
 
-- [ ] Task 2 — Mettre à jour le type TypeScript `ExportProgress` (AC: #1)
-  - [ ] 2.1 Mettre à jour l'interface dans `export-store.ts` pour inclure tous les nouveaux champs (currentFrame, totalFrames, speed, elapsedSecs, fileSizeBytes, estimatedTotalBytes, eta)
-  - [ ] 2.2 Vérifier la cohérence avec le struct Rust via ts_rs si applicable
+- [x] Task 2 — Mettre à jour le type TypeScript `ExportProgress` (AC: #1)
+  - [x] 2.1 Mettre à jour l'interface dans `export-store.ts` pour inclure tous les nouveaux champs (currentFrame, totalFrames, speed, elapsedSecs, fileSizeBytes, estimatedTotalBytes, eta)
+  - [x] 2.2 Vérifier la cohérence avec le struct Rust via ts_rs si applicable
 
-- [ ] Task 3 — Créer le composant `ExportProgress.tsx` (AC: #1, #2, #6)
-  - [ ] 3.1 Créer `apps/desktop/src/components/export-modal/ExportProgress.tsx`
-  - [ ] 3.2 Progress bar avec `bg-emerald-600 h-2 rounded-full` et `transition-all duration-300`
-  - [ ] 3.3 Afficher: titre "Export en cours...", pourcentage, frames, speed, elapsed/remaining, file size
-  - [ ] 3.4 Bouton "Annuler l'export" ouvrant un AlertDialog de confirmation
-  - [ ] 3.5 ARIA: `role="progressbar" aria-valuenow={percent} aria-valuemin="0" aria-valuemax="100"`
-  - [ ] 3.6 Screen reader announce percentage every 10% via `aria-live="polite"`
+- [x] Task 3 — Créer le composant `ExportProgress.tsx` (AC: #1, #2, #6)
+  - [x] 3.1 Créer `apps/desktop/src/components/export/ExportProgress.tsx`
+  - [x] 3.2 Progress bar avec `bg-emerald-600 h-2 rounded-full` et `transition-all duration-300`
+  - [x] 3.3 Afficher: titre "Export en cours...", pourcentage, frames, speed, elapsed/remaining, file size
+  - [x] 3.4 Bouton "Annuler l'export" ouvrant un AlertDialog de confirmation
+  - [x] 3.5 ARIA: `role="progressbar" aria-valuenow={percent} aria-valuemin="0" aria-valuemax="100"`
+  - [x] 3.6 Screen reader announce percentage every 10% via `aria-live="polite"`
 
-- [ ] Task 4 — Intégrer ExportProgress dans le flow export (AC: #3, #4)
-  - [ ] 4.1 Modifier `ExportDialog.tsx` ou `App.tsx` pour afficher `ExportProgress` quand `isExporting === true`
-  - [ ] 4.2 Le modal ExportProgress remplace/overlay le dialog de config pendant l'export
-  - [ ] 4.3 S'assurer que le store `export-store` gère la transition config → progress → done/error
+- [x] Task 4 — Intégrer ExportProgress dans le flow export (AC: #3, #4)
+  - [x] 4.1 Modifier `ExportDialog.tsx` pour afficher `ExportProgress` quand `isExporting === true`
+  - [x] 4.2 Le modal ExportProgress remplace/overlay le dialog de config pendant l'export
+  - [x] 4.3 S'assurer que le store `export-store` gère la transition config → progress → done/error
 
-- [ ] Task 5 — Notification système à la fin (AC: #5)
-  - [ ] 5.1 Utiliser `@tauri-apps/plugin-notification` ou l'API Tauri notification pour envoyer une notification native macOS à la fin de l'export
-  - [ ] 5.2 Notification: titre "Export terminé", body "{filename} exporté avec succès"
-  - [ ] 5.3 Conditionner à `document.hidden` (seulement si l'app n'est pas au premier plan)
+- [x] Task 5 — Notification système à la fin (AC: #5)
+  - [x] 5.1 Utiliser `@tauri-apps/plugin-notification` pour envoyer une notification native macOS à la fin de l'export
+  - [x] 5.2 Notification: titre "Export terminé", body "{filename} exporté avec succès"
+  - [x] 5.3 Conditionner à `document.hidden` (seulement si l'app n'est pas au premier plan)
 
-- [ ] Task 6 — Tests frontend (AC: #1-#6)
-  - [ ] 6.1 Tests ExportProgress: rendering avec données mock, progress bar width, affichage frames/speed/eta/filesize
-  - [ ] 6.2 Tests cancel: click annuler → AlertDialog → confirmation → invoke cancel_export
-  - [ ] 6.3 Tests store: mise à jour progress via events, transition states
-  - [ ] 6.4 Tests accessibilité: ARIA attributes sur progress bar
+- [x] Task 6 — Tests frontend (AC: #1-#6)
+  - [x] 6.1 Tests ExportProgress: rendering avec données mock, progress bar width, affichage frames/speed/eta/filesize
+  - [x] 6.2 Tests cancel: click annuler → AlertDialog → confirmation → invoke cancel_export
+  - [x] 6.3 Tests store: mise à jour progress via events, transition states
+  - [x] 6.4 Tests accessibilité: ARIA attributes sur progress bar
 
-- [ ] Task 7 — Tests backend (AC: #1, #2)
-  - [ ] 7.1 Tests parsing enrichi FFmpeg stderr (frame, fps, speed, total_size)
-  - [ ] 7.2 Tests throttling des events (pas plus d'un event toutes les 500ms)
-  - [ ] 7.3 Tests calcul ETA
+- [x] Task 7 — Tests backend (AC: #1, #2)
+  - [x] 7.1 Tests parsing enrichi FFmpeg stderr (frame, fps, speed, total_size)
+  - [x] 7.2 Tests throttling des events (pas plus d'un event toutes les 500ms)
+  - [x] 7.3 Tests calcul ETA
 
 ## Dev Notes
 
@@ -164,10 +164,35 @@ import { isPermissionGranted, requestPermission, sendNotification } from '@tauri
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
+- Backend: 22 tests passing in video_exporter (rich parsing, throttling, ETA)
+- Frontend: 26 tests passing (14 ExportProgress, 12 export-store)
 
 ### Completion Notes List
+- Task 1: Added `FfmpegProgressInfo` struct with all rich fields (frame, fps, size, eta, elapsed). Implemented `parse_progress_line_rich()` with extractors for frame, fps, size. Added 500ms throttling via `Instant` tracking.
+- Task 2: Updated `ExportProgressInfo` interface in export-store.ts with all new fields. Updated event listener to map snake_case → camelCase.
+- Task 3: Created `ExportProgress.tsx` with progress bar, stats grid (frames/speed/time/size), cancel button with AlertDialog, ARIA progressbar attributes, aria-live announcement every 10%.
+- Task 4: Integrated ExportProgress into ExportDialog with conditional rendering based on `isExporting` state.
+- Task 5: Installed `@tauri-apps/plugin-notification`, registered plugin in main.rs. Added notification on export:completed when document.hidden.
+- Task 6: Created 14 tests for ExportProgress component covering rendering, ARIA, cancel flow, state updates.
+- Task 7: Added 10 new backend tests for rich parsing, extract functions, ETA calculation, throttling.
+
+### Change Log
+- 2026-02-03: Story implementation complete - All ACs satisfied, 48 tests passing (22 Rust + 26 TS)
+- 2026-02-03: Code review fixes - Added total_frames calculation, fixed throttling test, added fps display, improved notification test, updated File List
 
 ### File List
+- apps/desktop/src-tauri/src/infrastructure/adapters/video_exporter.rs (modified)
+- apps/desktop/src-tauri/src/infrastructure/tauri_commands/export_commands.rs (modified)
+- apps/desktop/src-tauri/src/application/use_cases/export_video.rs (modified)
+- apps/desktop/src-tauri/src/main.rs (modified)
+- apps/desktop/src-tauri/Cargo.toml (modified)
+- apps/desktop/src/stores/export-store.ts (modified)
+- apps/desktop/src/stores/export-store.test.ts (modified)
+- apps/desktop/src/components/export/ExportProgress.tsx (created)
+- apps/desktop/src/components/export/ExportProgress.test.tsx (created)
+- apps/desktop/src/components/export/ExportDialog.tsx (modified)
+- apps/desktop/package.json (modified - added @tauri-apps/plugin-notification)
 
