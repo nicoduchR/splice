@@ -108,10 +108,12 @@ export const useExportStore = create<ExportStore>()(
         _upgradePollingInterval: null,
 
         openExportDialog: () => {
+          const billingEnabled = import.meta.env.VITE_BILLING_ENABLED !== 'false';
           const plan = useLicenseStore.getState().plan;
 
           // Defensive: block export for any non-pro state (free, undefined, corrupted)
-          if (plan !== LICENSE_PLAN.PRO) {
+          // Skip check if billing is disabled
+          if (billingEnabled && plan !== LICENSE_PLAN.PRO) {
             set({ showExportBlockedDialog: true, exportError: null });
             return;
           }
