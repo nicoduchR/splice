@@ -7,8 +7,9 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands};
 use tauri::Emitter;
+use tauri::Manager;
 
 #[tokio::main]
 async fn main() {
@@ -32,7 +33,68 @@ async fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(app_state)
+        .setup(|app| {
+            // Spawn background task for startup update check
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                // Small delay to let the app initialize
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+
+                tracing::info!("Performing startup update check...");
+
+                // Check for updates silently on startup
+                let use_case = application::use_cases::CheckForUpdateUseCase::new();
+                match use_case.execute(&app_handle).await {
+                    Ok(result) => {
+                        if let Some(ref info) = result.update_info {
+                            tracing::info!("Update available on startup: {}", info.version);
+
+                            // Emit event for frontend to show update notification
+                            let _ = app_handle.emit(
+                                "update:available",
+                                update_commands::UpdateAvailableEvent {
+                                    version: info.version.clone(),
+                                    release_notes: info.release_notes.clone(),
+                                    is_mandatory: info.is_mandatory,
+                                },
+                            );
+                        } else {
+                            tracing::debug!("No update available on startup");
+                        }
+                    }
+                    Err(e) => {
+                        // Silently log errors - don't bother the user on startup
+                        tracing::debug!("Startup update check failed (silent): {}", e);
+                    }
+                }
+
+                // Schedule periodic update checks (every 6 hours)
+                let periodic_app_handle = app_handle.clone();
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(6 * 60 * 60)).await;
+
+                    tracing::debug!("Performing periodic update check...");
+                    let use_case = application::use_cases::CheckForUpdateUseCase::new();
+                    if let Ok(result) = use_case.execute(&periodic_app_handle).await {
+                        if let Some(ref info) = result.update_info {
+                            tracing::info!("Periodic update check found: {}", info.version);
+                            let _ = periodic_app_handle.emit(
+                                "update:available",
+                                update_commands::UpdateAvailableEvent {
+                                    version: info.version.clone(),
+                                    release_notes: info.release_notes.clone(),
+                                    is_mandatory: info.is_mandatory,
+                                },
+                            );
+                        }
+                    }
+                }
+            });
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             video_commands::get_video_info,
             video_commands::save_video_project,
@@ -72,6 +134,11 @@ async fn main() {
             export_commands::cancel_export,
             export_commands::open_file,
             export_commands::show_in_folder,
+            update_commands::check_for_update,
+            update_commands::download_update,
+            update_commands::cancel_update_download,
+            update_commands::get_update_status,
+            update_commands::install_update,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {

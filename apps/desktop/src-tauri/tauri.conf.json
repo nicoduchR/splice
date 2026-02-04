@@ -8,7 +8,14 @@
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
-  "plugins": {},
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://api.splice.app/api/v1/updates/latest?platform={{target}}&version={{current_version}}"
+      ],
+      "pubkey": "PLACEHOLDER_PUBKEY_GENERATE_WITH_pnpm_tauri_signer_generate"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["dmg", "app"],
@@ -31,7 +38,8 @@
       "signingIdentity": null,
       "entitlements": null,
       "providerShortName": null
-    }
+    },
+    "createUpdaterArtifacts": true
   },
   "app": {
     "windows": [

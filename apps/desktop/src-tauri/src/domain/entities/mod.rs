@@ -7,6 +7,7 @@ pub mod selection;
 pub mod cut;
 pub mod segment_validation;
 pub mod license_cache;
+pub mod update_info;
 
 pub use video::VideoProject;
 // Used in future stories
@@ -20,3 +21,4 @@ pub use selection::Selection;
 pub use cut::Cut;
 pub use segment_validation::SegmentValidation;
 pub use license_cache::LicenseCache;
+pub use update_info::{UpdateInfo, DownloadProgress, UpdateStatus};

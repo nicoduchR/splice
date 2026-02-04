@@ -11,6 +11,8 @@ pub mod verify_license_online;
 pub mod check_grace_period;
 pub mod update_license_cache;
 pub mod get_license_status;
+pub mod check_for_update;
+pub mod download_update;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -27,3 +29,5 @@ pub use verify_license_online::{VerifyLicenseOnlineUseCase, VerifyLicenseResult}
 pub use check_grace_period::{CheckGracePeriodUseCase, GracePeriodStatus};
 pub use update_license_cache::UpdateLicenseCacheUseCase;
 pub use get_license_status::{GetLicenseStatusUseCase, LicenseStatus};
+pub use check_for_update::{CheckForUpdateUseCase, CheckUpdateResult};
+pub use download_update::{DownloadUpdateUseCase, DownloadUpdateResult};

@@ -8,3 +8,4 @@ pub mod cut_commands;
 pub mod segmentation_commands;
 pub mod preview_commands;
 pub mod export_commands;
+pub mod update_commands;

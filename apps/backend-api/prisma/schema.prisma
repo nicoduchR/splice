@@ -35,3 +35,30 @@ model License {
   @@index([status])
   @@map("licenses")
 }
+
+model AppRelease {
+  id               String            @id @default(uuid())
+  version          String            @unique
+  releaseDate      DateTime          @map("release_date")
+  releaseNotes     String?           @map("release_notes") @db.Text
+  isMandatory      Boolean           @default(false) @map("is_mandatory")
+  platformReleases PlatformRelease[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  @@index([version])
+  @@map("app_releases")
+}
+
+model PlatformRelease {
+  id          String     @id @default(uuid())
+  releaseId   String     @map("release_id")
+  release     AppRelease @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  platform    String     // 'darwin-aarch64' | 'darwin-x86_64' | 'windows-x86_64' | 'linux-x86_64'
+  downloadUrl String     @map("download_url")
+  signature   String     @db.Text
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@unique([releaseId, platform])
+  @@index([platform])
+  @@map("platform_releases")
+}

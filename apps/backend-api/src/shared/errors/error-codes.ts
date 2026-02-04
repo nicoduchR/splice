@@ -16,6 +16,11 @@ export const ErrorCodes = {
   STRIPE_SUBSCRIPTION_NOT_FOUND: 'STRIPE_SUBSCRIPTION_NOT_FOUND',
   STRIPE_CHECKOUT_FAILED: 'STRIPE_CHECKOUT_FAILED',
 
+  // Update errors
+  UPDATE_NOT_FOUND: 'UPDATE_NOT_FOUND',
+  UPDATE_PLATFORM_NOT_SUPPORTED: 'UPDATE_PLATFORM_NOT_SUPPORTED',
+  UPDATE_VERSION_INVALID: 'UPDATE_VERSION_INVALID',
+
   // General errors
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   UNAUTHORIZED: 'UNAUTHORIZED',
@@ -75,6 +80,18 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<ErrorDefinition, 'code'>> = {
   [ErrorCodes.STRIPE_CHECKOUT_FAILED]: {
     message: 'Failed to create Stripe checkout session',
     httpStatus: 500,
+  },
+  [ErrorCodes.UPDATE_NOT_FOUND]: {
+    message: 'No update available',
+    httpStatus: 204,
+  },
+  [ErrorCodes.UPDATE_PLATFORM_NOT_SUPPORTED]: {
+    message: 'Platform not supported',
+    httpStatus: 400,
+  },
+  [ErrorCodes.UPDATE_VERSION_INVALID]: {
+    message: 'Invalid version format',
+    httpStatus: 400,
   },
   [ErrorCodes.RATE_LIMIT_EXCEEDED]: {
     message: 'Too many requests. Please try again later',

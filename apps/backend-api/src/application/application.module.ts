@@ -5,6 +5,7 @@ import { ActivateLicenseUseCase } from './use-cases/activate-license.use-case';
 import { HandleStripeWebhookUseCase } from './use-cases/handle-stripe-webhook.use-case';
 import { CreateCheckoutSessionUseCase } from './use-cases/create-checkout-session.use-case';
 import { RedeemEarlyAdopterCodeUseCase } from './use-cases/redeem-early-adopter-code.use-case';
+import { GetLatestReleaseUseCase } from './use-cases/get-latest-release.use-case';
 import { LicenseKeyGeneratorService } from './services/license-key-generator.service';
 
 /**
@@ -28,6 +29,7 @@ import { LicenseKeyGeneratorService } from './services/license-key-generator.ser
     HandleStripeWebhookUseCase,
     CreateCheckoutSessionUseCase,
     RedeemEarlyAdopterCodeUseCase,
+    GetLatestReleaseUseCase,
     LicenseKeyGeneratorService,
   ],
   exports: [
@@ -36,6 +38,7 @@ import { LicenseKeyGeneratorService } from './services/license-key-generator.ser
     HandleStripeWebhookUseCase,
     CreateCheckoutSessionUseCase,
     RedeemEarlyAdopterCodeUseCase,
+    GetLatestReleaseUseCase,
     LicenseKeyGeneratorService,
   ],
 })

@@ -3,7 +3,18 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::collections::HashMap;
 use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository};
+use crate::domain::entities::{UpdateInfo, UpdateStatus, DownloadProgress};
 use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository};
+
+/// State for tracking update operations
+#[derive(Debug, Clone, Default)]
+pub struct UpdateState {
+    pub status: UpdateStatus,
+    pub update_info: Option<UpdateInfo>,
+    pub download_progress: Option<DownloadProgress>,
+    pub error: Option<String>,
+    pub last_check: Option<i64>,
+}
 
 /// Application state managed by Tauri
 pub struct AppState {
@@ -18,6 +29,10 @@ pub struct AppState {
     pub segmentation_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     /// Cancellation flags for ongoing exports (project_id -> cancel_flag)
     pub export_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    /// Current update state
+    pub update_state: Mutex<UpdateState>,
+    /// Cancellation flag for ongoing update download
+    pub update_cancel_flag: Mutex<Option<Arc<AtomicBool>>>,
 }
 
 impl AppState {
@@ -43,7 +58,21 @@ impl AppState {
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             segmentation_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             export_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
+            update_state: Mutex::new(UpdateState::default()),
+            update_cancel_flag: Mutex::new(None),
         }
+    }
+
+    /// Update the update state
+    pub fn set_update_state(&self, state: UpdateState) {
+        let mut update_state = self.update_state.lock().unwrap();
+        *update_state = state;
+    }
+
+    /// Get the current update state
+    pub fn get_update_state(&self) -> UpdateState {
+        let update_state = self.update_state.lock().unwrap();
+        update_state.clone()
     }
 
     /// Set a cancellation flag for a specific transcription

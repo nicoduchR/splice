@@ -7,6 +7,7 @@ import { ApplicationModule } from '@application/application.module';
 import { PrismaService } from './adapters/prisma/prisma.service';
 import { PrismaLicenseRepository } from './adapters/prisma/prisma-license.repository';
 import { PrismaUserRepository } from './adapters/prisma/prisma-user.repository';
+import { PrismaReleaseRepository } from './adapters/prisma/prisma-release.repository';
 
 // Stripe
 import { StripePaymentGateway } from './adapters/stripe/stripe-payment.gateway';
@@ -14,10 +15,12 @@ import { StripePaymentGateway } from './adapters/stripe/stripe-payment.gateway';
 // Ports (DI Tokens)
 import { LICENSE_REPOSITORY } from '@domain/ports/license.repository.port';
 import { USER_REPOSITORY } from '@domain/ports/user.repository.port';
+import { RELEASE_REPOSITORY } from '@domain/ports/release.repository.port';
 import { PAYMENT_GATEWAY } from '@domain/ports/payment.gateway.port';
 
 // Controllers
 import { LicenseController } from './controllers/license.controller';
+import { UpdateController } from './controllers/update.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
 import { StripeCheckoutController } from './controllers/stripe-checkout.controller';
 import { AnalyticsController } from './controllers/analytics.controller';
@@ -56,6 +59,10 @@ import { ApiKeyGuard } from './guards/api-key.guard';
       provide: USER_REPOSITORY,
       useClass: PrismaUserRepository,
     },
+    {
+      provide: RELEASE_REPOSITORY,
+      useClass: PrismaReleaseRepository,
+    },
 
     // Payment gateway implementation
     {
@@ -72,7 +79,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
     // API Key guard (applied via decorator)
     ApiKeyGuard,
   ],
-  controllers: [LicenseController, StripeWebhookController, StripeCheckoutController, AnalyticsController, HealthController],
-  exports: [LICENSE_REPOSITORY, USER_REPOSITORY, PAYMENT_GATEWAY, PrismaService],
+  controllers: [LicenseController, UpdateController, StripeWebhookController, StripeCheckoutController, AnalyticsController, HealthController],
+  exports: [LICENSE_REPOSITORY, USER_REPOSITORY, RELEASE_REPOSITORY, PAYMENT_GATEWAY, PrismaService],
 })
 export class InfrastructureModule {}

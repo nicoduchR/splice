@@ -17,6 +17,7 @@ import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { useLicenseVerification } from './hooks/use-license-verification';
 import { useLicenseStore } from './stores/license-store';
+import { useUpdateStore } from './stores/update-store';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
@@ -128,6 +129,9 @@ function App() {
     dismissGraceWarning,
   } = useLicenseVerification();
 
+  // Update store for event listeners
+  const initUpdateEventListeners = useUpdateStore(s => s.initEventListeners);
+
 
 
   // Load all projects on mount
@@ -138,6 +142,34 @@ function App() {
       loadAllProjects();
     }
   }, [loadAllProjects]);
+
+  // Initialize update event listeners on mount
+  // The actual update check is performed by Rust on startup (see main.rs setup hook)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+      return;
+    }
+
+    let unsubscribe: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        unsubscribe = await initUpdateEventListeners();
+        console.debug('Update event listeners initialized');
+      } catch (e) {
+        // Silently log - don't bother user with update system errors
+        console.debug('Failed to initialize update listeners:', e);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [initUpdateEventListeners]);
 
   // Auto-manage screen transitions based on app state
   useEffect(() => {

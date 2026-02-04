@@ -63,6 +63,12 @@ pub enum DomainError {
 
     #[serde(rename = "CONCATENATION_FAILED")]
     ConcatenationFailed { reason: String },
+
+    #[serde(rename = "UPDATE_CHECK_FAILED")]
+    UpdateCheckFailed(String),
+
+    #[serde(rename = "UPDATE_DOWNLOAD_FAILED")]
+    UpdateDownloadFailed(String),
 }
 
 impl std::fmt::Display for DomainError {
@@ -103,6 +109,8 @@ impl std::fmt::Display for DomainError {
             DomainError::ConcatenationFailed { reason } => {
                 write!(f, "ConcatenationFailed(\"{}\")", reason)
             }
+            DomainError::UpdateCheckFailed(msg) => write!(f, "UpdateCheckFailed(\"{}\")", msg),
+            DomainError::UpdateDownloadFailed(msg) => write!(f, "UpdateDownloadFailed(\"{}\")", msg),
         }
     }
 }
