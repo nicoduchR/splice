@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useTimelineStore } from '../../stores/timeline-store';
 import { useTranscriptStore } from '../../stores/transcript-store';
 import { formatTimecode } from '../../lib/format-timecode';
+import { useTimelineKeyboardNav } from '../../hooks/use-timeline-keyboard-nav';
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +46,8 @@ export const TimelineBar = React.memo(function TimelineBar({
     [selectionMap, transcript]
   );
 
+  const { handleKeyDown: handleTimelineKeyDown } = useTimelineKeyboardNav();
+
   const handleSegmentClick = (segmentId: string) => {
     if (!onSegmentClick) return;
     const sel = selectionMap.get(segmentId);
@@ -56,11 +59,14 @@ export const TimelineBar = React.memo(function TimelineBar({
   return (
     <TooltipProvider delayDuration={200}>
       <div
-        className="relative w-full bg-muted rounded-md"
+        id="timeline"
+        className="relative w-full bg-muted rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         style={{ height: 48 }}
         role="region"
         aria-label="Timeline"
         data-testid="timeline-bar"
+        tabIndex={0}
+        onKeyDown={handleTimelineKeyDown}
       >
         {duration > 0 && (
           <>
@@ -75,7 +81,7 @@ export const TimelineBar = React.memo(function TimelineBar({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="absolute top-0 h-full bg-emerald-600 hover:bg-emerald-500 rounded transition-all duration-200 cursor-pointer"
+                      className="absolute top-0 h-full bg-emerald-600 hover:bg-emerald-500 rounded transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       style={{
                         left: `${leftPercent}%`,
                         width: `${widthPercent}%`,

@@ -171,10 +171,11 @@ export const VideoPlayer = React.memo(function VideoPlayer({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't capture if focus is on an input
+      // Don't capture if focus is on an input, textarea, or button
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLButtonElement
       )
         return;
 
@@ -221,8 +222,9 @@ export const VideoPlayer = React.memo(function VideoPlayer({
         {!isPlaying && (
           <button
             type="button"
-            className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity hover:bg-black/30 cursor-pointer"
+            className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity hover:bg-black/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset"
             onClick={togglePlayback}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
               <Play className="w-7 h-7 text-white ml-1" />
@@ -243,11 +245,12 @@ export const VideoPlayer = React.memo(function VideoPlayer({
         <TooltipProvider delayDuration={200}>
           <div
             ref={scrubberRef}
-            className="relative w-full bg-muted rounded-full cursor-pointer group"
+            className="relative w-full bg-muted rounded-full cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={{ height: 8 }}
             onMouseDown={handleScrubberMouseDown}
             role="slider"
             aria-label="Video scrubber"
+            tabIndex={0}
             aria-valuenow={Math.round(currentTime)}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration)}
@@ -291,31 +294,31 @@ export const VideoPlayer = React.memo(function VideoPlayer({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors"
+            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => {
               seek(Math.max(0, useTimelineStore.getState().currentTime - 5));
               if (videoRef.current) videoRef.current.currentTime = useTimelineStore.getState().currentTime;
             }}
-            title="Reculer 5s"
+            aria-label="Reculer 5s"
           >
             <SkipBack className="w-4 h-4" />
           </button>
           <button
             type="button"
-            className="p-2 rounded-full hover:bg-muted/30 text-white transition-colors"
+            className="p-2 rounded-full hover:bg-muted/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={togglePlayback}
-            title={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
           <button
             type="button"
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors"
+            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => {
               seek(useTimelineStore.getState().currentTime + 5);
               if (videoRef.current) videoRef.current.currentTime = useTimelineStore.getState().currentTime;
             }}
-            title="Avancer 5s"
+            aria-label="Avancer 5s"
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -330,9 +333,9 @@ export const VideoPlayer = React.memo(function VideoPlayer({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors"
+            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => setVolume(volume > 0 ? 0 : 0.7)}
-            title={volume > 0 ? 'Mute' : 'Unmute'}
+            aria-label={volume > 0 ? 'Couper le son' : 'Rétablir le son'}
           >
             {volume > 0 ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>

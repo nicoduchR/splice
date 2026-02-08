@@ -147,7 +147,8 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLButtonElement
       )
         return;
 
@@ -280,7 +281,7 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="p-2 rounded-full hover:bg-muted/30 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-black"
+            className="p-2 rounded-full hover:bg-muted/30 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             onClick={togglePlayback}
             aria-label={isPlaying ? 'Pause' : 'Play'}
             tabIndex={0}
@@ -298,7 +299,7 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-black"
+            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             onClick={toggleMute}
             aria-label={volume > 0 ? 'Couper le son' : 'Rétablir le son'}
             tabIndex={0}
@@ -322,7 +323,7 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
           />
           <button
             type="button"
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-black"
+            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             onClick={toggleFullscreen}
             aria-label={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
             tabIndex={0}

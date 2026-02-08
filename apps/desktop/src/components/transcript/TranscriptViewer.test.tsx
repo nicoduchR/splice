@@ -66,7 +66,7 @@ describe('TranscriptViewer', () => {
   });
 
   it('should navigate to next word on ArrowRight', () => {
-    render(
+    const { container } = render(
       <TranscriptViewer
         words={mockWords}
         selectedIndices={[3]}
@@ -75,13 +75,14 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    const textbox = container.querySelector('[role="textbox"]')!;
+    fireEvent.keyDown(textbox, { key: 'ArrowRight' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(4, 4);
   });
 
   it('should navigate to previous word on ArrowLeft', () => {
-    render(
+    const { container } = render(
       <TranscriptViewer
         words={mockWords}
         selectedIndices={[5]}
@@ -90,13 +91,14 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    const textbox = container.querySelector('[role="textbox"]')!;
+    fireEvent.keyDown(textbox, { key: 'ArrowLeft' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(4, 4);
   });
 
   it('should not navigate past last word', () => {
-    render(
+    const { container } = render(
       <TranscriptViewer
         words={mockWords}
         selectedIndices={[9]} // Last index
@@ -105,13 +107,14 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    const textbox = container.querySelector('[role="textbox"]')!;
+    fireEvent.keyDown(textbox, { key: 'ArrowRight' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(9, 9); // Stay at 9
   });
 
   it('should not navigate before first word', () => {
-    render(
+    const { container } = render(
       <TranscriptViewer
         words={mockWords}
         selectedIndices={[0]} // First index
@@ -120,14 +123,15 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    const textbox = container.querySelector('[role="textbox"]')!;
+    fireEvent.keyDown(textbox, { key: 'ArrowLeft' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(0, 0); // Stay at 0
   });
 
   it('should clear selection on Escape', () => {
     const mockClearSelection = vi.fn();
-    render(
+    const { container } = render(
       <TranscriptViewer
         words={mockWords}
         selectedIndices={[5, 6, 7]}
@@ -137,7 +141,8 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    const textbox = container.querySelector('[role="textbox"]')!;
+    fireEvent.keyDown(textbox, { key: 'Escape' });
 
     expect(mockClearSelection).toHaveBeenCalled();
   });

@@ -205,6 +205,9 @@ importers:
         specifier: ^5.0.10
         version: 5.0.10(@types/react@18.3.27)(react@18.3.1)
     devDependencies:
+      '@axe-core/react':
+        specifier: ^4.11.1
+        version: 4.11.1
       '@tauri-apps/cli':
         specifier: ^2.0.0
         version: 2.9.6
@@ -311,6 +314,9 @@ packages:
 
   '@asamuzakjp/css-color@3.2.0':
     resolution: {integrity: sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==}
+
+  '@axe-core/react@4.11.1':
+    resolution: {integrity: sha512-tjTsYVQw0YhmVDpayb/r55Xbda/Og3l6UCvBZ26C+MtmuSTyQ47PKzq8z3QMgKCJ0RB7lsdiDy4HwO2SKiNuHg==}
 
   '@babel/code-frame@7.28.6':
     resolution: {integrity: sha512-JYgintcMjRiCvS8mMECzaEn+m3PfoQiyqukOMCCVQtoJGYJw8j/8LBJEiqkHLkfwCcs74E3pbAUFNg7d9VNJ+Q==}
@@ -2420,6 +2426,10 @@ packages:
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
+  axe-core@4.11.1:
+    resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
+    engines: {node: '>=4'}
+
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -4155,6 +4165,9 @@ packages:
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
+  requestidlecallback@0.3.0:
+    resolution: {integrity: sha512-TWHFkT7S9p7IxLC5A1hYmAYQx2Eb9w1skrXmQ+dS1URyvR8tenMLl4lHbqEOUnpEYxNKpkVMXUgknVpBZWXXfQ==}
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -5082,6 +5095,11 @@ snapshots:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
+
+  '@axe-core/react@4.11.1':
+    dependencies:
+      axe-core: 4.11.1
+      requestidlecallback: 0.3.0
 
   '@babel/code-frame@7.28.6':
     dependencies:
@@ -7128,6 +7146,8 @@ snapshots:
 
   asynckit@0.4.0: {}
 
+  axe-core@4.11.1: {}
+
   babel-jest@29.7.0(@babel/core@7.28.6):
     dependencies:
       '@babel/core': 7.28.6
@@ -9051,6 +9071,8 @@ snapshots:
       strip-indent: 3.0.0
 
   reflect-metadata@0.2.2: {}
+
+  requestidlecallback@0.3.0: {}
 
   require-directory@2.1.1: {}
 

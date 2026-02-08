@@ -33,6 +33,8 @@ import { ExportDialog } from './components/export';
 import { PreviewPlayer } from './components/preview/PreviewPlayer';
 import { GracePeriodWarning, ExportBlockedDialog, EarlyAdopterCodeDialog } from './components/license-modal';
 import { CrashRecoveryDialog } from './components/recovery';
+import { KeyboardShortcutsDialog } from './components/keyboard-shortcuts';
+import { useGlobalKeyboardShortcuts } from './hooks/use-global-keyboard-shortcuts';
 import { checkDirtyShutdown, loadProjectState } from './services/project-state-service';
 import type { SegmentationProgress } from '@splice/types/generated';
 
@@ -147,6 +149,12 @@ function App() {
   // Crash recovery state
   const [showCrashRecovery, setShowCrashRecovery] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
+
+  // Global keyboard shortcuts (Cmd+/ for help dialog)
+  const {
+    isShortcutsDialogOpen,
+    setIsShortcutsDialogOpen,
+  } = useGlobalKeyboardShortcuts();
 
   // Update store for event listeners
   const initUpdateEventListeners = useUpdateStore(s => s.initEventListeners);
@@ -446,6 +454,19 @@ function App() {
       {!showDialog ? (
         // Normal app content
         <div className="h-screen flex flex-col overflow-hidden">
+          {/* Skip links for keyboard navigation (AC #1) */}
+          <a
+            href="#transcript"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2 focus:bg-emerald-600 focus:text-white focus:rounded focus:top-2 focus:left-2"
+          >
+            Aller au transcript
+          </a>
+          <a
+            href="#timeline"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2 focus:bg-emerald-600 focus:text-white focus:rounded focus:top-2 focus:left-24"
+          >
+            Aller à la timeline
+          </a>
           <TopBar
             currentProject={currentProject}
             currentScreen={currentScreen}
@@ -620,7 +641,7 @@ function App() {
                   <p className="text-red-400 text-sm">{previewError}</p>
                   <button
                     type="button"
-                    className="text-primary text-sm underline"
+                    className="text-primary text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
                     onClick={() => setCurrentScreen('editor')}
                   >
                     Retour à l'éditeur
@@ -650,7 +671,7 @@ function App() {
                 canRedo={canRedo}
                 onClearAll={clearSelection}
               />
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div id="transcript" className="flex-1 min-h-0 overflow-hidden">
                 <TranscriptViewer
                   words={transcript.words}
                   selectedIndices={selectedWordIndices}
@@ -887,6 +908,12 @@ function App() {
 
       {/* Rollback Notification - shown after automatic rollback (Story 8.3) */}
       <RollbackNotification />
+
+      {/* Keyboard Shortcuts Help Dialog (Cmd+/) */}
+      <KeyboardShortcutsDialog
+        isOpen={isShortcutsDialogOpen}
+        onOpenChange={setIsShortcutsDialogOpen}
+      />
 
       {/* Grace Period Warning Modal - blocks app when offline too long */}
       <GracePeriodWarning

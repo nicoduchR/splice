@@ -94,8 +94,8 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
     }
   }, [scrollToWordIndex, scrollToIndex]);
 
-  // Keyboard navigation
-  useTranscriptKeyboardNav(
+  // Keyboard navigation (scoped to transcript container via onKeyDown)
+  const { handleKeyDown: handleTranscriptKeyDown } = useTranscriptKeyboardNav(
     words,
     selectedIndices,
     onSelectionChange,
@@ -200,10 +200,11 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
       aria-multiline="true"
       aria-readonly="true"
       tabIndex={0}
-      className={`h-full overflow-auto select-none ${className}`}
+      className={`h-full overflow-auto select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset ${className}`}
       style={{ contain: 'content' }}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onKeyDown={handleTranscriptKeyDown}
     >
       <div
         style={{
@@ -232,7 +233,7 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
                 {/* Timestamp column - click to select entire paragraph */}
                 <button
                   type="button"
-                  className="shrink-0 w-24 text-muted-foreground font-mono text-sm pt-1 text-left hover:text-white transition-colors cursor-pointer"
+                  className="shrink-0 w-24 text-muted-foreground font-mono text-sm pt-1 text-left hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   onClick={() => handleTimestampClick(paragraph)}
                   title="Sélectionner le paragraphe"
                 >

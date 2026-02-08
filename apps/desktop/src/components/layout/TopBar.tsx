@@ -93,9 +93,11 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
         <UpdateNotificationBadge onClick={() => setIsUpdateDialogOpen(true)} />
 
         <button
-          className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors"
+          type="button"
+          className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={() => setIsSettingsOpen(true)}
           data-testid="settings-button"
+          aria-label="Paramètres"
         >
           <Settings className="w-6 h-6" />
         </button>
