@@ -380,4 +380,70 @@ describe('useLicenseStore', () => {
       expect(useLicenseStore.getState().activationError).toBeNull();
     });
   });
+
+  describe('grace period no error visible (AC #2)', () => {
+    it('should not block app when grace period is valid after network failure', async () => {
+      vi.mocked(LicenseApi.getLicenseKey).mockResolvedValue('SPLICE-TEST-1234');
+      vi.mocked(LicenseApi.verifyLicense).mockResolvedValue({
+        isValid: false,
+        plan: 'free',
+        expiresAt: null,
+        error: 'Network error',
+      });
+      vi.mocked(LicenseApi.checkGracePeriod).mockResolvedValue({
+        isValid: true,
+        daysRemaining: 5,
+        hasBeenVerified: true,
+        gracePeriodEndsAt: 1707566400,
+      });
+      vi.mocked(LicenseApi.getLicenseStatus).mockResolvedValue({
+        plan: 'pro',
+        isVerified: true,
+        lastVerifiedAt: 1706961600,
+        gracePeriodEndsAt: 1707566400,
+        expiresAt: null,
+        isGracePeriodValid: true,
+        daysUntilGraceExpires: 5,
+        isLicenseExpired: false,
+        isBlocked: false,
+      });
+
+      await useLicenseStore.getState().verifyOnStartup();
+
+      const state = useLicenseStore.getState();
+      // AC #2: "aucune erreur affichée si dans la période de grâce"
+      expect(state.isBlocked).toBe(false);
+      expect(state.isInGracePeriod).toBe(true);
+      // Error is set internally but isBlocked=false means no UI error displayed
+    });
+
+    it('should not block app on network exception when grace period is valid', async () => {
+      vi.mocked(LicenseApi.getLicenseKey).mockResolvedValue('SPLICE-TEST-1234');
+      vi.mocked(LicenseApi.verifyLicense).mockRejectedValue(new Error('Network timeout'));
+      vi.mocked(LicenseApi.checkGracePeriod).mockResolvedValue({
+        isValid: true,
+        daysRemaining: 3,
+        hasBeenVerified: true,
+        gracePeriodEndsAt: 1707393600,
+      });
+      vi.mocked(LicenseApi.getLicenseStatus).mockResolvedValue({
+        plan: 'pro',
+        isVerified: true,
+        lastVerifiedAt: 1706961600,
+        gracePeriodEndsAt: 1707393600,
+        expiresAt: null,
+        isGracePeriodValid: true,
+        daysUntilGraceExpires: 3,
+        isLicenseExpired: false,
+        isBlocked: false,
+      });
+
+      await useLicenseStore.getState().verifyOnStartup();
+
+      const state = useLicenseStore.getState();
+      // AC #2: no error shown during grace period
+      expect(state.isBlocked).toBe(false);
+      expect(state.isInGracePeriod).toBe(true);
+    });
+  });
 });

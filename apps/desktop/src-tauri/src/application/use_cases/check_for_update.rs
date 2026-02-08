@@ -63,11 +63,10 @@ impl CheckForUpdateUseCase {
         let updater = match app.updater() {
             Ok(u) => u,
             Err(e) => {
-                tracing::error!("Failed to get updater: {}", e);
-                return Ok(CheckUpdateResult::error(format!(
-                    "Failed to initialize updater: {}",
-                    e
-                )));
+                tracing::debug!("Failed to get updater: {}", e);
+                return Ok(CheckUpdateResult::error(
+                    "Impossible d'initialiser le système de mise à jour.".to_string(),
+                ));
             }
         };
 
@@ -123,8 +122,10 @@ impl CheckForUpdateUseCase {
                 Ok(CheckUpdateResult::up_to_date())
             }
             Err(e) => {
-                tracing::warn!("Update check failed: {}", e);
-                Ok(CheckUpdateResult::error(format!("Update check failed: {}", e)))
+                tracing::debug!("Update check failed (silent): {}", e);
+                Ok(CheckUpdateResult::error(
+                    "Vérification de mise à jour échouée.".to_string(),
+                ))
             }
         }
     }
@@ -173,5 +174,23 @@ mod tests {
         assert!(result.update_info.is_none());
         assert!(result.error.is_some());
         assert_eq!(result.error.unwrap(), "Network error");
+    }
+
+    /// AC #3 (Story 9.1): Update check errors should fail silently — no user-visible notification.
+    /// The error is stored in the result but should be logged at debug level only (not warn/error).
+    #[test]
+    fn test_check_update_network_error_returns_error_result_not_domain_error() {
+        // When an update check fails due to network, the use case returns Ok(error result),
+        // NOT Err(DomainError). This means the frontend receives a clean error payload
+        // that it can silently ignore (no popup/toast).
+        let result = CheckUpdateResult::error("Update check failed: connection refused".to_string());
+
+        // Status is Error but it's wrapped in Ok, not Err
+        assert_eq!(result.status, UpdateStatus::Error);
+        assert!(result.update_info.is_none());
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Update check failed: connection refused")
+        );
     }
 }

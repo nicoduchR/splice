@@ -27,7 +27,7 @@ impl DownloadUpdateResult {
         Self {
             status: UpdateStatus::Idle,
             version: None,
-            error: Some("Download cancelled".to_string()),
+            error: Some("Téléchargement annulé.".to_string()),
         }
     }
 
@@ -73,10 +73,9 @@ impl DownloadUpdateUseCase {
             Ok(u) => u,
             Err(e) => {
                 tracing::error!("Failed to get updater: {}", e);
-                return Ok(DownloadUpdateResult::error(format!(
-                    "Failed to initialize updater: {}",
-                    e
-                )));
+                return Ok(DownloadUpdateResult::error(
+                    "Impossible d'initialiser le système de mise à jour.".to_string(),
+                ));
             }
         };
 
@@ -90,15 +89,14 @@ impl DownloadUpdateUseCase {
             Ok(None) => {
                 tracing::warn!("No update available for download");
                 return Ok(DownloadUpdateResult::error(
-                    "No update available".to_string(),
+                    "Aucune mise à jour disponible.".to_string(),
                 ));
             }
             Err(e) => {
-                tracing::error!("Update check failed during download: {}", e);
-                return Ok(DownloadUpdateResult::error(format!(
-                    "Update check failed: {}",
-                    e
-                )));
+                tracing::debug!("Update check failed during download: {}", e);
+                return Ok(DownloadUpdateResult::error(
+                    "Échec de la vérification de mise à jour. Vérifiez votre connexion.".to_string(),
+                ));
             }
         };
 
@@ -160,7 +158,9 @@ impl DownloadUpdateUseCase {
             }
             Err(e) => {
                 tracing::error!("Download failed: {}", e);
-                Ok(DownloadUpdateResult::error(format!("Download failed: {}", e)))
+                Ok(DownloadUpdateResult::error(
+                    "Échec du téléchargement de la mise à jour. Réessayez ultérieurement.".to_string(),
+                ))
             }
         }
     }
@@ -189,7 +189,7 @@ mod tests {
         let result = DownloadUpdateResult::cancelled();
         assert_eq!(result.status, UpdateStatus::Idle);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("cancelled"));
+        assert!(result.error.unwrap().contains("annulé"));
     }
 
     #[test]

@@ -572,6 +572,58 @@ describe('update-store', () => {
     });
   });
 
+  describe('silent failure on network error (AC #3, Story 9.1)', () => {
+    it('should not show notification badge when check fails with network error', async () => {
+      mockCheckForUpdate.mockRejectedValue(new Error('net::ERR_INTERNET_DISCONNECTED'));
+
+      await useUpdateStore.getState().checkForUpdate();
+
+      const state = useUpdateStore.getState();
+      // Error is stored internally but no user-visible notification
+      expect(state.status).toBe('error');
+      expect(state.error).toContain('ERR_INTERNET_DISCONNECTED');
+      // Notification badge should NOT show on error status (only shows on 'ready')
+      expect(state.shouldShowNotification(false)).toBe(false);
+    });
+
+    it('should not show notification badge when API returns server error', async () => {
+      mockCheckForUpdate.mockResolvedValue({
+        status: 'error',
+        updateInfo: null,
+        downloadProgress: null,
+        error: 'Update check failed: connection refused',
+      });
+
+      await useUpdateStore.getState().checkForUpdate();
+
+      const state = useUpdateStore.getState();
+      expect(state.status).toBe('error');
+      // shouldShowNotification only returns true for 'ready' status
+      expect(state.shouldShowNotification(false)).toBe(false);
+    });
+
+    it('should recover after error when next check succeeds', async () => {
+      // First: network error
+      mockCheckForUpdate.mockRejectedValue(new Error('Network timeout'));
+      await useUpdateStore.getState().checkForUpdate();
+      expect(useUpdateStore.getState().status).toBe('error');
+
+      // Second: successful check with update available
+      mockCheckForUpdate.mockResolvedValue({
+        status: 'available',
+        updateInfo: { version: '1.1.0', release_date: '', release_notes: '', download_url: '', is_mandatory: false },
+        downloadProgress: null,
+        error: null,
+      });
+      await useUpdateStore.getState().checkForUpdate();
+
+      const state = useUpdateStore.getState();
+      expect(state.status).toBe('available');
+      expect(state.error).toBeNull();
+      expect(state.updateInfo?.version).toBe('1.1.0');
+    });
+  });
+
   describe('clearRollbackNotification', () => {
     it('should clear rollbackCompleted state', () => {
       useUpdateStore.setState({

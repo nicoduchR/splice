@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { ModelService } from '@/services/model-service';
 import type { ModelMetadata } from '@/services/model-service';
+import { getNetworkErrorMessage } from '@/lib/error-messages';
 
 /**
  * Check if running in Tauri context (vs browser dev mode)
@@ -99,6 +101,25 @@ export function useModelDownload(): UseModelDownloadReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - run once on mount
 
+  /**
+   * Écouter les événements d'échec du téléchargement du modèle (AC #1 Story 9.1)
+   * Émis par le backend après épuisement des retries automatiques (1s, 2s, 4s, 8s)
+   */
+  useEffect(() => {
+    if (!isTauriContext()) return;
+
+    const unlistenPromise = listen<{ message: string }>('model:download-failed', (event) => {
+      console.error('Model download failed after retries:', event.payload.message);
+      setError(event.payload.message);
+      setShowDialog(true);
+      setIsReady(false);
+    });
+
+    return () => {
+      unlistenPromise.then((fn) => fn());
+    };
+  }, []);
+
   const checkModelStatus = async () => {
     try {
       console.log('📡 Calling ModelService.checkModelStatus()...');
@@ -183,9 +204,10 @@ export function useModelDownload(): UseModelDownloadReturn {
         setShowDialog(false);
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Téléchargement échoué';
-      console.error('❌ Download failed:', err);
+      const errorMessage = err instanceof Error
+        ? getNetworkErrorMessage(err.message)
+        : 'Téléchargement échoué';
+      console.debug('Download failed:', err);
       setError(errorMessage);
     } finally {
       setIsDownloading(false);
@@ -206,6 +228,9 @@ export function useModelDownload(): UseModelDownloadReturn {
     }
   }, []);
 
+  // startDownload captures only stable values (state setters, refs, module imports),
+  // so this closure is safe with empty deps despite the lint warning.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const retryDownload = useCallback(async () => {
     setError(null);
     await startDownload();

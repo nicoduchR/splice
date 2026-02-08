@@ -169,7 +169,7 @@ pub async fn check_for_update(
                     last_check: Some(now),
                     ..Default::default()
                 });
-                tracing::warn!("Update check error: {}", error);
+                tracing::debug!("Update check error (silent): {}", error);
                 Ok(UpdateStatusResponse::error(error))
             } else {
                 state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
@@ -193,7 +193,7 @@ pub async fn check_for_update(
                 last_check: Some(now),
                 ..Default::default()
             });
-            tracing::error!("Update check failed: {}", e);
+            tracing::debug!("Update check failed (silent): {}", e);
             Ok(UpdateStatusResponse::error(e.to_string()))
         }
     }

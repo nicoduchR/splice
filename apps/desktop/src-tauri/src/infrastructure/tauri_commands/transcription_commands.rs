@@ -161,8 +161,18 @@ pub async fn transcribe_video<R: tauri::Runtime>(
             app_state.remove_cancel_flag(&video_id);
 
             let error_string = e.to_string();
-            let user_message = if error_string.contains("sidecar") {
-                format!("Erreur du moteur de transcription FluidAudio: {}", error_string)
+
+            // Detect model download failures (retries already exhausted in sidecar layer)
+            let is_model_error = error_string.contains("tentatives");
+
+            let user_message = if is_model_error {
+                // Emit specific model download failure event
+                let _ = app_handle.emit("model:download-failed", serde_json::json!({
+                    "message": "Échec du téléchargement. Vérifiez votre connexion."
+                }));
+                "Échec du téléchargement du moteur de transcription. Vérifiez votre connexion.".to_string()
+            } else if error_string.contains("sidecar") {
+                format!("Erreur du moteur de transcription: {}", error_string)
             } else {
                 format!("Erreur de transcription: {}", error_string)
             };

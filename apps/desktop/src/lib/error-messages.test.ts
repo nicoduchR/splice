@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getImportErrorMessage } from './error-messages';
+import { getImportErrorMessage, getNetworkErrorMessage } from './error-messages';
 
 describe('getImportErrorMessage', () => {
   it('maps FILE_NOT_FOUND error correctly', () => {
@@ -68,5 +68,66 @@ describe('getImportErrorMessage', () => {
     const message = getImportErrorMessage(error);
     expect(message).toContain('AV1');
     expect(message).toContain('codec non supporté');
+  });
+});
+
+describe('getNetworkErrorMessage (Story 9.1 AC #5)', () => {
+  it('should return French message for network errors', () => {
+    const msg = getNetworkErrorMessage('Network error: ECONNREFUSED');
+    expect(msg).toBe('Erreur de connexion. Vérifiez votre connexion internet.');
+  });
+
+  it('should return French message for connection errors', () => {
+    const msg = getNetworkErrorMessage('connection refused at 127.0.0.1:3001');
+    expect(msg).toBe('Erreur de connexion. Vérifiez votre connexion internet.');
+  });
+
+  it('should return French message for Chromium net errors', () => {
+    const msg = getNetworkErrorMessage('net::ERR_INTERNET_DISCONNECTED');
+    expect(msg).toBe('Erreur de connexion. Vérifiez votre connexion internet.');
+  });
+
+  it('should return French message for timeout errors', () => {
+    const msg = getNetworkErrorMessage('Request timed out after 5000ms');
+    expect(msg).toBe('La connexion a expiré. Réessayez ultérieurement.');
+  });
+
+  it('should return French message for server errors', () => {
+    const msg = getNetworkErrorMessage('Server error 503 Service Unavailable');
+    expect(msg).toBe('Le serveur est temporairement indisponible. Réessayez ultérieurement.');
+  });
+
+  it('should return French message for DNS errors', () => {
+    const msg = getNetworkErrorMessage('Failed to resolve host api.splice.dev');
+    expect(msg).toBe('Impossible de joindre le serveur. Vérifiez votre connexion internet.');
+  });
+
+  it('should return French message for SSL errors', () => {
+    const msg = getNetworkErrorMessage('SSL certificate verify failed');
+    expect(msg).toBe('Erreur de sécurité de la connexion. Réessayez ultérieurement.');
+  });
+
+  it('should return generic French message for unknown network errors', () => {
+    const msg = getNetworkErrorMessage('some unknown error without keywords');
+    expect(msg).toBe('Une erreur réseau est survenue. Vérifiez votre connexion internet.');
+  });
+
+  it('should never contain stack traces (NFR30)', () => {
+    const errorWithStack =
+      'Error: network failure\n    at Object.<anonymous> (/app/src/index.ts:42:13)\n    at Module._compile (internal/modules/cjs/loader.js:1085:14)';
+    const msg = getNetworkErrorMessage(errorWithStack);
+    expect(msg).not.toContain('Object.<anonymous>');
+    expect(msg).not.toContain('Module._compile');
+    expect(msg).not.toContain('.ts:');
+    expect(msg).not.toContain('.js:');
+  });
+
+  it('should never expose raw technical error details (NFR30)', () => {
+    const rawError =
+      'reqwest::Error { kind: Request, url: Url { scheme: "https", host: Some(Domain("api.splice.dev")) } }';
+    const msg = getNetworkErrorMessage(rawError);
+    expect(msg).not.toContain('reqwest');
+    expect(msg).not.toContain('Url {');
+    expect(msg).not.toContain('api.splice.dev');
   });
 });

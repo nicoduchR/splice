@@ -1,11 +1,17 @@
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use crate::application::ports::transcription_service::TranscriptionService;
 use crate::domain::entities::transcription::{TranscriptionResult, Word};
+
+/// Maximum number of retry attempts when sidecar fails during model loading
+const MAX_SIDECAR_RETRIES: u32 = 3;
+
+/// Backoff delays between retries: 1s, 2s, 4s, 8s
+const RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8];
 
 /// Sidecar JSON output matching the Swift CLI's TranscriptionOutput
 #[derive(serde::Deserialize)]
@@ -29,6 +35,60 @@ struct SidecarWord {
 /// Spawns the `fluidaudio-sidecar` binary which uses Parakeet CoreML on the
 /// Apple Neural Engine for ~110x real-time transcription speed.
 pub struct FluidAudioTranscriptionService;
+
+/// Check if a sidecar error is related to model download/loading (retryable network error)
+fn is_model_loading_error(stderr: &str) -> bool {
+    let lower = stderr.to_lowercase();
+    // Network-related failures during model download
+    lower.contains("downloading") || lower.contains("loading_model")
+        || lower.contains("network") || lower.contains("connection")
+        || lower.contains("timed out") || lower.contains("timeout")
+        || lower.contains("urlsession") || lower.contains("nsurlerror")
+        || lower.contains("could not connect") || lower.contains("downloadandload")
+        || lower.contains("ssl error") || lower.contains("internet")
+}
+
+/// Sanitize sidecar error for user display: remove stack traces and technical details
+fn sanitize_sidecar_error(raw_error: &str) -> String {
+    // Remove Swift stack traces and technical info
+    let sanitized = raw_error
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim().to_lowercase();
+            !trimmed.starts_with("0x")
+                && !trimmed.contains("thread ")
+                && !trimmed.contains("frame #")
+                && !trimmed.contains(".swift:")
+                && !trimmed.contains("fatal error")
+                && !trimmed.contains("stack trace")
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    // Try to extract a JSON error message
+    if let Some(start) = sanitized.find("\"error\"") {
+        if let Some(msg_start) = sanitized[start..].find(':') {
+            let after_colon = &sanitized[start + msg_start + 1..];
+            // Strip surrounding whitespace, quotes, and braces
+            let trimmed = after_colon.trim()
+                .trim_end_matches('}')
+                .trim()
+                .trim_matches('"')
+                .trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+    }
+
+    // Fallback: return first meaningful line, capped
+    let first_line = sanitized.lines().next().unwrap_or(&sanitized);
+    if first_line.len() > 200 {
+        first_line[..200].to_string()
+    } else {
+        first_line.to_string()
+    }
+}
 
 impl FluidAudioTranscriptionService {
     /// Resolve the path to the fluidaudio-sidecar binary.
@@ -60,6 +120,107 @@ impl FluidAudioTranscriptionService {
         // Fallback: hope it's on PATH
         PathBuf::from("fluidaudio-sidecar")
     }
+
+    /// Run sidecar with retry logic for model loading failures.
+    /// Retries up to MAX_SIDECAR_RETRIES times with exponential backoff (1s, 2s, 4s, 8s)
+    /// when the failure is related to model download/loading (network errors).
+    async fn run_sidecar_with_retry(
+        &self,
+        audio_path: &Path,
+        video_id: &str,
+    ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error + Send + Sync>> {
+        let sidecar = Self::sidecar_path();
+        let mut last_error = String::new();
+
+        for attempt in 0..=MAX_SIDECAR_RETRIES {
+            if attempt > 0 {
+                let delay_secs = RETRY_BACKOFF_SECS
+                    .get((attempt - 1) as usize)
+                    .copied()
+                    .unwrap_or(8);
+                tracing::info!(
+                    event = "sidecar_retry",
+                    video_id = %video_id,
+                    attempt = attempt,
+                    delay_secs = delay_secs,
+                    "Retrying sidecar after model loading failure (attempt {}/{})",
+                    attempt + 1,
+                    MAX_SIDECAR_RETRIES + 1,
+                );
+                tokio::time::sleep(Duration::from_secs(delay_secs)).await;
+            }
+
+            let mut child = match Command::new(&sidecar)
+                .args(["transcribe", &audio_path.to_string_lossy(), "--output", "json"])
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+            {
+                Ok(child) => child,
+                Err(e) => {
+                    return Err(format!(
+                        "Impossible de lancer le sidecar FluidAudio ({}): {}",
+                        sidecar.display(), e
+                    ).into());
+                }
+            };
+
+            // Read stderr for progress in background
+            let stderr_handle = child.stderr.take().expect("stderr captured");
+            let video_id_clone = video_id.to_string();
+            let stderr_task = tokio::spawn(async move {
+                let reader = BufReader::new(stderr_handle);
+                let mut lines = reader.lines();
+                let mut collected = Vec::new();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    tracing::debug!(
+                        event = "fluidaudio_progress",
+                        video_id = %video_id_clone,
+                        message = %line,
+                    );
+                    collected.push(line);
+                }
+                collected.join("\n")
+            });
+
+            // Wait for process to complete
+            let output = child.wait_with_output().await.map_err(|e| {
+                format!("Erreur lors de l'exécution du sidecar FluidAudio: {}", e)
+            })?;
+
+            let stderr_collected = stderr_task.await.unwrap_or_default();
+
+            if output.status.success() {
+                return Ok((output.stdout, output.stderr));
+            }
+
+            // Process failed - check if it's a retryable model loading error
+            let stderr_str = String::from_utf8_lossy(&output.stderr);
+            let combined_stderr = format!("{} {}", stderr_str, stderr_collected);
+
+            if is_model_loading_error(&combined_stderr) && attempt < MAX_SIDECAR_RETRIES {
+                tracing::warn!(
+                    event = "sidecar_model_loading_failed",
+                    video_id = %video_id,
+                    attempt = attempt + 1,
+                    stderr = %combined_stderr,
+                    "Model loading failed, will retry"
+                );
+                last_error = combined_stderr;
+                continue;
+            }
+
+            // Non-retryable error or retries exhausted
+            last_error = combined_stderr;
+            break;
+        }
+
+        Err(format!(
+            "Le sidecar FluidAudio a échoué après {} tentatives: {}",
+            MAX_SIDECAR_RETRIES,
+            sanitize_sidecar_error(&last_error)
+        ).into())
+    }
 }
 
 #[async_trait]
@@ -80,47 +241,11 @@ impl TranscriptionService for FluidAudioTranscriptionService {
 
         let start_time = Instant::now();
 
-        let mut child = Command::new(&sidecar)
-            .args(["transcribe", &audio_path.to_string_lossy(), "--output", "json"])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!(
-                "Impossible de lancer le sidecar FluidAudio ({}): {}",
-                sidecar.display(), e
-            ))?;
-
-        // Read stderr for progress in background
-        let stderr = child.stderr.take().expect("stderr captured");
-        let video_id_clone = video_id.clone();
-        tokio::spawn(async move {
-            let reader = BufReader::new(stderr);
-            let mut lines = reader.lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                tracing::debug!(
-                    event = "fluidaudio_progress",
-                    video_id = %video_id_clone,
-                    message = %line,
-                );
-            }
-        });
-
-        // Wait for process to complete and capture stdout
-        let output = child.wait_with_output().await.map_err(|e| {
-            format!("Erreur lors de l'exécution du sidecar FluidAudio: {}", e)
-        })?;
-
-        if !output.status.success() {
-            let stderr_str = String::from_utf8_lossy(&output.stderr);
-            return Err(format!(
-                "Le sidecar FluidAudio a échoué (code {}): {}",
-                output.status.code().unwrap_or(-1),
-                stderr_str
-            ).into());
-        }
+        // Run sidecar with automatic retry for model loading failures
+        let (stdout_bytes, _stderr_bytes) = self.run_sidecar_with_retry(audio_path, &video_id).await?;
 
         // Parse JSON output
-        let stdout_str = String::from_utf8(output.stdout).map_err(|e| {
+        let stdout_str = String::from_utf8(stdout_bytes).map_err(|e| {
             format!("Sortie du sidecar non-UTF8: {}", e)
         })?;
 
@@ -208,6 +333,72 @@ fn merge_subword_tokens(tokens: Vec<Word>) -> Vec<Word> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- Tests for is_model_loading_error ---
+
+    #[test]
+    fn test_is_model_loading_error_network_keywords() {
+        assert!(is_model_loading_error("network error occurred"));
+        assert!(is_model_loading_error("Connection timed out"));
+        assert!(is_model_loading_error("NSURLError domain"));
+        assert!(is_model_loading_error("could not connect to host"));
+        assert!(is_model_loading_error("URLSession task failed"));
+        assert!(is_model_loading_error("downloading model failed"));
+        assert!(is_model_loading_error("downloadAndLoad threw error"));
+        assert!(is_model_loading_error("SSL error during download"));
+        assert!(is_model_loading_error("loading_model stage failed"));
+        assert!(is_model_loading_error("No internet connection"));
+        assert!(is_model_loading_error("Timeout waiting for response"));
+    }
+
+    #[test]
+    fn test_is_model_loading_error_false_for_other_errors() {
+        assert!(!is_model_loading_error("Audio file not found"));
+        assert!(!is_model_loading_error("Transcription failed: invalid format"));
+        assert!(!is_model_loading_error("macOS 14.0+ required"));
+        assert!(!is_model_loading_error(""));
+    }
+
+    // --- Tests for sanitize_sidecar_error ---
+
+    #[test]
+    fn test_sanitize_sidecar_error_extracts_json_message() {
+        let raw = r#"{"error": "Transcription failed: network timeout"}"#;
+        let result = sanitize_sidecar_error(raw);
+        assert_eq!(result, "Transcription failed: network timeout");
+    }
+
+    #[test]
+    fn test_sanitize_sidecar_error_removes_stack_traces() {
+        let raw = "Error occurred\n0x7fff12345 in module\nThread 1: signal SIGABRT\nframe #0 main.swift:42\nfatal error: crash";
+        let result = sanitize_sidecar_error(raw);
+        assert!(!result.contains("0x7fff"));
+        assert!(!result.contains("Thread 1"));
+        assert!(!result.contains("frame #"));
+        assert!(!result.contains("fatal error"));
+    }
+
+    #[test]
+    fn test_sanitize_sidecar_error_truncates_long_messages() {
+        let long_msg = "a".repeat(300);
+        let result = sanitize_sidecar_error(&long_msg);
+        assert!(result.len() <= 200);
+    }
+
+    #[test]
+    fn test_sanitize_sidecar_error_plain_message() {
+        let raw = "Model download failed due to network issue";
+        let result = sanitize_sidecar_error(raw);
+        assert_eq!(result, "Model download failed due to network issue");
+    }
+
+    // --- Tests for retry constants ---
+
+    #[test]
+    fn test_retry_backoff_values() {
+        assert_eq!(RETRY_BACKOFF_SECS, &[1, 2, 4, 8]);
+        assert_eq!(MAX_SIDECAR_RETRIES, 3);
+    }
 
     fn word(text: &str, start: f64, end: f64, confidence: f64) -> Word {
         Word { text: text.to_string(), start, end, confidence }

@@ -44,7 +44,7 @@ pub fn get_backup_info(
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+        .map_err(|e| format!("Impossible d'accéder au répertoire de données: {}", e))?;
 
     let use_case = RestoreBackupUseCase::new();
     match use_case.get_backup_info(&app_data_dir) {
@@ -63,7 +63,7 @@ pub async fn manual_rollback(
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+        .map_err(|e| format!("Impossible d'accéder au répertoire de données: {}", e))?;
 
     let use_case = RestoreBackupUseCase::new();
     let restored_version = use_case.execute(&app_data_dir)?;
@@ -106,7 +106,7 @@ pub async fn send_crash_report(
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+        .map_err(|e| format!("Impossible d'accéder au répertoire de données: {}", e))?;
 
     let tracker = state.crash_tracker.lock().unwrap();
     let crash_count = tracker.consecutive_crashes;

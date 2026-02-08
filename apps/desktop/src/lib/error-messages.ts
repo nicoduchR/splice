@@ -29,3 +29,46 @@ export function getImportErrorMessage(error: string): string {
 
   return 'Impossible d\'importer la vidéo. Réessayez.';
 }
+
+/**
+ * Story 9.1 AC #5: Sanitize network error messages for user display.
+ * Ensures no stack traces or technical details leak to the UI (NFR30).
+ * All messages returned are in French (NFR29).
+ */
+export function getNetworkErrorMessage(error: string): string {
+  const lower = error.toLowerCase();
+
+  // Connection / network errors
+  if (
+    lower.includes('network') ||
+    lower.includes('connexion') ||
+    lower.includes('connection') ||
+    lower.includes('err_internet') ||
+    lower.includes('net::err_')
+  ) {
+    return 'Erreur de connexion. Vérifiez votre connexion internet.';
+  }
+
+  // Timeout errors
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return 'La connexion a expiré. Réessayez ultérieurement.';
+  }
+
+  // Server errors (5xx)
+  if (lower.includes('server error') || lower.includes('500') || lower.includes('502') || lower.includes('503')) {
+    return 'Le serveur est temporairement indisponible. Réessayez ultérieurement.';
+  }
+
+  // DNS resolution
+  if (lower.includes('dns') || lower.includes('resolve') || lower.includes('host')) {
+    return 'Impossible de joindre le serveur. Vérifiez votre connexion internet.';
+  }
+
+  // SSL/TLS errors
+  if (lower.includes('ssl') || lower.includes('tls') || lower.includes('certificate')) {
+    return 'Erreur de sécurité de la connexion. Réessayez ultérieurement.';
+  }
+
+  // Generic fallback — no technical details exposed
+  return 'Une erreur réseau est survenue. Vérifiez votre connexion internet.';
+}
