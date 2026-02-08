@@ -21,6 +21,9 @@ export const ErrorCodes = {
   UPDATE_PLATFORM_NOT_SUPPORTED: 'UPDATE_PLATFORM_NOT_SUPPORTED',
   UPDATE_VERSION_INVALID: 'UPDATE_VERSION_INVALID',
 
+  // Crash report errors
+  CRASH_REPORT_FAILED: 'CRASH_REPORT_FAILED',
+
   // General errors
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   UNAUTHORIZED: 'UNAUTHORIZED',
@@ -92,6 +95,10 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<ErrorDefinition, 'code'>> = {
   [ErrorCodes.UPDATE_VERSION_INVALID]: {
     message: 'Invalid version format',
     httpStatus: 400,
+  },
+  [ErrorCodes.CRASH_REPORT_FAILED]: {
+    message: 'Failed to process crash report',
+    httpStatus: 500,
   },
   [ErrorCodes.RATE_LIMIT_EXCEEDED]: {
     message: 'Too many requests. Please try again later',

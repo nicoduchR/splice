@@ -4,6 +4,7 @@ import { UpdateController } from './update.controller';
 import { GetLatestReleaseUseCase, GetLatestReleaseResult } from '@application/use-cases/get-latest-release.use-case';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ErrorCodes } from '@shared/errors/error-codes';
+import { CrashReportDto } from '@application/dto/crash-report.dto';
 
 describe('UpdateController', () => {
   let controller: UpdateController;
@@ -148,6 +149,58 @@ describe('UpdateController', () => {
       await controller.checkForUpdate({ platform: 'linux-x86_64' as any, version: '1.0.0' }, res as any);
 
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('POST /updates/crashes/report', () => {
+    const validCrashReport: CrashReportDto = {
+      version: '1.1.0',
+      platform: 'darwin-aarch64',
+      crash_count: 3,
+      previous_version: '1.0.0',
+    };
+
+    it('should return success for valid crash report', async () => {
+      const result = await controller.submitCrashReport(validCrashReport);
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should accept crash report with error log', async () => {
+      const reportWithLog: CrashReportDto = {
+        ...validCrashReport,
+        error_log: 'Line 1: Error at startup\nLine 2: Panic in thread main',
+      };
+
+      const result = await controller.submitCrashReport(reportWithLog);
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should accept crash report without error log', async () => {
+      const reportNoLog: CrashReportDto = {
+        version: '2.0.0',
+        platform: 'windows-x86_64',
+        crash_count: 5,
+        previous_version: '1.9.0',
+      };
+
+      const result = await controller.submitCrashReport(reportNoLog);
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should log crash report details', async () => {
+      const logSpy = jest.spyOn(Logger.prototype, 'log');
+
+      await controller.submitCrashReport(validCrashReport);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('v1.1.0'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('darwin-aarch64'),
+      );
     });
   });
 });

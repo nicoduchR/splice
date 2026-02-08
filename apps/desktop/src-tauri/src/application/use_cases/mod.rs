@@ -13,6 +13,9 @@ pub mod update_license_cache;
 pub mod get_license_status;
 pub mod check_for_update;
 pub mod download_update;
+pub mod backup_current_version;
+pub mod restore_backup;
+pub mod cleanup_old_backups;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -31,3 +34,6 @@ pub use update_license_cache::UpdateLicenseCacheUseCase;
 pub use get_license_status::{GetLicenseStatusUseCase, LicenseStatus};
 pub use check_for_update::{CheckForUpdateUseCase, CheckUpdateResult};
 pub use download_update::{DownloadUpdateUseCase, DownloadUpdateResult};
+pub use backup_current_version::{BackupCurrentVersionUseCase, BackupInfo};
+pub use restore_backup::RestoreBackupUseCase;
+pub use cleanup_old_backups::CleanupOldBackupsUseCase;

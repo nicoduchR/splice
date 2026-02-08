@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::collections::HashMap;
 use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository};
-use crate::domain::entities::{UpdateInfo, UpdateStatus, DownloadProgress};
+use crate::domain::entities::{UpdateInfo, UpdateStatus, DownloadProgress, CrashTracker};
 use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository};
 
 /// State for tracking update operations
@@ -14,6 +14,7 @@ pub struct UpdateState {
     pub download_progress: Option<DownloadProgress>,
     pub error: Option<String>,
     pub last_check: Option<i64>,
+    pub install_on_quit: bool,
 }
 
 /// Application state managed by Tauri
@@ -33,6 +34,8 @@ pub struct AppState {
     pub update_state: Mutex<UpdateState>,
     /// Cancellation flag for ongoing update download
     pub update_cancel_flag: Mutex<Option<Arc<AtomicBool>>>,
+    /// Crash tracker state for rollback detection
+    pub crash_tracker: Mutex<CrashTracker>,
 }
 
 impl AppState {
@@ -60,13 +63,19 @@ impl AppState {
             export_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             update_state: Mutex::new(UpdateState::default()),
             update_cancel_flag: Mutex::new(None),
+            crash_tracker: Mutex::new(CrashTracker::default()),
         }
     }
 
     /// Update the update state
+    ///
+    /// Preserves the `install_on_quit` flag since it is managed independently
+    /// via `set_install_on_quit()` and must not be overwritten by status updates.
     pub fn set_update_state(&self, state: UpdateState) {
         let mut update_state = self.update_state.lock().unwrap();
+        let preserve_install_on_quit = update_state.install_on_quit;
         *update_state = state;
+        update_state.install_on_quit = preserve_install_on_quit;
     }
 
     /// Get the current update state
@@ -91,5 +100,17 @@ impl AppState {
     pub fn remove_cancel_flag(&self, video_id: &str) {
         let mut flags = self.transcription_cancel_flags.lock().unwrap();
         flags.remove(video_id);
+    }
+
+    /// Set the install_on_quit flag
+    pub fn set_install_on_quit(&self, value: bool) {
+        let mut update_state = self.update_state.lock().unwrap();
+        update_state.install_on_quit = value;
+    }
+
+    /// Get the install_on_quit flag
+    pub fn get_install_on_quit(&self) -> bool {
+        let update_state = self.update_state.lock().unwrap();
+        update_state.install_on_quit
     }
 }

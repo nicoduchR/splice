@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Settings, Scissors, Play, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '../ui/button';
 import { GracePeriodIndicator } from '../license-modal';
+import { UpdateNotificationBadge, UpdateDialog, SettingsRollbackSection } from '../update';
 import type { VideoProject } from '@splice/types/generated';
 
 interface TopBarProps {
@@ -17,6 +19,9 @@ interface TopBarProps {
 }
 
 export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelections = false, isSegmenting = false, canPreview = false, isPreparingPreview = false, onPreview, onBackToEditor, onExport }: TopBarProps) {
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-[#21344a] bg-[#101923] shrink-0">
       <div className="flex items-center gap-4">
@@ -84,10 +89,26 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
           </Button>
         )}
 
-        <button className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors">
+        <UpdateNotificationBadge onClick={() => setIsUpdateDialogOpen(true)} />
+
+        <button
+          className="flex w-10 h-10 cursor-pointer items-center justify-center rounded-lg hover:bg-[#21344a] text-slate-400 transition-colors"
+          onClick={() => setIsSettingsOpen(true)}
+          data-testid="settings-button"
+        >
           <Settings className="w-6 h-6" />
         </button>
       </div>
+
+      <UpdateDialog
+        isOpen={isUpdateDialogOpen}
+        onClose={() => setIsUpdateDialogOpen(false)}
+      />
+
+      <SettingsRollbackSection
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </header>
   );
 }

@@ -1,9 +1,10 @@
-import { Controller, Get, Query, HttpCode, HttpStatus, Logger, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, HttpCode, HttpStatus, Logger, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { GetLatestReleaseUseCase } from '@application/use-cases/get-latest-release.use-case';
 import { CheckUpdateDto } from '@application/dto/check-update.dto';
 import { UpdateResponseDto, TauriUpdateManifest } from '@application/dto/update-response.dto';
+import { CrashReportDto, CrashReportResponseDto } from '@application/dto/crash-report.dto';
 
 @Controller('updates')
 export class UpdateController {
@@ -55,5 +56,28 @@ export class UpdateController {
     };
 
     return res.status(HttpStatus.OK).json(manifest);
+  }
+
+  /**
+   * Receive crash report from desktop app
+   *
+   * Logs the crash report for analysis. For MVP, reports are logged only.
+   * Rate limited to 5 requests per minute per IP.
+   */
+  @Post('crashes/report')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async submitCrashReport(
+    @Body() dto: CrashReportDto,
+  ): Promise<CrashReportResponseDto> {
+    this.logger.log(
+      `Crash report received: v${dto.version} on ${dto.platform} (${dto.crash_count} crashes, previous: v${dto.previous_version})`,
+    );
+
+    if (dto.error_log) {
+      this.logger.debug(`Crash log (${dto.error_log.length} chars): ${dto.error_log.substring(0, 200)}...`);
+    }
+
+    return CrashReportResponseDto.ok();
   }
 }

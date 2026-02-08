@@ -69,6 +69,15 @@ pub enum DomainError {
 
     #[serde(rename = "UPDATE_DOWNLOAD_FAILED")]
     UpdateDownloadFailed(String),
+
+    #[serde(rename = "BACKUP_FAILED")]
+    BackupFailed(String),
+
+    #[serde(rename = "RESTORE_FAILED")]
+    RestoreFailed(String),
+
+    #[serde(rename = "CRASH_REPORT_FAILED")]
+    CrashReportFailed(String),
 }
 
 impl std::fmt::Display for DomainError {
@@ -111,6 +120,9 @@ impl std::fmt::Display for DomainError {
             }
             DomainError::UpdateCheckFailed(msg) => write!(f, "UpdateCheckFailed(\"{}\")", msg),
             DomainError::UpdateDownloadFailed(msg) => write!(f, "UpdateDownloadFailed(\"{}\")", msg),
+            DomainError::BackupFailed(msg) => write!(f, "BackupFailed(\"{}\")", msg),
+            DomainError::RestoreFailed(msg) => write!(f, "RestoreFailed(\"{}\")", msg),
+            DomainError::CrashReportFailed(msg) => write!(f, "CrashReportFailed(\"{}\")", msg),
         }
     }
 }

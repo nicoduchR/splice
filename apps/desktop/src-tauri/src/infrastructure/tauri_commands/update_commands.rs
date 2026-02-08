@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 use ts_rs::TS;
 
 use crate::application::use_cases::{CheckForUpdateUseCase, DownloadUpdateUseCase};
@@ -155,6 +155,7 @@ pub async fn check_for_update(
                     download_progress: None,
                     error: None,
                     last_check: Some(now),
+                    ..Default::default()
                 });
 
                 tracing::info!("Update available: {}", info.version);
@@ -166,6 +167,7 @@ pub async fn check_for_update(
                     download_progress: None,
                     error: Some(error.clone()),
                     last_check: Some(now),
+                    ..Default::default()
                 });
                 tracing::warn!("Update check error: {}", error);
                 Ok(UpdateStatusResponse::error(error))
@@ -176,6 +178,7 @@ pub async fn check_for_update(
                     download_progress: None,
                     error: None,
                     last_check: Some(now),
+                    ..Default::default()
                 });
                 tracing::info!("Already on latest version");
                 Ok(UpdateStatusResponse::up_to_date())
@@ -188,6 +191,7 @@ pub async fn check_for_update(
                 download_progress: None,
                 error: Some(e.to_string()),
                 last_check: Some(now),
+                ..Default::default()
             });
             tracing::error!("Update check failed: {}", e);
             Ok(UpdateStatusResponse::error(e.to_string()))
@@ -255,6 +259,7 @@ pub async fn download_update(
                     download_progress: None,
                     error: Some(error.clone()),
                     last_check: None,
+                    ..Default::default()
                 });
                 tracing::warn!("Download error: {}", error);
                 Ok(UpdateStatusResponse::error(error))
@@ -274,6 +279,7 @@ pub async fn download_update(
                     download_progress: Some(DownloadProgress::complete(0)),
                     error: None,
                     last_check: None,
+                    ..Default::default()
                 });
                 tracing::info!("Download complete, ready to install (v{})", version);
                 Ok(UpdateStatusResponse {
@@ -293,6 +299,7 @@ pub async fn download_update(
                 download_progress: None,
                 error: Some(error_msg.clone()),
                 last_check: None,
+                ..Default::default()
             });
             tracing::error!("Download failed: {}", error_msg);
             Ok(UpdateStatusResponse::error(error_msg))
@@ -332,13 +339,57 @@ pub fn get_update_status(state: State<'_, AppState>) -> Result<UpdateStatusRespo
 /// Install the downloaded update and restart the app
 ///
 /// Note: This will close the app and install the update.
+/// Creates a backup of the current version before restarting (Story 8.3).
 #[tauri::command]
-pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
-    tracing::info!("Installing update and restarting");
+pub async fn install_update(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    tracing::info!("Installing update — backing up current version first");
+
+    // Backup current version before install (Story 8.3, Task 4.6)
+    if let Ok(app_data_dir) = app.path().app_data_dir() {
+        let current_version = app.package_info().version.to_string();
+        let backup_use_case = crate::application::use_cases::BackupCurrentVersionUseCase::new();
+        match backup_use_case.execute(&app_data_dir, &current_version) {
+            Ok(_) => {
+                tracing::info!("Backup created before install: v{}", current_version);
+                // Update crash tracker with previous version
+                let mut tracker = state.crash_tracker.lock().unwrap();
+                tracker.set_previous_version(current_version);
+                let tracker_path = app_data_dir.join("crash-tracker.json");
+                if let Err(e) = tracker.save_to_file(&tracker_path) {
+                    tracing::warn!("Failed to save crash tracker: {}", e);
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Backup failed before install (continuing anyway): {}", e);
+            }
+        }
+    }
 
     // The updater plugin handles the restart automatically after download_and_install
     // If we need manual restart, we can use:
     app.restart();
+}
+
+/// Set the install_on_quit flag
+///
+/// When true, the update will be applied when the app closes.
+#[tauri::command]
+pub fn set_install_on_quit(
+    state: State<'_, AppState>,
+    value: bool,
+) -> Result<(), String> {
+    tracing::info!("Setting install_on_quit to {}", value);
+    state.set_install_on_quit(value);
+    Ok(())
+}
+
+/// Get the install_on_quit flag
+#[tauri::command]
+pub fn get_install_on_quit(state: State<'_, AppState>) -> Result<bool, String> {
+    Ok(state.get_install_on_quit())
 }
 
 #[cfg(test)]
@@ -383,5 +434,42 @@ mod tests {
         let response = UpdateStatusResponse::up_to_date();
         assert_eq!(response.status, UpdateStatus::UpToDate);
         assert!(response.update_info.is_none());
+    }
+
+    #[test]
+    fn test_update_state_install_on_quit_default() {
+        let state = crate::infrastructure::config::app_state::UpdateState::default();
+        assert!(!state.install_on_quit);
+    }
+
+    #[test]
+    fn test_update_state_install_on_quit_set_true() {
+        let mut state = crate::infrastructure::config::app_state::UpdateState::default();
+        state.install_on_quit = true;
+        assert!(state.install_on_quit);
+    }
+
+    #[test]
+    fn test_update_state_install_on_quit_set_false_after_true() {
+        let mut state = crate::infrastructure::config::app_state::UpdateState::default();
+        state.install_on_quit = true;
+        assert!(state.install_on_quit);
+        state.install_on_quit = false;
+        assert!(!state.install_on_quit);
+    }
+
+    #[test]
+    fn test_update_status_response_ready() {
+        let info = UpdateInfo::new(
+            "2.0.0".to_string(),
+            "2024-06-01".to_string(),
+            "Major update".to_string(),
+            "https://example.com/update".to_string(),
+            false,
+        );
+        let response = UpdateStatusResponse::ready(info);
+        assert_eq!(response.status, UpdateStatus::Ready);
+        assert!(response.update_info.is_some());
+        assert!(response.download_progress.is_some());
     }
 }

@@ -7,7 +7,9 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands};
+use domain::entities::CrashTracker;
+use application::use_cases::{BackupCurrentVersionUseCase, RestoreBackupUseCase};
 use tauri::Emitter;
 use tauri::Manager;
 
@@ -36,6 +38,94 @@ async fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(app_state)
         .setup(|app| {
+            // --- Crash detection and rollback logic (Story 8.3, Task 4) ---
+            let app_data_dir = app.path().app_data_dir()
+                .expect("Failed to get app data dir");
+            let tracker_path = app_data_dir.join("crash-tracker.json");
+
+            // 4.1: Load crash-tracker.json
+            let mut tracker = CrashTracker::load_from_file(&tracker_path);
+            tracing::info!("Crash tracker loaded: {} consecutive crashes, needs_rollback={}", tracker.consecutive_crashes, tracker.needs_rollback);
+
+            // H5 fix: Check if a rollback was just completed (from a previous restart).
+            // Emit the notification event now that the frontend is loading.
+            if let Some((from_version, to_version)) = tracker.take_rollback_completed() {
+                tracing::info!("Previous rollback detected: v{} → v{}, emitting notification", from_version, to_version);
+                if let Err(e) = tracker.save_to_file(&tracker_path) {
+                    tracing::warn!("Failed to save crash tracker after consuming rollback info: {}", e);
+                }
+                let app_handle_for_event = app.handle().clone();
+                let event = rollback_commands::RollbackCompletedEvent {
+                    previous_version: from_version,
+                    restored_version: to_version,
+                };
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    let _ = app_handle_for_event.emit("rollback:completed", event);
+                });
+            }
+
+            // 4.3: If needs_rollback, restore backup automatically
+            if tracker.needs_rollback {
+                tracing::warn!("Rollback needed — attempting to restore previous version");
+                let restore_use_case = RestoreBackupUseCase::new();
+                match restore_use_case.execute(&app_data_dir) {
+                    Ok(restored_version) => {
+                        let previous_version = tracker.previous_version.clone().unwrap_or_default();
+                        tracing::info!("Rollback successful: restored v{}", restored_version);
+                        tracker.clear_rollback();
+                        // H5 fix: Save rollback completion info and restart to run the restored binary.
+                        tracker.set_rollback_completed(previous_version, restored_version);
+                        if let Err(e) = tracker.save_to_file(&tracker_path) {
+                            tracing::warn!("Failed to save crash tracker after rollback: {}", e);
+                        }
+                        // Restart so the restored (old) binary is loaded from disk.
+                        // The rollback notification will be emitted on next startup
+                        // when take_rollback_completed() returns the saved info.
+                        app.handle().restart();
+                    }
+                    Err(e) => {
+                        tracing::error!("Rollback failed: {}. Clearing rollback flag to avoid infinite loop.", e);
+                        tracker.clear_rollback();
+                        if let Err(e) = tracker.save_to_file(&tracker_path) {
+                            tracing::warn!("Failed to save crash tracker after failed rollback: {}", e);
+                        }
+                    }
+                }
+            } else {
+                // 4.2: Increment crash counter at startup
+                let needs_rollback = tracker.record_crash();
+                if let Err(e) = tracker.save_to_file(&tracker_path) {
+                    tracing::warn!("Failed to save crash tracker: {}", e);
+                }
+
+                if needs_rollback {
+                    tracing::warn!("Crash threshold reached ({} crashes) — rollback will trigger on next startup", tracker.consecutive_crashes);
+                }
+            }
+
+            // Update AppState with loaded crash tracker
+            {
+                let state = app.state::<AppState>();
+                let mut state_tracker = state.crash_tracker.lock().unwrap();
+                *state_tracker = tracker;
+            }
+
+            // 4.5: After 30 seconds, reset crash counter (healthy startup)
+            let app_handle_healthy = app.handle().clone();
+            let tracker_path_healthy = tracker_path.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+                if let Some(state) = app_handle_healthy.try_state::<AppState>() {
+                    let mut tracker = state.crash_tracker.lock().unwrap();
+                    tracker.mark_healthy();
+                    if let Err(e) = tracker.save_to_file(&tracker_path_healthy) {
+                        tracing::warn!("Failed to save crash tracker after healthy mark: {}", e);
+                    }
+                    tracing::info!("App running > 30s — crash counter reset (healthy)");
+                }
+            });
+
             // Clone Arc-wrapped cancel flags for idle detection in periodic checks
             let transcription_flags = app.state::<AppState>().transcription_cancel_flags.clone();
             let export_flags = app.state::<AppState>().export_cancel_flags.clone();
@@ -174,9 +264,46 @@ async fn main() {
             update_commands::cancel_update_download,
             update_commands::get_update_status,
             update_commands::install_update,
+            update_commands::set_install_on_quit,
+            update_commands::get_install_on_quit,
+            rollback_commands::get_backup_info,
+            rollback_commands::manual_rollback,
+            rollback_commands::get_crash_count,
+            rollback_commands::send_crash_report,
         ])
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let app_handle = window.app_handle();
+                if let Some(state) = app_handle.try_state::<AppState>() {
+                    if state.get_install_on_quit() {
+                        tracing::info!("Install on quit enabled — backing up before update");
+
+                        // 4.6: Backup current version before install-on-quit
+                        if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
+                            let current_version = app_handle.package_info().version.to_string();
+                            let backup_use_case = BackupCurrentVersionUseCase::new();
+                            match backup_use_case.execute(&app_data_dir, &current_version) {
+                                Ok(_) => {
+                                    tracing::info!("Backup created before install-on-quit");
+                                    // Update crash tracker with previous version
+                                    let mut tracker = state.crash_tracker.lock().unwrap();
+                                    tracker.set_previous_version(current_version);
+                                    let tracker_path = app_data_dir.join("crash-tracker.json");
+                                    if let Err(e) = tracker.save_to_file(&tracker_path) {
+                                        tracing::warn!("Failed to save crash tracker: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::warn!("Backup failed before install-on-quit (continuing anyway): {}", e);
+                                }
+                            }
+                        }
+
+                        tracing::info!("Restarting to apply update");
+                        app_handle.restart();
+                    }
+                }
+            } else if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position: _ }) = event {
                 tracing::info!("Files dropped: {:?}", paths);
                 if !paths.is_empty() {
                     let path = paths[0].to_string_lossy().to_string();

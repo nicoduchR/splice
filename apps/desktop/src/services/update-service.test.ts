@@ -17,11 +17,18 @@ import {
   cancelUpdateDownload,
   getUpdateStatus,
   installUpdate,
+  setInstallOnQuit,
+  getInstallOnQuit,
   onUpdateAvailable,
   onUpdateDownloadProgress,
   onUpdateDownloadComplete,
   onUpdateError,
   subscribeToUpdateEvents,
+  getBackupInfo,
+  manualRollback,
+  getCrashCount,
+  sendCrashReport,
+  onRollbackCompleted,
 } from './update-service';
 
 const mockInvoke = vi.mocked(invoke);
@@ -104,6 +111,43 @@ describe('update-service', () => {
     });
   });
 
+  describe('setInstallOnQuit', () => {
+    it('should invoke set_install_on_quit with true', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+
+      await setInstallOnQuit(true);
+
+      expect(mockInvoke).toHaveBeenCalledWith('set_install_on_quit', { value: true });
+    });
+
+    it('should invoke set_install_on_quit with false', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+
+      await setInstallOnQuit(false);
+
+      expect(mockInvoke).toHaveBeenCalledWith('set_install_on_quit', { value: false });
+    });
+  });
+
+  describe('getInstallOnQuit', () => {
+    it('should invoke get_install_on_quit and return boolean', async () => {
+      mockInvoke.mockResolvedValue(true);
+
+      const result = await getInstallOnQuit();
+
+      expect(mockInvoke).toHaveBeenCalledWith('get_install_on_quit');
+      expect(result).toBe(true);
+    });
+
+    it('should return false when not set', async () => {
+      mockInvoke.mockResolvedValue(false);
+
+      const result = await getInstallOnQuit();
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('event listeners', () => {
     const mockUnlisten: UnlistenFn = vi.fn();
 
@@ -171,6 +215,84 @@ describe('update-service', () => {
 
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith('update:available', expect.any(Function));
+    });
+  });
+
+  describe('getBackupInfo', () => {
+    it('should invoke get_backup_info command', async () => {
+      const info = { version: '1.0.0', backupDate: '2026-01-15', sizeMb: 50 };
+      mockInvoke.mockResolvedValue(info);
+
+      const result = await getBackupInfo();
+
+      expect(mockInvoke).toHaveBeenCalledWith('get_backup_info');
+      expect(result).toEqual(info);
+    });
+
+    it('should return null when no backup exists', async () => {
+      mockInvoke.mockResolvedValue(null);
+
+      const result = await getBackupInfo();
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('manualRollback', () => {
+    it('should invoke manual_rollback command', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+
+      await manualRollback();
+
+      expect(mockInvoke).toHaveBeenCalledWith('manual_rollback');
+    });
+  });
+
+  describe('getCrashCount', () => {
+    it('should invoke get_crash_count and return number', async () => {
+      mockInvoke.mockResolvedValue(3);
+
+      const result = await getCrashCount();
+
+      expect(mockInvoke).toHaveBeenCalledWith('get_crash_count');
+      expect(result).toBe(3);
+    });
+  });
+
+  describe('sendCrashReport', () => {
+    it('should invoke send_crash_report with includeLogs', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+
+      await sendCrashReport(true);
+
+      expect(mockInvoke).toHaveBeenCalledWith('send_crash_report', { includeLogs: true });
+    });
+
+    it('should invoke send_crash_report without logs', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+
+      await sendCrashReport(false);
+
+      expect(mockInvoke).toHaveBeenCalledWith('send_crash_report', { includeLogs: false });
+    });
+  });
+
+  describe('onRollbackCompleted', () => {
+    it('should listen to rollback:completed events', async () => {
+      const mockUnlisten: UnlistenFn = vi.fn();
+      mockListen.mockResolvedValue(mockUnlisten);
+
+      const callback = vi.fn();
+      await onRollbackCompleted(callback);
+
+      expect(mockListen).toHaveBeenCalledWith('rollback:completed', expect.any(Function));
+
+      // Simulate event
+      const eventHandler = mockListen.mock.calls[0][1] as (event: { payload: unknown }) => void;
+      const payload = { previousVersion: '1.1.0', restoredVersion: '1.0.0' };
+      eventHandler({ payload });
+
+      expect(callback).toHaveBeenCalledWith(payload);
     });
   });
 });

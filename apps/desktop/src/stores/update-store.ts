@@ -5,6 +5,8 @@ import type {
   UpdateInfo,
   DownloadProgress,
   UpdateStatus,
+  BackupInfo,
+  RollbackCompletedEvent,
 } from '../types/update';
 import {
   checkForUpdate as checkForUpdateApi,
@@ -12,7 +14,12 @@ import {
   cancelUpdateDownload as cancelUpdateDownloadApi,
   getUpdateStatus as getUpdateStatusApi,
   installUpdate as installUpdateApi,
+  setInstallOnQuit as setInstallOnQuitApi,
   subscribeToUpdateEvents,
+  getBackupInfo as getBackupInfoApi,
+  manualRollback as manualRollbackApi,
+  sendCrashReport as sendCrashReportApi,
+  onRollbackCompleted,
 } from '../services/update-service';
 
 interface UpdateStore {
@@ -23,6 +30,14 @@ interface UpdateStore {
   error: string | null;
   isChecking: boolean;
   isDownloading: boolean;
+  installOnQuit: boolean;
+  remindLaterUntil: number | null;
+  remindLaterVersion: string | null;
+  showNotification: boolean;
+
+  // Rollback state (Story 8.3)
+  backupInfo: BackupInfo | null;
+  rollbackCompleted: RollbackCompletedEvent | null;
 
   // Actions
   checkForUpdate: () => Promise<void>;
@@ -31,10 +46,23 @@ interface UpdateStore {
   installUpdate: () => Promise<void>;
   clearError: () => void;
   resetState: () => void;
+  setInstallOnQuit: (value: boolean) => Promise<void>;
+  remindLater: () => void;
+  shouldShowNotification: (isBusy: boolean) => boolean;
+
+  // Rollback actions (Story 8.3)
+  fetchBackupInfo: () => Promise<void>;
+  performManualRollback: () => Promise<void>;
+  sendCrashReport: (includeLogs: boolean) => Promise<void>;
+  clearRollbackNotification: () => void;
 
   // Event subscription
   initEventListeners: () => Promise<() => void>;
 }
+
+const REMIND_LATER_KEY = 'splice_remind_later_until';
+const REMIND_LATER_VERSION_KEY = 'splice_remind_later_version';
+const REMIND_LATER_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 const initialState = {
   status: 'idle' as UpdateStatus,
@@ -43,6 +71,12 @@ const initialState = {
   error: null,
   isChecking: false,
   isDownloading: false,
+  installOnQuit: false,
+  remindLaterUntil: null as number | null,
+  remindLaterVersion: null as string | null,
+  showNotification: false,
+  backupInfo: null as BackupInfo | null,
+  rollbackCompleted: null as RollbackCompletedEvent | null,
 };
 
 export const useUpdateStore = create<UpdateStore>()(
@@ -192,14 +226,121 @@ export const useUpdateStore = create<UpdateStore>()(
       },
 
       /**
+       * Set install on quit flag — persists to Rust backend
+       */
+      setInstallOnQuit: async (value: boolean) => {
+        try {
+          await setInstallOnQuitApi(value);
+          set({ installOnQuit: value });
+        } catch (e) {
+          console.error('Failed to set install on quit:', e);
+        }
+      },
+
+      /**
+       * Remind later — hide notification for 24 hours
+       */
+      remindLater: () => {
+        const until = Date.now() + REMIND_LATER_DURATION;
+        const version = get().updateInfo?.version || null;
+        localStorage.setItem(REMIND_LATER_KEY, String(until));
+        if (version) {
+          localStorage.setItem(REMIND_LATER_VERSION_KEY, version);
+        }
+        set({ remindLaterUntil: until, remindLaterVersion: version, showNotification: false });
+      },
+
+      /**
+       * Check whether the notification badge should be shown
+       */
+      shouldShowNotification: (isBusy: boolean): boolean => {
+        const { status, installOnQuit, remindLaterUntil } = get();
+        if (status !== 'ready') return false;
+        if (installOnQuit) return false;
+        if (isBusy) return false;
+        if (remindLaterUntil && Date.now() < remindLaterUntil) return false;
+        return true;
+      },
+
+      /**
+       * Fetch backup info for rollback UI
+       */
+      fetchBackupInfo: async () => {
+        try {
+          const info = await getBackupInfoApi();
+          set({ backupInfo: info });
+        } catch (e) {
+          console.debug('Failed to fetch backup info:', e);
+          set({ backupInfo: null });
+        }
+      },
+
+      /**
+       * Perform manual rollback to previous version
+       *
+       * Warning: This will restart the app.
+       */
+      performManualRollback: async () => {
+        try {
+          await manualRollbackApi();
+          // App will restart, no state update needed
+        } catch (e) {
+          console.error('Manual rollback failed:', e);
+          set({ error: String(e) });
+        }
+      },
+
+      /**
+       * Send crash report to backend
+       */
+      sendCrashReport: async (includeLogs: boolean) => {
+        try {
+          await sendCrashReportApi(includeLogs);
+        } catch (e) {
+          console.error('Failed to send crash report:', e);
+        }
+      },
+
+      /**
+       * Clear the rollback notification
+       */
+      clearRollbackNotification: () => {
+        set({ rollbackCompleted: null });
+      },
+
+      /**
        * Initialize Tauri event listeners for update events
        *
        * Should be called once on app mount. Returns an unlisten function
        * that should be called on unmount.
        */
       initEventListeners: async () => {
+        // Load remindLater state from localStorage
+        const storedRemindUntil = localStorage.getItem(REMIND_LATER_KEY);
+        const storedRemindVersion = localStorage.getItem(REMIND_LATER_VERSION_KEY);
+        if (storedRemindUntil) {
+          const until = Number(storedRemindUntil);
+          set({
+            remindLaterUntil: until,
+            remindLaterVersion: storedRemindVersion,
+          });
+        }
+
+        // Listen for rollback:completed event (Story 8.3)
+        const unlistenRollback = await onRollbackCompleted((event) => {
+          set({ rollbackCompleted: event });
+        });
+
         const unsubscribe = await subscribeToUpdateEvents({
           onAvailable: (event) => {
+            // Reset remindLater if a NEW version is detected
+            const { remindLaterVersion } = get();
+            const isNewVersion = remindLaterVersion && remindLaterVersion !== event.version;
+            if (isNewVersion) {
+              localStorage.removeItem(REMIND_LATER_KEY);
+              localStorage.removeItem(REMIND_LATER_VERSION_KEY);
+            }
+
             set({
               status: 'available',
               updateInfo: {
@@ -209,6 +350,7 @@ export const useUpdateStore = create<UpdateStore>()(
                 download_url: '',
                 is_mandatory: event.isMandatory,
               },
+              ...(isNewVersion ? { remindLaterUntil: null, remindLaterVersion: null } : {}),
             });
           },
 
@@ -245,7 +387,10 @@ export const useUpdateStore = create<UpdateStore>()(
           },
         });
 
-        return unsubscribe;
+        return () => {
+          unsubscribe();
+          unlistenRollback();
+        };
       },
     }),
     { name: 'UpdateStore' }

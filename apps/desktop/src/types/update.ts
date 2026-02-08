@@ -79,3 +79,20 @@ export interface UpdateDownloadCompleteEvent {
 export interface UpdateErrorEvent {
   message: string;
 }
+
+/**
+ * BackupInfo - Information about a previous version backup
+ */
+export interface BackupInfo {
+  version: string;
+  backupDate: string;
+  sizeMb: number;
+}
+
+/**
+ * RollbackCompletedEvent - Tauri event payload for rollback:completed
+ */
+export interface RollbackCompletedEvent {
+  previousVersion: string;
+  restoredVersion: string;
+}

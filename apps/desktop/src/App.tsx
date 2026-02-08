@@ -18,6 +18,7 @@ import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { useLicenseVerification } from './hooks/use-license-verification';
 import { useLicenseStore } from './stores/license-store';
 import { useUpdateStore } from './stores/update-store';
+import { RollbackNotification } from './components/update';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
@@ -725,6 +726,9 @@ function App() {
           onClose={() => setTranscriptionError(null)}
         />
       )}
+
+      {/* Rollback Notification - shown after automatic rollback (Story 8.3) */}
+      <RollbackNotification />
 
       {/* Grace Period Warning Modal - blocks app when offline too long */}
       <GracePeriodWarning

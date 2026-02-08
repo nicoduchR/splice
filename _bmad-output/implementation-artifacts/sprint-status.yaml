@@ -103,9 +103,9 @@ development_status:
   epic-7-retrospective: optional
 
   epic-8: in-progress
-  8-1-update-check-background-download: review
-  8-2-update-notification-installation: backlog
-  8-3-rollback-update-recovery: backlog
+  8-1-update-check-background-download: done
+  8-2-update-notification-installation: done  # Code review: 5 issues fixed (2 HIGH, 3 MEDIUM). Fixed install_on_quit silent reset bug in set_update_state, error handling in handleConfirmInstall, Dialog design system alignment, test quality (real shouldShowNotification logic), barrel export. 76 frontend + 258 Rust tests passing.
+  8-3-rollback-update-recovery: done  # Code review: 14 issues found (5 HIGH, 5 MEDIUM, 4 LOW). All HIGH/MEDIUM auto-fixed. H2 reqwest POST, H4 backup-before-cleanup, H5 restart-after-rollback, M1 dedup copy_dir_recursive, M2 sanitize_path bug, M3 set_previous_version, L1 French accents. File List populated.
   epic-8-retrospective: optional
 
   epic-9: backlog

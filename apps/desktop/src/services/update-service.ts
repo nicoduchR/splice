@@ -13,6 +13,8 @@ import type {
   UpdateDownloadProgressEvent,
   UpdateDownloadCompleteEvent,
   UpdateErrorEvent,
+  BackupInfo,
+  RollbackCompletedEvent,
 } from '../types/update';
 
 /**
@@ -61,6 +63,63 @@ export async function getUpdateStatus(): Promise<UpdateStatusResponse> {
  */
 export async function installUpdate(): Promise<void> {
   return invoke<void>('install_update');
+}
+
+/**
+ * Set the install_on_quit flag
+ *
+ * When true, the update will be applied when the app closes.
+ */
+export async function setInstallOnQuit(value: boolean): Promise<void> {
+  return invoke<void>('set_install_on_quit', { value });
+}
+
+/**
+ * Get the install_on_quit flag
+ */
+export async function getInstallOnQuit(): Promise<boolean> {
+  return invoke<boolean>('get_install_on_quit');
+}
+
+/**
+ * Get backup information for the previous version
+ */
+export async function getBackupInfo(): Promise<BackupInfo | null> {
+  return invoke<BackupInfo | null>('get_backup_info');
+}
+
+/**
+ * Perform a manual rollback to the previous version
+ *
+ * Warning: This will restart the app.
+ */
+export async function manualRollback(): Promise<void> {
+  return invoke<void>('manual_rollback');
+}
+
+/**
+ * Get the current consecutive crash count
+ */
+export async function getCrashCount(): Promise<number> {
+  return invoke<number>('get_crash_count');
+}
+
+/**
+ * Send a crash report to the backend
+ */
+export async function sendCrashReport(includeLogs: boolean): Promise<void> {
+  return invoke<void>('send_crash_report', { includeLogs });
+}
+
+/**
+ * Listen for rollback completed events
+ */
+export async function onRollbackCompleted(
+  callback: (event: RollbackCompletedEvent) => void
+): Promise<UnlistenFn> {
+  return listen<RollbackCompletedEvent>('rollback:completed', (event) => {
+    callback(event.payload);
+  });
 }
 
 /**
