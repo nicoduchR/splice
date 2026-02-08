@@ -2,9 +2,9 @@ use sqlx::SqlitePool;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::collections::HashMap;
-use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository};
+use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository, ProjectStateRepository};
 use crate::domain::entities::{UpdateInfo, UpdateStatus, DownloadProgress, CrashTracker};
-use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository};
+use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository, SqliteProjectStateRepository};
 
 /// State for tracking update operations
 #[derive(Debug, Clone, Default)]
@@ -24,6 +24,7 @@ pub struct AppState {
     pub transcript_repository: Arc<dyn TranscriptRepository>,
     pub selection_repository: Arc<dyn SelectionRepository>,
     pub cut_repository: Arc<dyn CutRepository>,
+    pub project_state_repository: Arc<dyn ProjectStateRepository>,
     /// Cancellation flags for ongoing transcriptions (video_id -> cancel_flag)
     pub transcription_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     /// Cancellation flags for ongoing segmentations (project_id -> cancel_flag)
@@ -52,12 +53,16 @@ impl AppState {
         let cut_repository: Arc<dyn CutRepository> =
             Arc::new(SqliteCutRepository::new(db_pool.clone()));
 
+        let project_state_repository: Arc<dyn ProjectStateRepository> =
+            Arc::new(SqliteProjectStateRepository::new(db_pool.clone()));
+
         Self {
             db_pool,
             video_repository,
             transcript_repository,
             selection_repository,
             cut_repository,
+            project_state_repository,
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             segmentation_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             export_cancel_flags: Arc::new(Mutex::new(HashMap::new())),

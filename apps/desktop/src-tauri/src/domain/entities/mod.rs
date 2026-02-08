@@ -9,6 +9,7 @@ pub mod segment_validation;
 pub mod license_cache;
 pub mod update_info;
 pub mod crash_tracker;
+pub mod project_state;
 
 pub use video::VideoProject;
 // Used in future stories
@@ -24,3 +25,4 @@ pub use segment_validation::SegmentValidation;
 pub use license_cache::LicenseCache;
 pub use update_info::{UpdateInfo, DownloadProgress, UpdateStatus};
 pub use crash_tracker::CrashTracker;
+pub use project_state::ProjectState;

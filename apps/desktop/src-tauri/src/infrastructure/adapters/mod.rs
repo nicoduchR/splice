@@ -15,6 +15,7 @@ pub mod macos_credential_store;
 pub mod windows_credential_store;
 pub mod sqlite_license_repository;
 pub mod http_license_api_client;
+pub mod sqlite_project_state_repository;
 
 // Used in tests
 #[allow(unused_imports)]
@@ -32,3 +33,4 @@ pub use macos_credential_store::MacOSCredentialStore;
 pub use windows_credential_store::WindowsCredentialStore;
 pub use sqlite_license_repository::SqliteLicenseRepository;
 pub use http_license_api_client::HttpLicenseApiClient;
+pub use sqlite_project_state_repository::SqliteProjectStateRepository;

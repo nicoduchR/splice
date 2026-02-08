@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands, project_state_commands};
 use domain::entities::CrashTracker;
 use application::use_cases::{BackupCurrentVersionUseCase, RestoreBackupUseCase};
 use tauri::Emitter;
@@ -125,6 +125,35 @@ async fn main() {
                     tracing::info!("App running > 30s — crash counter reset (healthy)");
                 }
             });
+
+            // Story 9.2: Check for dirty shutdown and emit recovery event
+            {
+                let state = app.state::<AppState>();
+                let check_use_case = application::use_cases::CheckDirtyShutdownUseCase::new(
+                    state.project_state_repository.clone(),
+                );
+                match check_use_case.execute() {
+                    Ok(is_dirty) => {
+                        if is_dirty {
+                            tracing::info!("Dirty shutdown detected — frontend will show recovery dialog");
+                            // The frontend will call check_dirty_shutdown on startup
+                            // and show the CrashRecoveryDialog if needed
+                        } else {
+                            tracing::debug!("Clean shutdown confirmed (or no previous project state)");
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to check dirty shutdown: {}", e);
+                    }
+                }
+
+                // Reset was_clean_shutdown = 0 for the current session
+                // This ensures that if we crash during this session, we detect it on next startup
+                let reset_use_case = application::use_cases::ResetCleanShutdownUseCase::new(
+                    state.project_state_repository.clone(),
+                );
+                let _ = reset_use_case.execute();
+            }
 
             // Clone Arc-wrapped cancel flags for idle detection in periodic checks
             let transcription_flags = app.state::<AppState>().transcription_cancel_flags.clone();
@@ -270,11 +299,25 @@ async fn main() {
             rollback_commands::manual_rollback,
             rollback_commands::get_crash_count,
             rollback_commands::send_crash_report,
+            project_state_commands::save_project_state,
+            project_state_commands::load_project_state,
+            project_state_commands::mark_clean_shutdown,
+            project_state_commands::check_dirty_shutdown,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let app_handle = window.app_handle();
                 if let Some(state) = app_handle.try_state::<AppState>() {
+                    // Story 9.2: Mark clean shutdown BEFORE install_on_quit check
+                    let mark_use_case = application::use_cases::MarkCleanShutdownUseCase::new(
+                        state.project_state_repository.clone(),
+                    );
+                    if let Err(e) = mark_use_case.execute() {
+                        tracing::warn!("Failed to mark clean shutdown: {}", e);
+                    } else {
+                        tracing::info!("Clean shutdown marked in project_state");
+                    }
+
                     if state.get_install_on_quit() {
                         tracing::info!("Install on quit enabled — backing up before update");
 

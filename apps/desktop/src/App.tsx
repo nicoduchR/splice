@@ -13,12 +13,14 @@ import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcri
 import { VideoPlayer, KeyboardShortcutsBar } from './components/video';
 import { useModelDownload } from './hooks/use-model-download';
 import { useTimelineSync } from './hooks/use-timeline-sync';
+import { useProjectStateAutosave } from './hooks/use-project-state-autosave';
 import { useTimelineStore } from './stores/timeline-store';
 import { useTranscriptSearch } from './hooks/use-transcript-search';
 import { useLicenseVerification } from './hooks/use-license-verification';
 import { useLicenseStore } from './stores/license-store';
 import { useUpdateStore } from './stores/update-store';
 import { RollbackNotification } from './components/update';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
@@ -27,6 +29,8 @@ import { SegmentationProgressDialog } from './components/segmentation';
 import { ExportDialog } from './components/export';
 import { PreviewPlayer } from './components/preview/PreviewPlayer';
 import { GracePeriodWarning, ExportBlockedDialog, EarlyAdopterCodeDialog } from './components/license-modal';
+import { CrashRecoveryDialog } from './components/recovery';
+import { checkDirtyShutdown, loadProjectState } from './services/project-state-service';
 import type { SegmentationProgress } from '@splice/types/generated';
 
 // App screen states
@@ -105,6 +109,8 @@ function App() {
 
   // Timeline sync
   useTimelineSync();
+  // Auto-save project state (timeline position, volume) every 30s
+  useProjectStateAutosave(currentProject?.id ?? null);
   const timelineSegments = useTimelineStore(s => s.segments);
   const hasSelections = timelineSegments.length > 0;
   const [scrollToWordIndex, setScrollToWordIndex] = useState<number | null>(null);
@@ -130,10 +136,29 @@ function App() {
     dismissGraceWarning,
   } = useLicenseVerification();
 
+  // Crash recovery state
+  const [showCrashRecovery, setShowCrashRecovery] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
+
   // Update store for event listeners
   const initUpdateEventListeners = useUpdateStore(s => s.initEventListeners);
 
 
+
+  // Check for dirty shutdown on mount (crash recovery)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+
+    checkDirtyShutdown()
+      .then((isDirty) => {
+        if (isDirty) {
+          setShowCrashRecovery(true);
+        }
+      })
+      .catch((e) => {
+        console.error('Failed to check dirty shutdown:', e);
+      });
+  }, []);
 
   // Load all projects on mount
   useEffect(() => {
@@ -726,6 +751,80 @@ function App() {
           onClose={() => setTranscriptionError(null)}
         />
       )}
+
+      {/* Crash Recovery Dialog - shown on dirty shutdown (Story 9.2) */}
+      <CrashRecoveryDialog
+        isOpen={showCrashRecovery}
+        isRecovering={isRecovering}
+        onRecover={async () => {
+          setIsRecovering(true);
+          try {
+            const projectState = await loadProjectState();
+            if (!projectState || !projectState.project_id) {
+              toast.error('Aucun projet à récupérer');
+              setShowCrashRecovery(false);
+              setIsRecovering(false);
+              return;
+            }
+
+            // Load all projects first to populate the allProjects array
+            await useVideoStore.getState().loadAllProjects();
+
+            // Select the project
+            useVideoStore.getState().selectProject(projectState.project_id);
+
+            const project = useVideoStore.getState().currentProject;
+            if (!project) {
+              toast.error('Le fichier vidéo original a été déplacé ou supprimé.');
+              setShowCrashRecovery(false);
+              setIsRecovering(false);
+              return;
+            }
+
+            // Load transcript
+            await useTranscriptStore.getState().loadTranscript(projectState.project_id);
+
+            // Load selections
+            await useTranscriptStore.getState().loadSelections(projectState.project_id);
+
+            // Load cuts if any exist
+            try {
+              const cuts = await invoke<unknown[]>('get_cuts', { projectId: projectState.project_id });
+              if (cuts && cuts.length > 0) {
+                // Cuts are available in SQLite for re-export (AC #7)
+                toast.success('Projet récupéré avec succès', {
+                  description: `${cuts.length} cut(s) disponible(s) pour ré-export`,
+                });
+              } else {
+                toast.success('Projet récupéré avec succès');
+              }
+            } catch {
+              toast.success('Projet récupéré avec succès');
+            }
+
+            // Restore timeline position if timeline store is available
+            if (projectState.timeline_position > 0) {
+              useTimelineStore.getState().seek(projectState.timeline_position);
+            }
+            if (projectState.volume !== undefined) {
+              useTimelineStore.getState().setVolume(projectState.volume);
+            }
+
+            setShowCrashRecovery(false);
+          } catch (e) {
+            console.error('Recovery failed:', e);
+            toast.error('La récupération a échoué');
+          } finally {
+            setIsRecovering(false);
+          }
+        }}
+        onStartFresh={() => {
+          // AC #6: Don't delete saved data — just dismiss the dialog.
+          // was_clean_shutdown stays 0 so crash detection works for the current session.
+          // mark_clean_shutdown is called by the Rust CloseRequested handler on clean exit.
+          setShowCrashRecovery(false);
+        }}
+      />
 
       {/* Rollback Notification - shown after automatic rollback (Story 8.3) */}
       <RollbackNotification />

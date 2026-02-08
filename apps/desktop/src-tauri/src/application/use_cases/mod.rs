@@ -16,6 +16,7 @@ pub mod download_update;
 pub mod backup_current_version;
 pub mod restore_backup;
 pub mod cleanup_old_backups;
+pub mod project_state_use_cases;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -37,3 +38,4 @@ pub use download_update::{DownloadUpdateUseCase, DownloadUpdateResult};
 pub use backup_current_version::{BackupCurrentVersionUseCase, BackupInfo};
 pub use restore_backup::RestoreBackupUseCase;
 pub use cleanup_old_backups::CleanupOldBackupsUseCase;
+pub use project_state_use_cases::{SaveProjectStateUseCase, LoadProjectStateUseCase, MarkCleanShutdownUseCase, CheckDirtyShutdownUseCase, ResetCleanShutdownUseCase};
