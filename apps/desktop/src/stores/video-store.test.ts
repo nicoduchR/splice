@@ -1,5 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useVideoStore } from './video-store';
+
+const mockInvoke = vi.fn();
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (...args: unknown[]) => mockInvoke(...args),
+}));
+
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn().mockResolvedValue(() => {}),
+}));
+
+vi.mock('../lib/logger', () => ({
+  logWarn: vi.fn(),
+  logError: vi.fn(),
+}));
 
 function resetStore() {
   useVideoStore.setState({
@@ -11,6 +25,7 @@ function resetStore() {
     isDragOver: false,
     proxyPath: null,
     isGeneratingProxy: false,
+    diskSpaceWarning: null,
   });
 }
 
@@ -88,5 +103,150 @@ describe('video-store proxy state', () => {
     expect(state.currentProject).toBeNull();
     expect(state.proxyPath).toBeNull();
     expect(state.isGeneratingProxy).toBe(false);
+  });
+});
+
+describe('video-store disk space check', () => {
+  beforeEach(() => {
+    resetStore();
+    mockInvoke.mockReset();
+  });
+
+  it('diskSpaceWarning should be null by default', () => {
+    expect(useVideoStore.getState().diskSpaceWarning).toBeNull();
+  });
+
+  it('importVideo should show disk space warning when space insufficient', async () => {
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'check_disk_space_for_import') {
+        return Promise.resolve({
+          available_gb: 2.0,
+          required_gb: 6.0,
+          sufficient: false,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    await useVideoStore.getState().importVideo('/path/to/video.mp4');
+
+    const state = useVideoStore.getState();
+    expect(state.diskSpaceWarning).not.toBeNull();
+    expect(state.diskSpaceWarning!.availableGb).toBe(2.0);
+    expect(state.diskSpaceWarning!.requiredGb).toBe(6.0);
+    expect(state.diskSpaceWarning!.filePath).toBe('/path/to/video.mp4');
+    expect(state.isImporting).toBe(false);
+  });
+
+  it('importVideo should proceed when space sufficient', async () => {
+    const mockProject = {
+      id: 'p1',
+      file_path: '/path/to/video.mp4',
+      file_name: 'video.mp4',
+      duration_seconds: 60,
+      created_at: 1000,
+      updated_at: 1000,
+    };
+
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'check_disk_space_for_import') {
+        return Promise.resolve({
+          available_gb: 20.0,
+          required_gb: 6.0,
+          sufficient: true,
+        });
+      }
+      if (cmd === 'import_video') {
+        return Promise.resolve(mockProject);
+      }
+      return Promise.resolve(null);
+    });
+
+    await useVideoStore.getState().importVideo('/path/to/video.mp4');
+
+    const state = useVideoStore.getState();
+    expect(state.diskSpaceWarning).toBeNull();
+    expect(state.currentProject).toEqual(mockProject);
+    expect(state.isImporting).toBe(false);
+  });
+
+  it('importVideo should proceed if disk check fails', async () => {
+    const mockProject = {
+      id: 'p1',
+      file_path: '/path/to/video.mp4',
+      file_name: 'video.mp4',
+      duration_seconds: 60,
+      created_at: 1000,
+      updated_at: 1000,
+    };
+
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'check_disk_space_for_import') {
+        return Promise.reject(new Error('Disk check unavailable'));
+      }
+      if (cmd === 'import_video') {
+        return Promise.resolve(mockProject);
+      }
+      return Promise.resolve(null);
+    });
+
+    await useVideoStore.getState().importVideo('/path/to/video.mp4');
+
+    const state = useVideoStore.getState();
+    expect(state.diskSpaceWarning).toBeNull();
+    expect(state.currentProject).toEqual(mockProject);
+  });
+
+  it('dismissDiskSpaceWarning should clear the warning', () => {
+    useVideoStore.setState({
+      diskSpaceWarning: {
+        availableGb: 2.0,
+        requiredGb: 6.0,
+        filePath: '/path/to/video.mp4',
+      },
+    });
+
+    useVideoStore.getState().dismissDiskSpaceWarning();
+
+    expect(useVideoStore.getState().diskSpaceWarning).toBeNull();
+  });
+
+  it('continueDespiteWarning should clear warning and start import', async () => {
+    const mockProject = {
+      id: 'p1',
+      file_path: '/path/to/video.mp4',
+      file_name: 'video.mp4',
+      duration_seconds: 60,
+      created_at: 1000,
+      updated_at: 1000,
+    };
+
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === 'import_video') {
+        return Promise.resolve(mockProject);
+      }
+      return Promise.resolve(null);
+    });
+
+    useVideoStore.setState({
+      diskSpaceWarning: {
+        availableGb: 2.0,
+        requiredGb: 6.0,
+        filePath: '/path/to/video.mp4',
+      },
+    });
+
+    useVideoStore.getState().continueDespiteWarning();
+
+    // Warning should be cleared immediately
+    expect(useVideoStore.getState().diskSpaceWarning).toBeNull();
+    expect(useVideoStore.getState().isImporting).toBe(true);
+
+    // Wait for import to finish
+    await new Promise(r => setTimeout(r, 50));
+
+    const state = useVideoStore.getState();
+    expect(state.currentProject).toEqual(mockProject);
+    expect(state.isImporting).toBe(false);
   });
 });

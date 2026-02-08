@@ -4,6 +4,7 @@ pub mod selection_repository;
 pub mod cut_repository;
 pub mod license_repository;
 pub mod project_state_repository;
+pub mod preferences_repository;
 
 pub use video_repository::VideoRepository;
 pub use transcript_repository::TranscriptRepository;
@@ -11,3 +12,4 @@ pub use selection_repository::SelectionRepository;
 pub use cut_repository::CutRepository;
 pub use license_repository::LicenseRepository;
 pub use project_state_repository::ProjectStateRepository;
+pub use preferences_repository::PreferencesRepository;

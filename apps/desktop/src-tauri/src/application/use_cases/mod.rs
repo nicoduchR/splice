@@ -17,6 +17,8 @@ pub mod backup_current_version;
 pub mod restore_backup;
 pub mod cleanup_old_backups;
 pub mod project_state_use_cases;
+pub mod check_disk_space;
+pub mod cleanup_temp_files;
 
 // Used in future stories
 #[allow(unused_imports)]
@@ -39,3 +41,5 @@ pub use backup_current_version::{BackupCurrentVersionUseCase, BackupInfo};
 pub use restore_backup::RestoreBackupUseCase;
 pub use cleanup_old_backups::CleanupOldBackupsUseCase;
 pub use project_state_use_cases::{SaveProjectStateUseCase, LoadProjectStateUseCase, MarkCleanShutdownUseCase, CheckDirtyShutdownUseCase, ResetCleanShutdownUseCase};
+pub use check_disk_space::{CheckDiskSpaceUseCase, DiskSpaceStatus};
+pub use cleanup_temp_files::{CleanupTempFilesUseCase, calculate_dir_size};

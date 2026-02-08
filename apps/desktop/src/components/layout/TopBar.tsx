@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Settings, Scissors, Play, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '../ui/button';
 import { GracePeriodIndicator } from '../license-modal';
-import { UpdateNotificationBadge, UpdateDialog, SettingsRollbackSection } from '../update';
+import { UpdateNotificationBadge, UpdateDialog } from '../update';
+import { SettingsDialog } from '../settings';
 import type { VideoProject } from '@splice/types/generated';
 
 interface TopBarProps {
@@ -105,7 +106,7 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
         onClose={() => setIsUpdateDialogOpen(false)}
       />
 
-      <SettingsRollbackSection
+      <SettingsDialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />

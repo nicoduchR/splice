@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { useLicenseStore } from './license-store';
 import { LICENSE_PLAN, LicenseApi } from '../services/license-api';
 import { createCheckoutSession } from '../services/checkout-api';
+import type { DiskSpaceInfo } from '@splice/types/generated';
+import { logWarn } from '../lib/logger';
 
 export type ExportQuality = 'preserve' | 'high' | 'medium' | 'low';
 
@@ -38,6 +40,11 @@ export interface ExportResult {
   durationSeconds: number;
 }
 
+export interface ExportDiskSpaceError {
+  availableGb: number;
+  requiredGb: number;
+}
+
 interface ExportState {
   // Dialog state
   isExportDialogOpen: boolean;
@@ -55,6 +62,8 @@ interface ExportState {
   exportResult: ExportResult | null;
   _exportingProjectId: string | null;
   _unlisteners: UnlistenFn[];
+  // Disk space error (Story 9.4)
+  exportDiskSpaceError: ExportDiskSpaceError | null;
   // Upgrade state (for story 7.4)
   isUpgrading: boolean;
   _upgradePollingInterval: ReturnType<typeof setInterval> | null;
@@ -70,6 +79,7 @@ interface ExportActions {
   cancelExport: () => void;
   resetExport: () => void;
   closeExportResult: () => void;
+  dismissExportDiskSpaceError: () => void;
   // Upgrade actions (for story 7.4)
   startUpgradeFlow: (email: string, priceId: string) => Promise<void>;
   stopUpgradeFlow: () => void;
@@ -104,6 +114,7 @@ export const useExportStore = create<ExportStore>()(
         exportResult: null,
         _exportingProjectId: null,
         _unlisteners: [],
+        exportDiskSpaceError: null,
         isUpgrading: false,
         _upgradePollingInterval: null,
 
@@ -153,8 +164,33 @@ export const useExportStore = create<ExportStore>()(
         },
 
         startExport: async (projectId) => {
-          const { exportSettings } = get();
-          set({ isExporting: true, exportProgress: { percent: 0 }, exportError: null, _exportingProjectId: projectId });
+          const { exportSettings, estimatedFileSize } = get();
+
+          // AC #2: Check disk space before export
+          if (estimatedFileSize && exportSettings.outputPath) {
+            try {
+              const diskInfo = await invoke<DiskSpaceInfo>('check_disk_space', {
+                path: exportSettings.outputPath,
+                requiredBytes: estimatedFileSize,
+              });
+
+              if (!diskInfo.sufficient) {
+                logWarn('export-store.startExport', `Insufficient disk space: ${diskInfo.available_gb.toFixed(2)} GB available, ${diskInfo.required_gb.toFixed(2)} GB required`);
+                set({
+                  exportDiskSpaceError: {
+                    availableGb: diskInfo.available_gb,
+                    requiredGb: diskInfo.required_gb,
+                  },
+                });
+                return;
+              }
+            } catch (diskCheckError) {
+              // Non-blocking: if disk check fails, proceed with export anyway
+              logWarn('export-store.startExport', `Disk space check failed: ${diskCheckError}`);
+            }
+          }
+
+          set({ isExporting: true, exportProgress: { percent: 0 }, exportError: null, exportDiskSpaceError: null, _exportingProjectId: projectId });
 
           // Set up event listeners
           const unlisteners: UnlistenFn[] = [];
@@ -295,6 +331,10 @@ export const useExportStore = create<ExportStore>()(
 
         closeExportResult: () => {
           set({ exportResult: null });
+        },
+
+        dismissExportDiskSpaceError: () => {
+          set({ exportDiskSpaceError: null });
         },
 
         startUpgradeFlow: async (email, priceId) => {

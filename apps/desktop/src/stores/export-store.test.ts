@@ -19,6 +19,12 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
+// Mock logger
+vi.mock('../lib/logger', () => ({
+  logWarn: vi.fn(),
+  logError: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 const mockInvoke = vi.mocked(invoke);
@@ -368,6 +374,102 @@ describe('useExportStore', () => {
       // Should block export for any non-pro state
       expect(useExportStore.getState().showExportBlockedDialog).toBe(true);
       expect(useExportStore.getState().isExportDialogOpen).toBe(false);
+    });
+  });
+
+  describe('Disk space check on export', () => {
+    beforeEach(() => {
+      useExportStore.setState({ exportDiskSpaceError: null });
+    });
+
+    it('startExport blocks when disk space insufficient', async () => {
+      useExportStore.getState().updateSettings({
+        quality: 'high',
+        outputPath: '/Users/test/Desktop',
+        fileName: 'export.mp4',
+      });
+      useExportStore.setState({ estimatedFileSize: 500_000_000 });
+
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === 'check_disk_space') {
+          return Promise.resolve({
+            available_gb: 0.2,
+            required_gb: 0.5,
+            sufficient: false,
+          });
+        }
+        return Promise.resolve(null);
+      });
+
+      await useExportStore.getState().startExport('project-1');
+
+      const state = useExportStore.getState();
+      expect(state.exportDiskSpaceError).not.toBeNull();
+      expect(state.exportDiskSpaceError!.availableGb).toBe(0.2);
+      expect(state.exportDiskSpaceError!.requiredGb).toBe(0.5);
+      expect(state.isExporting).toBe(false);
+    });
+
+    it('startExport proceeds when disk space sufficient', async () => {
+      useExportStore.getState().updateSettings({
+        quality: 'high',
+        outputPath: '/Users/test/Desktop',
+        fileName: 'export.mp4',
+      });
+      useExportStore.setState({ estimatedFileSize: 500_000_000 });
+
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === 'check_disk_space') {
+          return Promise.resolve({
+            available_gb: 10.0,
+            required_gb: 0.5,
+            sufficient: true,
+          });
+        }
+        if (cmd === 'export_video') {
+          return Promise.resolve('ok');
+        }
+        return Promise.resolve(null);
+      });
+
+      await useExportStore.getState().startExport('project-1');
+
+      expect(useExportStore.getState().exportDiskSpaceError).toBeNull();
+      expect(mockInvoke).toHaveBeenCalledWith('export_video', expect.any(Object));
+    });
+
+    it('startExport proceeds if disk check fails (non-blocking)', async () => {
+      useExportStore.getState().updateSettings({
+        quality: 'high',
+        outputPath: '/Users/test/Desktop',
+        fileName: 'export.mp4',
+      });
+      useExportStore.setState({ estimatedFileSize: 500_000_000 });
+
+      mockInvoke.mockImplementation((cmd: string) => {
+        if (cmd === 'check_disk_space') {
+          return Promise.reject(new Error('Disk check unavailable'));
+        }
+        if (cmd === 'export_video') {
+          return Promise.resolve('ok');
+        }
+        return Promise.resolve(null);
+      });
+
+      await useExportStore.getState().startExport('project-1');
+
+      expect(useExportStore.getState().exportDiskSpaceError).toBeNull();
+      expect(mockInvoke).toHaveBeenCalledWith('export_video', expect.any(Object));
+    });
+
+    it('dismissExportDiskSpaceError clears the error', () => {
+      useExportStore.setState({
+        exportDiskSpaceError: { availableGb: 0.2, requiredGb: 0.5 },
+      });
+
+      useExportStore.getState().dismissExportDiskSpaceError();
+
+      expect(useExportStore.getState().exportDiskSpaceError).toBeNull();
     });
   });
 });

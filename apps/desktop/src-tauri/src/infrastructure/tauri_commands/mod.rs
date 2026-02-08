@@ -12,3 +12,5 @@ pub mod update_commands;
 pub mod rollback_commands;
 pub mod project_state_commands;
 pub mod logging_commands;
+pub mod disk_commands;
+pub mod preferences_commands;

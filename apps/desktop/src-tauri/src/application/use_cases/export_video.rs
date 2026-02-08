@@ -23,6 +23,7 @@ impl ExportVideoUseCase {
     /// - `on_progress`: Callback for rich progress updates
     /// - `video_repository`: Repository to fetch project metadata
     /// - `cut_repository`: Repository to fetch cuts
+    /// - `temp_dir`: Resolved temp directory (from AppState::resolve_temp_dir)
     pub fn execute(
         project_id: &str,
         quality: &str,
@@ -31,6 +32,7 @@ impl ExportVideoUseCase {
         on_progress: impl Fn(FfmpegProgressInfo) + Send,
         video_repository: &Arc<dyn VideoRepository>,
         cut_repository: &Arc<dyn CutRepository>,
+        temp_dir: &Path,
     ) -> Result<PathBuf, DomainError> {
         info!(
             event = "export_video_use_case_start",
@@ -58,12 +60,8 @@ impl ExportVideoUseCase {
         // Compute total final duration from cuts
         let total_duration_secs: f64 = cuts.iter().map(|c| c.end_time - c.start_time).sum();
 
-        // Build segment paths - segments are stored in ~/.splice/temp/{project_id}/
-        let segments_dir = dirs::home_dir()
-            .ok_or_else(|| DomainError::ProcessingError("Impossible de trouver le répertoire home".into()))?
-            .join(".splice")
-            .join("temp")
-            .join(project_id);
+        // Build segment paths from resolved temp directory
+        let segments_dir = temp_dir.join(project_id);
 
         let segment_paths: Vec<String> = (0..cuts.len())
             .map(|i| {

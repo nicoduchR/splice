@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands, project_state_commands, logging_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands, project_state_commands, logging_commands, disk_commands, preferences_commands};
 use domain::entities::CrashTracker;
 use application::use_cases::{BackupCurrentVersionUseCase, RestoreBackupUseCase};
 use tauri::Emitter;
@@ -28,8 +28,28 @@ async fn main() {
     // Create application state
     let app_state = AppState::new(db_pool);
 
-    // Cleanup old temporary transcription files on startup
-    transcription_commands::cleanup_temp_directory();
+    // Cleanup old temporary transcription files on startup (uses configured temp dir)
+    let temp_dir = app_state.resolve_temp_dir();
+    transcription_commands::cleanup_temp_directory(&temp_dir);
+
+    // Story 9.4: Cleanup orphaned temp files from previous crashed sessions
+    {
+        let cleanup_use_case = application::use_cases::CleanupTempFilesUseCase::new();
+        match cleanup_use_case.execute(&temp_dir) {
+            Ok(bytes_freed) => {
+                if bytes_freed > 0 {
+                    tracing::info!(
+                        event = "startup_temp_cleanup",
+                        bytes_freed = bytes_freed,
+                        "Cleaned up orphaned temp files at startup"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to cleanup temp files at startup: {}", e);
+            }
+        }
+    }
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -304,6 +324,13 @@ async fn main() {
             project_state_commands::mark_clean_shutdown,
             project_state_commands::check_dirty_shutdown,
             logging_commands::log_frontend_error,
+            disk_commands::check_disk_space,
+            disk_commands::check_disk_space_for_import,
+            disk_commands::get_cache_size,
+            disk_commands::clear_cache,
+            preferences_commands::get_preference,
+            preferences_commands::set_preference,
+            preferences_commands::get_all_preferences,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {

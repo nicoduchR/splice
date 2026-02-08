@@ -16,6 +16,8 @@ pub mod windows_credential_store;
 pub mod sqlite_license_repository;
 pub mod http_license_api_client;
 pub mod sqlite_project_state_repository;
+pub mod disk_space_checker;
+pub mod sqlite_preferences_repository;
 
 // Used in tests
 #[allow(unused_imports)]
@@ -34,3 +36,5 @@ pub use windows_credential_store::WindowsCredentialStore;
 pub use sqlite_license_repository::SqliteLicenseRepository;
 pub use http_license_api_client::HttpLicenseApiClient;
 pub use sqlite_project_state_repository::SqliteProjectStateRepository;
+pub use disk_space_checker::Fs2DiskSpaceChecker;
+pub use sqlite_preferences_repository::SqlitePreferencesRepository;

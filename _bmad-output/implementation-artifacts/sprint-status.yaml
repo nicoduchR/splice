@@ -112,7 +112,7 @@ development_status:
   9-1-graceful-network-error-handling: done  # Code review: 9 issues found (3 HIGH, 4 MEDIUM, 2 LOW). 4 fixed (H2 retry count, H3 getNetworkErrorMessage usage, M1 closure, M4 tests). 2 reclassified faux positifs (M2, M3). All 114 tests passing (94 frontend + 20 Rust).
   9-2-auto-save-crash-recovery: done  # Code review: 10 issues found (3 HIGH, 4 MEDIUM, 3 LOW). 7 fixed: H1 serialization mismatch (recovery was broken), H2 upsert overwriting shutdown flag, H3 race condition, M4 Clean Architecture violation. Added ResetCleanShutdownUseCase. 37 tests passing (17 Rust + 20 frontend).
   9-3-clear-error-messages-user-guidance: done  # Code review: 10 issues found (3 HIGH, 4 MEDIUM, 3 LOW). 5 fixed: H1/H2 loadTranscript sanitization, H3 video-store unused sanitized var, M2 dead TranscriptionErrorDialog export, M4 ErrorBoundary errorDetails sanitization. M1 (console.error audit) deferred. 63 tests passing.
-  9-4-disk-space-resource-management: backlog
+  9-4-disk-space-resource-management: done  # Code review: 10 issues found (4 HIGH, 4 MEDIUM, 2 LOW). H1 retracted. 6 fixed: H3 "Changer répertoire" button, H4 handleResetTempDir service, M3 formatDuration dedup, L2 ENOSPC. Action items resolved: H2 resolve_temp_dir() reads preference at runtime, M2 calculate_dir_size() shared utility. 358 Rust + 67 frontend tests passing.
   epic-9-retrospective: optional
 
   epic-10: backlog

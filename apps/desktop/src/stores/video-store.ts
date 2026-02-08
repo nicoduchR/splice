@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
-import type { VideoProject } from '@splice/types/generated';
+import type { VideoProject, DiskSpaceInfo } from '@splice/types/generated';
 import { toast } from 'sonner';
 import { listen } from '@tauri-apps/api/event';
 import { getImportErrorMessage, sanitizeErrorForUser } from '../lib/error-messages';
+import { logWarn } from '../lib/logger';
 
 // Interface du store avec state + actions
 interface VideoStore {
@@ -17,6 +18,7 @@ interface VideoStore {
   isDragOver: boolean;
   proxyPath: string | null;
   isGeneratingProxy: boolean;
+  diskSpaceWarning: DiskSpaceWarningState | null;
 
   // Actions
   importVideo: (filePath: string) => Promise<void>;
@@ -27,6 +29,29 @@ interface VideoStore {
   setDragOver: (isDragOver: boolean) => void;
   setProxyPath: (path: string | null) => void;
   initProxyListener: () => Promise<() => void>;
+  dismissDiskSpaceWarning: () => void;
+  continueDespiteWarning: () => void;
+}
+
+interface DiskSpaceWarningState {
+  availableGb: number;
+  requiredGb: number;
+  filePath: string;
+}
+
+/** Format a duration in seconds to a human-readable string (e.g., "2m 30s") */
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
 }
 
 // Convention: préfixe "use" + nom domaine + "Store"
@@ -42,12 +67,36 @@ export const useVideoStore = create<VideoStore>()(
       isDragOver: false,
       proxyPath: null,
       isGeneratingProxy: false,
+      diskSpaceWarning: null,
 
       // Actions métier explicites (pas de setters génériques)
       importVideo: async (filePath) => {
-        set({ isImporting: true, importProgress: 0, error: null });
+        set({ isImporting: true, importProgress: 0, error: null, diskSpaceWarning: null });
 
         try {
+          // AC #1: Check disk space before import (3× file size required)
+          try {
+            const diskInfo = await invoke<DiskSpaceInfo>('check_disk_space_for_import', {
+              filePath,
+            });
+
+            if (!diskInfo.sufficient) {
+              logWarn('video-store.importVideo', `Low disk space: ${diskInfo.available_gb.toFixed(2)} GB available, ${diskInfo.required_gb.toFixed(2)} GB required`);
+              set({
+                isImporting: false,
+                diskSpaceWarning: {
+                  availableGb: diskInfo.available_gb,
+                  requiredGb: diskInfo.required_gb,
+                  filePath,
+                },
+              });
+              return;
+            }
+          } catch (diskCheckError) {
+            // Non-blocking: if disk check fails, proceed with import anyway
+            logWarn('video-store.importVideo', `Disk space check failed: ${diskCheckError}`);
+          }
+
           // import_video use case already saves to SQLite, no need to save again
           const project = await invoke<VideoProject>('import_video', { filePath });
 
@@ -61,20 +110,6 @@ export const useVideoStore = create<VideoStore>()(
           });
 
           // Display success toast with video metadata
-          const formatDuration = (seconds: number): string => {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = Math.floor(seconds % 60);
-
-            if (hours > 0) {
-              return `${hours}h ${minutes}m ${secs}s`;
-            } else if (minutes > 0) {
-              return `${minutes}m ${secs}s`;
-            } else {
-              return `${secs}s`;
-            }
-          };
-
           let description = `${project.file_name} - ${formatDuration(project.duration_seconds)}`;
 
           // Add resolution if available
@@ -150,6 +185,43 @@ export const useVideoStore = create<VideoStore>()(
           }
         );
         return unlisten;
+      },
+
+      dismissDiskSpaceWarning: () => {
+        set({ diskSpaceWarning: null });
+      },
+
+      continueDespiteWarning: () => {
+        const warning = get().diskSpaceWarning;
+        if (warning) {
+          set({ diskSpaceWarning: null, isImporting: true, importProgress: 0, error: null });
+          // Proceed with import bypassing disk check
+          invoke<VideoProject>('import_video', { filePath: warning.filePath })
+            .then((project) => {
+              let description = `${project.file_name} - ${formatDuration(project.duration_seconds)}`;
+              if (project.width && project.height) {
+                description += ` • ${project.width}x${project.height}`;
+              }
+
+              set({
+                currentProject: project,
+                isImporting: false,
+                importProgress: 100,
+                allProjects: [...get().allProjects, project],
+                proxyPath: project.proxy_path ?? null,
+                isGeneratingProxy: false,
+              });
+
+              toast.success('Vidéo importée avec succès', { description });
+            })
+            .catch((e) => {
+              const errorMessage = sanitizeErrorForUser(String(e));
+              set({ error: errorMessage, isImporting: false, importProgress: 0 });
+              toast.error('Erreur d\'importation', {
+                description: getImportErrorMessage(String(e)),
+              });
+            });
+        }
       },
     }),
     { name: 'VideoStore' } // DevTools label

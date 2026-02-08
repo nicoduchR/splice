@@ -21,6 +21,7 @@ interface ErrorDialogProps {
   onRetry?: () => void;
   onClose: () => void;
   errorDetails?: string;
+  retryLabel?: string;
 }
 
 export function ErrorDialog({
@@ -32,6 +33,7 @@ export function ErrorDialog({
   onRetry,
   onClose,
   errorDetails,
+  retryLabel,
 }: ErrorDialogProps) {
   const isError = severity === 'error';
   const IconComponent = isError ? XCircle : AlertTriangle;
@@ -103,7 +105,7 @@ export function ErrorDialog({
               onClick={onRetry}
               className="bg-primary hover:bg-primary/90"
             >
-              Réessayer
+              {retryLabel ?? 'Réessayer'}
             </AlertDialogAction>
           )}
         </AlertDialogFooter>

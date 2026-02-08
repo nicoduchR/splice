@@ -156,7 +156,7 @@ export function getErrorWithGuidance(error: string): ErrorGuidance {
   }
 
   // --- Export errors ---
-  if (lower.includes('no space left') || lower.includes('disk full') || lower.includes('not enough space') || lower.includes('espace insuffisant')) {
+  if (lower.includes('no space left') || lower.includes('disk full') || lower.includes('not enough space') || lower.includes('espace insuffisant') || lower.includes('enospc')) {
     return {
       title: 'Espace disque insuffisant',
       description: 'Il n\'y a pas assez d\'espace disque pour terminer l\'opération.',
@@ -258,6 +258,10 @@ export function getImportErrorMessage(error: string): string {
 
   if (error.includes('FFMPEG_NOT_AVAILABLE') || error.includes('FfmpegNotAvailable')) {
     return 'Erreur système: FFmpeg introuvable. Veuillez réinstaller l\'application.';
+  }
+
+  if (error.toLowerCase().includes('no space left') || error.toLowerCase().includes('disk full') || error.toLowerCase().includes('enospc')) {
+    return 'Espace disque insuffisant. Libérez de l\'espace et réessayez.';
   }
 
   return 'Impossible d\'importer la vidéo. Réessayez.';

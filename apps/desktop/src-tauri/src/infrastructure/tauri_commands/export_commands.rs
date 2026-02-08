@@ -277,6 +277,7 @@ pub async fn export_video<R: tauri::Runtime>(
     let quality_str = quality.to_string();
     let video_repo = app_state.video_repository.clone();
     let cut_repo = app_state.cut_repository.clone();
+    let temp_dir = app_state.resolve_temp_dir();
     let project_id_progress = project_id.clone();
     let app_handle_progress = app_handle.clone();
 
@@ -311,6 +312,7 @@ pub async fn export_video<R: tauri::Runtime>(
             },
             &video_repo,
             &cut_repo,
+            &temp_dir,
         )
         .map(|p| p.to_string_lossy().to_string())
         .map_err(|e| e.to_string())

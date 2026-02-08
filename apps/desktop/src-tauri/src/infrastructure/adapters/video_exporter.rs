@@ -107,6 +107,7 @@ impl VideoExporter {
         // Parse stderr for progress and support cancellation during execution
         let start_time = Instant::now();
         let mut last_emit = Instant::now() - std::time::Duration::from_secs(1); // ensure first emit
+        let mut last_stderr_lines: Vec<String> = Vec::new();
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
@@ -128,6 +129,11 @@ impl VideoExporter {
                             on_progress(info);
                             last_emit = Instant::now();
                         }
+                    }
+                    // Keep last 5 stderr lines for error diagnosis
+                    last_stderr_lines.push(line);
+                    if last_stderr_lines.len() > 5 {
+                        last_stderr_lines.remove(0);
                     }
                 }
             }
@@ -154,9 +160,10 @@ impl VideoExporter {
         } else {
             // Clean up partial output file on failure
             let _ = std::fs::remove_file(output_path);
-            error!(event = "export_copy_ffmpeg_failed", code = ?status.code());
+            let stderr_tail = last_stderr_lines.join("\n");
+            error!(event = "export_copy_ffmpeg_failed", code = ?status.code(), stderr = %stderr_tail);
             Err(DomainError::ProcessingError(
-                format!("FFmpeg export copy a échoué (code: {:?})", status.code()),
+                format!("FFmpeg export copy a échoué (code: {:?}): {}", status.code(), stderr_tail),
             ))
         }
     }
@@ -247,6 +254,7 @@ impl VideoExporter {
         // Parse stderr for progress
         let start_time = Instant::now();
         let mut last_emit = Instant::now() - std::time::Duration::from_secs(1);
+        let mut last_stderr_lines: Vec<String> = Vec::new();
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
@@ -267,6 +275,11 @@ impl VideoExporter {
                             on_progress(info);
                             last_emit = Instant::now();
                         }
+                    }
+                    // Keep last 5 stderr lines for error diagnosis
+                    last_stderr_lines.push(line);
+                    if last_stderr_lines.len() > 5 {
+                        last_stderr_lines.remove(0);
                     }
                 }
             }
@@ -293,9 +306,10 @@ impl VideoExporter {
         } else {
             // Clean up partial output file on failure
             let _ = std::fs::remove_file(output_path);
-            error!(event = "export_reencode_ffmpeg_failed", code = ?status.code());
+            let stderr_tail = last_stderr_lines.join("\n");
+            error!(event = "export_reencode_ffmpeg_failed", code = ?status.code(), stderr = %stderr_tail);
             Err(DomainError::ProcessingError(
-                format!("FFmpeg export ré-encodage a échoué (code: {:?})", status.code()),
+                format!("FFmpeg export ré-encodage a échoué (code: {:?}): {}", status.code(), stderr_tail),
             ))
         }
     }

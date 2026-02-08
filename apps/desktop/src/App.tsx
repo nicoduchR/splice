@@ -42,6 +42,9 @@ type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor' | 'pre
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
   const loadAllProjects = useVideoStore(s => s.loadAllProjects);
+  const diskSpaceWarning = useVideoStore(s => s.diskSpaceWarning);
+  const dismissDiskSpaceWarning = useVideoStore(s => s.dismissDiskSpaceWarning);
+  const continueDespiteWarning = useVideoStore(s => s.continueDespiteWarning);
   const [showComponentsDemo, setShowComponentsDemo] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
 
@@ -79,6 +82,8 @@ function App() {
   const closeExportBlockedDialog = useExportStore(s => s.closeExportBlockedDialog);
   const isUpgrading = useExportStore(s => s.isUpgrading);
   const startUpgradeFlow = useExportStore(s => s.startUpgradeFlow);
+  const exportDiskSpaceError = useExportStore(s => s.exportDiskSpaceError);
+  const dismissExportDiskSpaceError = useExportStore(s => s.dismissExportDiskSpaceError);
 
   // Early adopter dialog state
   const [showEarlyAdopterDialog, setShowEarlyAdopterDialog] = useState(false);
@@ -706,6 +711,34 @@ function App() {
       {/* Export Dialog */}
       <ExportDialog />
 
+      {/* Export Disk Space Error Dialog - Story 9.4: Blocking error when insufficient space */}
+      {exportDiskSpaceError && (
+        <ErrorDialog
+          isOpen={true}
+          severity="error"
+          title="Espace disque insuffisant"
+          description={`Votre disque dispose de ${exportDiskSpaceError.availableGb.toFixed(1)} GB libres. L'export nécessite ~${exportDiskSpaceError.requiredGb.toFixed(1)} GB.`}
+          suggestedActions={[
+            'Libérez de l\'espace disque ou choisissez un emplacement différent.',
+          ]}
+          onRetry={async () => {
+            try {
+              const { open } = await import('@tauri-apps/plugin-dialog');
+              const selected = await open({ directory: true, title: 'Choisir le répertoire d\'export' });
+              if (selected && currentProject) {
+                useExportStore.getState().updateSettings({ outputPath: selected as string });
+                dismissExportDiskSpaceError();
+                useExportStore.getState().startExport(currentProject.id);
+              }
+            } catch {
+              // Dialog cancelled or error — do nothing
+            }
+          }}
+          retryLabel="Changer le répertoire"
+          onClose={dismissExportDiskSpaceError}
+        />
+      )}
+
       {/* Export Blocked Dialog for freemium users */}
       <ExportBlockedDialog
         isOpen={showExportBlockedDialog}
@@ -741,6 +774,22 @@ function App() {
           clearActivationError();
         }}
       />
+
+      {/* Disk Space Warning Dialog - Story 9.4: Warning before import when low disk space */}
+      {diskSpaceWarning && (
+        <ErrorDialog
+          isOpen={true}
+          severity="warning"
+          title="Espace disque faible"
+          description={`Votre disque dispose de ${diskSpaceWarning.availableGb.toFixed(1)} GB libres. Cette vidéo nécessite ~${diskSpaceWarning.requiredGb.toFixed(1)} GB pour le traitement.`}
+          suggestedActions={[
+            'Libérez de l\'espace ou choisissez une vidéo plus petite.',
+          ]}
+          onRetry={continueDespiteWarning}
+          retryLabel="Continuer quand même"
+          onClose={dismissDiskSpaceWarning}
+        />
+      )}
 
       {/* Transcription Error Dialog - Story 9.3: Unified ErrorDialog with guidance */}
       {currentProject && transcriptionError && (() => {

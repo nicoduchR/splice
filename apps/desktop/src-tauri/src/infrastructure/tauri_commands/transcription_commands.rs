@@ -69,11 +69,8 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         return Err(format!("Le chemin n'est pas un fichier valide: {}", video_path));
     }
 
-    // Create temp directory for audio extraction
-    let temp_dir = dirs::home_dir()
-        .ok_or("Impossible de trouver le répertoire home")?
-        .join(".splice")
-        .join("temp");
+    // Create temp directory for audio extraction (uses configured preference)
+    let temp_dir = app_state.resolve_temp_dir();
 
     std::fs::create_dir_all(&temp_dir).map_err(|e| {
         format!("Erreur lors de la création du répertoire temporaire: {}", e)
@@ -392,13 +389,9 @@ pub async fn cancel_transcription(
     Ok(())
 }
 
-/// Clean up old temporary audio files on app startup
-pub fn cleanup_temp_directory() {
-    let temp_dir = match dirs::home_dir() {
-        Some(home) => home.join(".splice").join("temp"),
-        None => return,
-    };
-
+/// Clean up old temporary audio files on app startup.
+/// Takes the resolved temp directory path (from AppState::resolve_temp_dir).
+pub fn cleanup_temp_directory(temp_dir: &std::path::Path) {
     if !temp_dir.exists() {
         return;
     }

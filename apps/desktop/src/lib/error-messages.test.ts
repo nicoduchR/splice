@@ -56,6 +56,18 @@ describe('getImportErrorMessage', () => {
     );
   });
 
+  it('maps disk full error correctly', () => {
+    const error = 'ProcessingError("FFmpeg failed: No space left on device")';
+    const message = getImportErrorMessage(error);
+    expect(message).toBe("Espace disque insuffisant. Libérez de l'espace et réessayez.");
+  });
+
+  it('maps ENOSPC error correctly', () => {
+    const error = 'ProcessingError("ENOSPC: no space")';
+    const message = getImportErrorMessage(error);
+    expect(message).toBe("Espace disque insuffisant. Libérez de l'espace et réessayez.");
+  });
+
   it('returns generic error for unknown errors', () => {
     const error = 'UnknownError("Something went wrong")';
     const message = getImportErrorMessage(error);
@@ -178,6 +190,23 @@ describe('getErrorWithGuidance (Story 9.3 AC #1, #2, #3)', () => {
   it('returns guidance for disk space error', () => {
     const result = getErrorWithGuidance('No space left on device');
     expect(result.suggestedActions.some((a) => a.includes('espace') || a.includes('disque'))).toBe(true);
+  });
+
+  it('returns guidance for FFmpeg disk full error with stderr', () => {
+    const result = getErrorWithGuidance('FFmpeg export copy a échoué (code: Some(1)): Error writing output: No space left on device');
+    expect(result.title).toBe('Espace disque insuffisant');
+    expect(result.retryable).toBe(true);
+  });
+
+  it('returns guidance for disk full keyword', () => {
+    const result = getErrorWithGuidance('disk full error during write');
+    expect(result.title).toBe('Espace disque insuffisant');
+  });
+
+  it('returns guidance for ENOSPC error', () => {
+    const result = getErrorWithGuidance('ProcessingError("ENOSPC: no space")');
+    expect(result.title).toBe('Espace disque insuffisant');
+    expect(result.retryable).toBe(true);
   });
 
   it('returns guidance for file in use error', () => {

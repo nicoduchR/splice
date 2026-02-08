@@ -62,13 +62,10 @@ pub async fn prepare_preview<R: tauri::Runtime>(
         return Err("Aucun cut trouvé. Générez d'abord les cuts.".to_string());
     }
 
-    // Discover actual segment files from the temp directory
+    // Discover actual segment files from the temp directory (uses configured preference)
     let home_dir = dirs::home_dir()
         .ok_or("Impossible de trouver le répertoire home")?;
-    let temp_dir = home_dir
-        .join(".splice")
-        .join("temp")
-        .join(&project_id);
+    let temp_dir = app_state.resolve_temp_dir().join(&project_id);
 
     // Glob for actual segment files instead of reconstructing paths from cuts count
     let mut segment_paths: Vec<String> = Vec::new();

@@ -2,9 +2,9 @@ use sqlx::SqlitePool;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::collections::HashMap;
-use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository, ProjectStateRepository};
+use crate::domain::repositories::{VideoRepository, TranscriptRepository, SelectionRepository, CutRepository, ProjectStateRepository, PreferencesRepository};
 use crate::domain::entities::{UpdateInfo, UpdateStatus, DownloadProgress, CrashTracker};
-use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository, SqliteProjectStateRepository};
+use crate::infrastructure::adapters::{SqliteVideoRepository, SqliteTranscriptRepository, SqliteSelectionRepository, SqliteCutRepository, SqliteProjectStateRepository, SqlitePreferencesRepository};
 
 /// State for tracking update operations
 #[derive(Debug, Clone, Default)]
@@ -25,6 +25,7 @@ pub struct AppState {
     pub selection_repository: Arc<dyn SelectionRepository>,
     pub cut_repository: Arc<dyn CutRepository>,
     pub project_state_repository: Arc<dyn ProjectStateRepository>,
+    pub preferences_repository: Arc<dyn PreferencesRepository>,
     /// Cancellation flags for ongoing transcriptions (video_id -> cancel_flag)
     pub transcription_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     /// Cancellation flags for ongoing segmentations (project_id -> cancel_flag)
@@ -56,6 +57,9 @@ impl AppState {
         let project_state_repository: Arc<dyn ProjectStateRepository> =
             Arc::new(SqliteProjectStateRepository::new(db_pool.clone()));
 
+        let preferences_repository: Arc<dyn PreferencesRepository> =
+            Arc::new(SqlitePreferencesRepository::new(db_pool.clone()));
+
         Self {
             db_pool,
             video_repository,
@@ -63,6 +67,7 @@ impl AppState {
             selection_repository,
             cut_repository,
             project_state_repository,
+            preferences_repository,
             transcription_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             segmentation_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             export_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
@@ -117,5 +122,21 @@ impl AppState {
     pub fn get_install_on_quit(&self) -> bool {
         let update_state = self.update_state.lock().unwrap();
         update_state.install_on_quit
+    }
+
+    /// Resolve the temp directory from user preferences.
+    /// Falls back to the default `~/.splice/temp/` if no custom directory is set.
+    pub fn resolve_temp_dir(&self) -> std::path::PathBuf {
+        if let Ok(Some(custom_dir)) = self.preferences_repository.get("temp_directory") {
+            if !custom_dir.is_empty() {
+                let path = std::path::PathBuf::from(&custom_dir);
+                let _ = std::fs::create_dir_all(&path);
+                return path;
+            }
+        }
+        dirs::home_dir()
+            .unwrap_or_default()
+            .join(".splice")
+            .join("temp")
     }
 }

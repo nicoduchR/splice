@@ -63,12 +63,8 @@ pub async fn segment_video<R: tauri::Runtime>(
         flags.insert(project_id.clone(), cancel_flag.clone());
     }
 
-    // Build output directory: ~/.splice/temp/{project_id}/
-    let output_dir = dirs::home_dir()
-        .ok_or("Impossible de trouver le répertoire home")?
-        .join(".splice")
-        .join("temp")
-        .join(&project_id);
+    // Build output directory: {temp_dir}/{project_id}/ (uses configured preference)
+    let output_dir = app_state.resolve_temp_dir().join(&project_id);
 
     // Compute and emit stats before starting
     let final_duration_secs: f64 = cuts.iter().map(|c| c.end_time - c.start_time).sum();
@@ -188,13 +184,9 @@ pub async fn segment_video<R: tauri::Runtime>(
 
                     match concat_result {
                         Ok(final_path) => {
-                            // Clean up temp segments
-                            let temp_dir = dirs::home_dir()
-                                .unwrap()
-                                .join(".splice")
-                                .join("temp")
-                                .join(&project_id_validate);
-                            VideoSegmenter::cleanup_segments(&temp_dir);
+                            // Clean up temp segments (re-resolve since output_dir was moved)
+                            let cleanup_dir = app_state.resolve_temp_dir().join(&project_id_validate);
+                            VideoSegmenter::cleanup_segments(&cleanup_dir);
 
                             Ok(vec![final_path.to_string_lossy().to_string()])
                         }
@@ -263,17 +255,14 @@ pub async fn cancel_segmentation(
 #[tauri::command]
 pub async fn cleanup_segments(
     project_id: String,
+    app_state: State<'_, AppState>,
 ) -> Result<(), String> {
     tracing::info!(
         event = "cleanup_segments_command",
         project_id = %project_id,
     );
 
-    let output_dir = dirs::home_dir()
-        .ok_or("Impossible de trouver le répertoire home")?
-        .join(".splice")
-        .join("temp")
-        .join(&project_id);
+    let output_dir = app_state.resolve_temp_dir().join(&project_id);
 
     VideoSegmenter::cleanup_segments(&output_dir);
     Ok(())

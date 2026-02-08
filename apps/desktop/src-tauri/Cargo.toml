@@ -41,6 +41,7 @@ async-trait = "0.1"
 hf-hub = { version = "0.3", features = ["tokio"] }
 futures-util = "0.3"
 backoff = { version = "0.4", features = ["tokio"] }
+fs2 = "0.4"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
 # Platform-specific secure credential storage (Story 7.2)
