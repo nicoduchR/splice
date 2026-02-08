@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import type { Transcript, TranscriptWord } from '@splice/types';
+import { sanitizeErrorForUser } from '../lib/error-messages';
+import { logError, logWarn } from '../lib/logger';
 
 interface TranscriptionProgress {
   video_id: string;
@@ -332,9 +334,9 @@ export const useTranscriptStore = create<TranscriptStore>()(
         } catch (error) {
           // Erreur d'invocation (pas d'erreur de transcription)
           // Les erreurs de transcription sont gérées via événement
-          console.error('Failed to invoke transcribe_video:', error);
+          logError('TranscriptStore.startTranscription', error);
           set({
-            error: error as string,
+            error: sanitizeErrorForUser(String(error)),
             isTranscribing: false,
           });
         }
@@ -373,7 +375,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
             },
           });
         } catch (error) {
-          console.error('Failed to cancel transcription:', error);
+          logError('TranscriptStore.cancelTranscription', error);
         }
       },
 
@@ -426,9 +428,9 @@ export const useTranscriptStore = create<TranscriptStore>()(
             error: null,
           });
         } catch (error) {
-
+          logError('TranscriptStore.completeTranscription', error);
           set({
-            error: error as string,
+            error: sanitizeErrorForUser(String(error)),
             isTranscribing: false,
           });
           throw error;
@@ -489,7 +491,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           set({ transcript, isLoading: false, error: null });
         } catch (error) {
 
-          set({ error: error.toString(), isLoading: false, transcript: null });
+          set({ error: sanitizeErrorForUser(String(error)), isLoading: false, transcript: null });
         }
       },
 
@@ -539,7 +541,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
             canRedo: false,
           });
         } catch (error) {
-          console.error('Failed to load selections:', error);
+          logWarn('TranscriptStore.loadSelections', String(error));
         }
       },
 
@@ -563,7 +565,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           });
           set({ _selectionsDirty: false });
         } catch (error) {
-          console.error('Failed to save selections:', error);
+          logWarn('TranscriptStore.saveSelections', String(error));
         }
       },
 

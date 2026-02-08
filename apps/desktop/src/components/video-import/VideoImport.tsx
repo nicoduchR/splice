@@ -1,10 +1,11 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { DropZone } from './DropZone';
-import { ErrorDialog } from './ErrorDialog';
+import { ErrorDialog } from '@/components/error';
 import { useVideoStore } from '@/stores/video-store';
 import { toast } from 'sonner';
-import { getImportErrorMessage } from '@/lib/error-messages';
+import { getErrorWithGuidance, sanitizeErrorForUser } from '@/lib/error-messages';
+import { logError } from '@/lib/logger';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +50,7 @@ export function VideoImport({ className }: VideoImportProps) {
     } catch (err) {
       setValidatingFilePath(null);
       // Error dialog will be shown automatically via useEffect
-      console.error('Import error:', err);
+      logError('VideoImport.performImport', err);
     }
   }, [importVideo]);
 
@@ -74,7 +75,7 @@ export function VideoImport({ className }: VideoImportProps) {
         await performImport(selected);
       }
     } catch (err) {
-      console.error('File picker error:', err);
+      logError('VideoImport.handleBrowseFiles', err);
       toast.error('Impossible d\'ouvrir le sélecteur de fichiers');
     }
   }, [currentProject, performImport]);
@@ -129,13 +130,22 @@ export function VideoImport({ className }: VideoImportProps) {
         />
       </div>
 
-      {/* Error Dialog - Story 1.5 */}
-      <ErrorDialog
-        isOpen={showErrorDialog}
-        errorMessage={error ? getImportErrorMessage(error) : ''}
-        onRetry={handleRetryError}
-        onCancel={handleCancelError}
-      />
+      {/* Error Dialog - Story 9.3: Unified ErrorDialog with guidance */}
+      {error && (() => {
+        const guidance = getErrorWithGuidance(error);
+        return (
+          <ErrorDialog
+            isOpen={showErrorDialog}
+            severity={guidance.severity}
+            title={guidance.title}
+            description={guidance.description}
+            suggestedActions={guidance.suggestedActions}
+            onRetry={guidance.retryable ? handleRetryError : undefined}
+            onClose={handleCancelError}
+            errorDetails={sanitizeErrorForUser(error)}
+          />
+        );
+      })()}
 
       {/* Replace Dialog */}
       <AlertDialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>

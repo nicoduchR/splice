@@ -7,7 +7,7 @@ mod application;
 mod infrastructure;
 
 use infrastructure::config::{database, app_state::AppState};
-use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands, project_state_commands};
+use infrastructure::tauri_commands::{video_commands, license_commands, model_commands, transcription_commands, selection_commands, proxy_commands, cut_commands, segmentation_commands, preview_commands, export_commands, update_commands, rollback_commands, project_state_commands, logging_commands};
 use domain::entities::CrashTracker;
 use application::use_cases::{BackupCurrentVersionUseCase, RestoreBackupUseCase};
 use tauri::Emitter;
@@ -303,6 +303,7 @@ async fn main() {
             project_state_commands::load_project_state,
             project_state_commands::mark_clean_shutdown,
             project_state_commands::check_dirty_shutdown,
+            logging_commands::log_frontend_error,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {

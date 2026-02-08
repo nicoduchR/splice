@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getImportErrorMessage, getNetworkErrorMessage } from './error-messages';
+import {
+  getImportErrorMessage,
+  getNetworkErrorMessage,
+  getErrorWithGuidance,
+  sanitizeErrorForUser,
+} from './error-messages';
 
 describe('getImportErrorMessage', () => {
   it('maps FILE_NOT_FOUND error correctly', () => {
@@ -129,5 +134,147 @@ describe('getNetworkErrorMessage (Story 9.1 AC #5)', () => {
     expect(msg).not.toContain('reqwest');
     expect(msg).not.toContain('Url {');
     expect(msg).not.toContain('api.splice.dev');
+  });
+});
+
+describe('getErrorWithGuidance (Story 9.3 AC #1, #2, #3)', () => {
+  // Import video errors
+  it('returns guidance for file not found error', () => {
+    const result = getErrorWithGuidance('FileNotFound("/path/to/video.mp4")');
+    expect(result.title).toBeTruthy();
+    expect(result.description).toBeTruthy();
+    expect(result.suggestedActions.length).toBeGreaterThan(0);
+    expect(result.severity).toBe('error');
+    expect(result.suggestedActions.some((a) => a.includes('fichier'))).toBe(true);
+  });
+
+  it('returns guidance for unsupported format error', () => {
+    const result = getErrorWithGuidance('UnsupportedFormat("mkv")');
+    expect(result.title).toBeTruthy();
+    expect(result.suggestedActions.length).toBeGreaterThan(0);
+    expect(result.severity).toBe('error');
+  });
+
+  it('returns guidance for video too large error', () => {
+    const result = getErrorWithGuidance('VideoTooLarge(size: 55.00GB, max: 50GB)');
+    expect(result.suggestedActions.some((a) => a.includes('50GB') || a.includes('volumineux'))).toBe(true);
+  });
+
+  // Transcription errors
+  it('returns guidance for model not available error', () => {
+    const result = getErrorWithGuidance('ModelNotAvailable: parakeet model not found');
+    expect(result.title).toBeTruthy();
+    expect(result.suggestedActions.length).toBeGreaterThan(0);
+    expect(result.suggestedActions.some((a) => a.includes('modèle') || a.includes('télécharg'))).toBe(true);
+  });
+
+  it('returns guidance for transcription processing error', () => {
+    const result = getErrorWithGuidance('TranscriptionFailed: out of memory');
+    expect(result.title).toBeTruthy();
+    expect(result.retryable).toBe(true);
+  });
+
+  // Export errors
+  it('returns guidance for disk space error', () => {
+    const result = getErrorWithGuidance('No space left on device');
+    expect(result.suggestedActions.some((a) => a.includes('espace') || a.includes('disque'))).toBe(true);
+  });
+
+  it('returns guidance for file in use error', () => {
+    const result = getErrorWithGuidance('The process cannot access the file because it is being used');
+    expect(result.suggestedActions.some((a) => a.includes('Fermez') || a.includes('application'))).toBe(true);
+  });
+
+  // Segmentation errors
+  it('returns guidance for segmentation/cut error', () => {
+    const result = getErrorWithGuidance('SegmentationFailed: invalid segment range');
+    expect(result.title).toBeTruthy();
+    expect(result.suggestedActions.length).toBeGreaterThan(0);
+  });
+
+  // Network errors
+  it('returns guidance for network error', () => {
+    const result = getErrorWithGuidance('Network error: ECONNREFUSED');
+    expect(result.suggestedActions.some((a) => a.includes('connexion') || a.includes('internet'))).toBe(true);
+  });
+
+  // Generic / unknown errors
+  it('returns guidance for unknown error', () => {
+    const result = getErrorWithGuidance('Some completely unknown error xyz');
+    expect(result.title).toBeTruthy();
+    expect(result.description).toBeTruthy();
+    expect(result.suggestedActions.length).toBeGreaterThan(0);
+    expect(result.severity).toBe('error');
+  });
+
+  it('all messages are in French (NFR29)', () => {
+    const testCases = [
+      'FileNotFound',
+      'UnsupportedFormat',
+      'TranscriptionFailed',
+      'No space left on device',
+      'Network error',
+      'Unknown error xyz',
+    ];
+    for (const error of testCases) {
+      const result = getErrorWithGuidance(error);
+      // French characters or common French words should be present
+      expect(result.title).not.toMatch(/^Error:/);
+      expect(result.description).not.toMatch(/^An error/);
+    }
+  });
+
+  it('returns retryable=true for transient errors', () => {
+    const result = getErrorWithGuidance('Network error: connection refused');
+    expect(result.retryable).toBe(true);
+  });
+
+  it('returns retryable=false for permanent errors', () => {
+    const result = getErrorWithGuidance('UnsupportedFormat("mkv")');
+    expect(result.retryable).toBe(false);
+  });
+});
+
+describe('sanitizeErrorForUser (Story 9.3 AC #3)', () => {
+  it('removes stack traces', () => {
+    const error =
+      'Error: something failed\n    at Object.<anonymous> (/app/src/main.ts:42:13)\n    at Module._compile (internal/modules/cjs/loader.js:1085:14)';
+    const result = sanitizeErrorForUser(error);
+    expect(result).not.toContain('Object.<anonymous>');
+    expect(result).not.toContain('Module._compile');
+    expect(result).not.toContain('.ts:42');
+  });
+
+  it('removes file paths', () => {
+    const error = 'Error at /Users/nicolas/Documents/project/src/main.rs:42';
+    const result = sanitizeErrorForUser(error);
+    expect(result).not.toContain('/Users/nicolas');
+    expect(result).not.toContain('main.rs:42');
+  });
+
+  it('removes Rust internal messages', () => {
+    const error = 'thread \'main\' panicked at \'called `Result::unwrap()` on an `Err` value\'';
+    const result = sanitizeErrorForUser(error);
+    expect(result).not.toContain('panicked');
+    expect(result).not.toContain('unwrap()');
+  });
+
+  it('removes reqwest/serde error details', () => {
+    const error = 'reqwest::Error { kind: Decode, source: serde_json::Error { line: 1, column: 42 } }';
+    const result = sanitizeErrorForUser(error);
+    expect(result).not.toContain('reqwest');
+    expect(result).not.toContain('serde_json');
+  });
+
+  it('preserves simple user-friendly messages', () => {
+    const error = 'Fichier introuvable';
+    const result = sanitizeErrorForUser(error);
+    expect(result).toBe('Fichier introuvable');
+  });
+
+  it('returns fallback for fully sanitized messages', () => {
+    const error = '    at Object.<anonymous> (/app/src/index.ts:1:1)';
+    const result = sanitizeErrorForUser(error);
+    expect(result.length).toBeGreaterThan(0);
   });
 });

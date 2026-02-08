@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
+import { sanitizeErrorForUser, getErrorWithGuidance } from '../lib/error-messages';
+import { logError } from '../lib/logger';
 import type { SegmentationProgress } from '@splice/types/generated';
 
 export interface ValidationProgress {
@@ -79,10 +81,11 @@ export const useSegmentationStore = create<SegmentationStore>()(
           // Step 2: Segment video using the generated cuts
           await invoke('segment_video', { projectId });
         } catch (e) {
-          const errorMsg = String(e);
+          const errorMsg = sanitizeErrorForUser(String(e));
+          const guidance = getErrorWithGuidance(String(e));
           set({ error: errorMsg, isSegmenting: false });
-          toast.error('Erreur lors de la génération des cuts', {
-            description: errorMsg,
+          toast.error(guidance.title, {
+            description: guidance.description,
           });
         }
       },
@@ -92,7 +95,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
           await invoke('cancel_segmentation', { projectId });
           set({ isSegmenting: false, segmentationProgress: null, error: null });
         } catch (e) {
-          console.error('Failed to cancel segmentation:', e);
+          logError('SegmentationStore.cancelSegmentation', e);
           set({ error: String(e), isSegmenting: false, segmentationProgress: null });
         }
       },
@@ -137,7 +140,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
             set({ previewPath, isPreparingPreview: false });
           }
         } catch (e) {
-          const errorMsg = String(e);
+          const errorMsg = sanitizeErrorForUser(String(e));
           set({ previewError: errorMsg, isPreparingPreview: false });
           toast.error('Erreur lors de la préparation du preview', {
             description: errorMsg,

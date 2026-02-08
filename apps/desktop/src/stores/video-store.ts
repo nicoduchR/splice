@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { VideoProject } from '@splice/types/generated';
 import { toast } from 'sonner';
 import { listen } from '@tauri-apps/api/event';
-import { getImportErrorMessage } from '../lib/error-messages';
+import { getImportErrorMessage, sanitizeErrorForUser } from '../lib/error-messages';
 
 // Interface du store avec state + actions
 interface VideoStore {
@@ -86,7 +86,7 @@ export const useVideoStore = create<VideoStore>()(
             description,
           });
         } catch (e) {
-          const errorMessage = String(e);
+          const errorMessage = sanitizeErrorForUser(String(e));
 
           set({
             error: errorMessage,
@@ -96,7 +96,7 @@ export const useVideoStore = create<VideoStore>()(
 
           // Display error toast with French user-friendly message (NFR29)
           toast.error('Erreur d\'importation', {
-            description: getImportErrorMessage(errorMessage),
+            description: getImportErrorMessage(String(e)),
           });
         }
       },

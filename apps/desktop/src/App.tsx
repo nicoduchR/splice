@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
 import { ModelDownloadDialog } from './components/model-download';
-import { TranscriptionProgressDialog, TranscriptionErrorDialog, TranscriptionScreen } from './components/transcription';
+import { TranscriptionProgressDialog, TranscriptionScreen } from './components/transcription';
+import { ErrorDialog } from './components/error';
 import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcript';
 import { VideoPlayer, KeyboardShortcutsBar } from './components/video';
 import { useModelDownload } from './hooks/use-model-download';
@@ -24,6 +25,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
+import { getErrorWithGuidance, sanitizeErrorForUser } from './lib/error-messages';
+import { logError } from './lib/logger';
 import { useExportStore } from './stores/export-store';
 import { SegmentationProgressDialog } from './components/segmentation';
 import { ExportDialog } from './components/export';
@@ -156,7 +159,7 @@ function App() {
         }
       })
       .catch((e) => {
-        console.error('Failed to check dirty shutdown:', e);
+        logError('App.checkDirtyShutdown', e);
       });
   }, []);
 
@@ -274,9 +277,9 @@ function App() {
               duration: 5000,
             });
           } catch (error) {
-            console.error('Failed to save transcript:', error);
+            logError('App.transcription:completed', error);
             toast.error('Erreur lors de la sauvegarde du transcript', {
-              description: error as string,
+              description: sanitizeErrorForUser(String(error)),
             });
           }
         }
@@ -286,7 +289,7 @@ function App() {
       unlistenError = await listen<{ message: string }>(
         'transcription:error',
         (event) => {
-          console.error('Transcription error:', event.payload.message);
+          logError('App.transcription:error', event.payload.message);
 
           // Show error dialog instead of toast
           setTranscriptionError(event.payload.message);
@@ -373,15 +376,16 @@ function App() {
       unlistenError = await listen<{ project_id: string; error: string }>(
         'segmentation:error',
         (event) => {
+          const segGuidance = getErrorWithGuidance(event.payload.error);
           useSegmentationStore.setState({
             isSegmenting: false,
             segmentationProgress: null,
             isValidating: false,
             validationProgress: null,
-            error: event.payload.error,
+            error: sanitizeErrorForUser(event.payload.error),
           });
-          toast.error('Erreur lors de la génération des cuts', {
-            description: event.payload.error,
+          toast.error(segGuidance.title, {
+            description: segGuidance.description + ' ' + segGuidance.suggestedActions[0],
           });
         }
       );
@@ -738,19 +742,25 @@ function App() {
         }}
       />
 
-      {/* Transcription Error Dialog - shown as overlay on any screen */}
-      {currentProject && (
-        <TranscriptionErrorDialog
-          isOpen={!!transcriptionError}
-          errorMessage={transcriptionError || ''}
-          onRetry={() => {
-            setTranscriptionError(null);
-            // Retry transcription with same video
-            startTranscription(currentProject.id, currentProject.file_path, currentProject.id);
-          }}
-          onClose={() => setTranscriptionError(null)}
-        />
-      )}
+      {/* Transcription Error Dialog - Story 9.3: Unified ErrorDialog with guidance */}
+      {currentProject && transcriptionError && (() => {
+        const guidance = getErrorWithGuidance(transcriptionError);
+        return (
+          <ErrorDialog
+            isOpen={true}
+            severity={guidance.severity}
+            title={guidance.title}
+            description={guidance.description}
+            suggestedActions={guidance.suggestedActions}
+            onRetry={guidance.retryable ? () => {
+              setTranscriptionError(null);
+              startTranscription(currentProject.id, currentProject.file_path, currentProject.id);
+            } : undefined}
+            onClose={() => setTranscriptionError(null)}
+            errorDetails={sanitizeErrorForUser(transcriptionError)}
+          />
+        );
+      })()}
 
       {/* Crash Recovery Dialog - shown on dirty shutdown (Story 9.2) */}
       <CrashRecoveryDialog
@@ -812,7 +822,7 @@ function App() {
 
             setShowCrashRecovery(false);
           } catch (e) {
-            console.error('Recovery failed:', e);
+            logError('App.crashRecovery', e);
             toast.error('La récupération a échoué');
           } finally {
             setIsRecovering(false);
