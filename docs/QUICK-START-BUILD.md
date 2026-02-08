@@ -17,14 +17,24 @@ rustup target add aarch64-apple-darwin
 
 # 2. S'assurer que Rust est dans le PATH
 source $HOME/.cargo/env
+
+# 3. Clés de signature pour l'auto-update (voir docs/UPDATER-SIGNING-KEYS.md)
+#    Générer les clés si pas encore fait:
+#    cd apps/desktop && pnpm tauri signer generate -w ~/.tauri/splicely.key
 ```
 
 ### Build en Une Commande
 
 ```bash
+# Charger la clé de signature pour l'auto-update
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/splicely.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="ton_mot_de_passe"
+
 # Depuis la racine du projet
 ./scripts/build-macos.sh
 ```
+
+> **Astuce:** Ajoute les deux `export` dans ton `~/.zshrc` pour ne pas les retaper à chaque build.
 
 **Durée:** 5-10 minutes la première fois, 2-3 minutes ensuite
 
@@ -123,6 +133,19 @@ chmod +x ffmpeg-universal-apple-darwin ffprobe-universal-apple-darwin
 cd ../../../..
 ./scripts/build-macos.sh
 ```
+
+### Erreur: "A public key has been found, but no private key"
+
+**Solution:** La clé de signature n'est pas chargée dans le terminal.
+```bash
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/splicely.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="ton_mot_de_passe"
+./scripts/build-macos.sh
+```
+
+### Erreur: "failed to decode pubkey: Invalid symbol"
+
+**Solution:** La clé publique dans `tauri.conf.json` contient un caractère parasite (souvent un `%` ajouté par le terminal au copier-coller). Ouvre `apps/desktop/src-tauri/tauri.conf.json` et vérifie que la valeur `pubkey` ne contient que des caractères base64 (lettres, chiffres, `+`, `/`, `=`).
 
 ### Build très lent ou bloqué
 

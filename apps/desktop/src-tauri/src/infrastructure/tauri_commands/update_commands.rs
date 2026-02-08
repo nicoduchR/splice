@@ -123,10 +123,17 @@ pub struct UpdateErrorEvent {
 /// Returns immediately with the check result.
 /// Emits `update:available` event if an update is found.
 #[tauri::command]
-pub async fn check_for_update(app: tauri::AppHandle) -> Result<UpdateStatusResponse, String> {
+pub async fn check_for_update(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<UpdateStatusResponse, String> {
     tracing::info!("Checking for updates via Tauri command");
 
     let use_case = CheckForUpdateUseCase::new();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
 
     match use_case.execute(&app).await {
         Ok(result) => {
@@ -141,17 +148,47 @@ pub async fn check_for_update(app: tauri::AppHandle) -> Result<UpdateStatusRespo
                     },
                 );
 
+                // Update app state
+                state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                    status: UpdateStatus::Available,
+                    update_info: Some(info.clone()),
+                    download_progress: None,
+                    error: None,
+                    last_check: Some(now),
+                });
+
                 tracing::info!("Update available: {}", info.version);
                 Ok(UpdateStatusResponse::available(info.clone()))
             } else if let Some(error) = result.error {
+                state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                    status: UpdateStatus::Error,
+                    update_info: None,
+                    download_progress: None,
+                    error: Some(error.clone()),
+                    last_check: Some(now),
+                });
                 tracing::warn!("Update check error: {}", error);
                 Ok(UpdateStatusResponse::error(error))
             } else {
+                state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                    status: UpdateStatus::UpToDate,
+                    update_info: None,
+                    download_progress: None,
+                    error: None,
+                    last_check: Some(now),
+                });
                 tracing::info!("Already on latest version");
                 Ok(UpdateStatusResponse::up_to_date())
             }
         }
         Err(e) => {
+            state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                status: UpdateStatus::Error,
+                update_info: None,
+                download_progress: None,
+                error: Some(e.to_string()),
+                last_check: Some(now),
+            });
             tracing::error!("Update check failed: {}", e);
             Ok(UpdateStatusResponse::error(e.to_string()))
         }
@@ -211,17 +248,34 @@ pub async fn download_update(
             if let Some(error) = download_result.error {
                 // Emit error event
                 let _ = app.emit("update:error", UpdateErrorEvent { message: error.clone() });
+                // Update state
+                state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                    status: UpdateStatus::Error,
+                    update_info: None,
+                    download_progress: None,
+                    error: Some(error.clone()),
+                    last_check: None,
+                });
                 tracing::warn!("Download error: {}", error);
                 Ok(UpdateStatusResponse::error(error))
             } else {
+                let version = download_result.version.unwrap_or_default();
                 // Emit complete event
                 let _ = app.emit(
                     "update:download-complete",
                     UpdateDownloadCompleteEvent {
-                        version: String::new(), // Version not available here
+                        version: version.clone(),
                     },
                 );
-                tracing::info!("Download complete, ready to install");
+                // Update state
+                state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                    status: UpdateStatus::Ready,
+                    update_info: None,
+                    download_progress: Some(DownloadProgress::complete(0)),
+                    error: None,
+                    last_check: None,
+                });
+                tracing::info!("Download complete, ready to install (v{})", version);
                 Ok(UpdateStatusResponse {
                     status: download_result.status,
                     update_info: None,
@@ -233,6 +287,13 @@ pub async fn download_update(
         Err(e) => {
             let error_msg = e.to_string();
             let _ = app.emit("update:error", UpdateErrorEvent { message: error_msg.clone() });
+            state.set_update_state(crate::infrastructure::config::app_state::UpdateState {
+                status: UpdateStatus::Error,
+                update_info: None,
+                download_progress: None,
+                error: Some(error_msg.clone()),
+                last_check: None,
+            });
             tracing::error!("Download failed: {}", error_msg);
             Ok(UpdateStatusResponse::error(error_msg))
         }

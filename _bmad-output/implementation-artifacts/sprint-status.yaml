@@ -103,7 +103,7 @@ development_status:
   epic-7-retrospective: optional
 
   epic-8: in-progress
-  8-1-update-check-background-download: ready-for-dev
+  8-1-update-check-background-download: review
   8-2-update-notification-installation: backlog
   8-3-rollback-update-recovery: backlog
   epic-8-retrospective: optional

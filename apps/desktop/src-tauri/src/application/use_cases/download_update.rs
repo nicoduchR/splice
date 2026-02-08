@@ -10,13 +10,15 @@ use crate::domain::errors::DomainError;
 #[derive(Debug, Clone)]
 pub struct DownloadUpdateResult {
     pub status: UpdateStatus,
+    pub version: Option<String>,
     pub error: Option<String>,
 }
 
 impl DownloadUpdateResult {
-    pub fn ready() -> Self {
+    pub fn ready(version: String) -> Self {
         Self {
             status: UpdateStatus::Ready,
+            version: Some(version),
             error: None,
         }
     }
@@ -24,6 +26,7 @@ impl DownloadUpdateResult {
     pub fn cancelled() -> Self {
         Self {
             status: UpdateStatus::Idle,
+            version: None,
             error: Some("Download cancelled".to_string()),
         }
     }
@@ -31,6 +34,7 @@ impl DownloadUpdateResult {
     pub fn error(message: String) -> Self {
         Self {
             status: UpdateStatus::Error,
+            version: None,
             error: Some(message),
         }
     }
@@ -76,7 +80,11 @@ impl DownloadUpdateUseCase {
             }
         };
 
-        // Check for update first (needed to get the update handle)
+        // Note: We must call updater.check() again here to obtain the `Update` handle
+        // required by the tauri-plugin-updater API. The `Update` object is not
+        // Clone/Send-safe across async boundaries, so it cannot be cached from the
+        // initial check. This results in a redundant HTTP request but is the only
+        // reliable approach with the current plugin API.
         let update = match updater.check().await {
             Ok(Some(update)) => update,
             Ok(None) => {
@@ -95,6 +103,7 @@ impl DownloadUpdateUseCase {
         };
 
         tracing::info!("Downloading update version: {}", update.version);
+        let version = update.version.clone();
 
         // Track download progress
         let mut downloaded: u64 = 0;
@@ -147,7 +156,7 @@ impl DownloadUpdateUseCase {
                 let final_total = total.unwrap_or(downloaded);
                 progress_callback(DownloadProgress::complete(final_total));
 
-                Ok(DownloadUpdateResult::ready())
+                Ok(DownloadUpdateResult::ready(version))
             }
             Err(e) => {
                 tracing::error!("Download failed: {}", e);
@@ -169,9 +178,10 @@ mod tests {
 
     #[test]
     fn test_download_result_ready() {
-        let result = DownloadUpdateResult::ready();
+        let result = DownloadUpdateResult::ready("1.2.0".to_string());
         assert_eq!(result.status, UpdateStatus::Ready);
         assert!(result.error.is_none());
+        assert_eq!(result.version, Some("1.2.0".to_string()));
     }
 
     #[test]

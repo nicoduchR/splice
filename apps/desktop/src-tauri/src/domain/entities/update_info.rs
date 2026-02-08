@@ -8,6 +8,10 @@ pub struct UpdateInfo {
     pub version: String,
     pub release_date: String,
     pub release_notes: String,
+    /// Download URL for the update binary.
+    /// Note: When using tauri-plugin-updater, the plugin manages downloads
+    /// internally and does not expose the URL. This field will be empty
+    /// in that context but is populated by the backend API response.
     pub download_url: String,
     pub is_mandatory: bool,
 }

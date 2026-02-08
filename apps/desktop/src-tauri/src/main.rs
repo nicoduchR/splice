@@ -36,6 +36,11 @@ async fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(app_state)
         .setup(|app| {
+            // Clone Arc-wrapped cancel flags for idle detection in periodic checks
+            let transcription_flags = app.state::<AppState>().transcription_cancel_flags.clone();
+            let export_flags = app.state::<AppState>().export_cancel_flags.clone();
+            let segmentation_flags = app.state::<AppState>().segmentation_cancel_flags.clone();
+
             // Spawn background task for startup update check
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -44,29 +49,55 @@ async fn main() {
 
                 tracing::info!("Performing startup update check...");
 
+                // Helper to emit update available event
+                let emit_update = |handle: &tauri::AppHandle, info: &crate::domain::entities::UpdateInfo| {
+                    let _ = handle.emit(
+                        "update:available",
+                        update_commands::UpdateAvailableEvent {
+                            version: info.version.clone(),
+                            release_notes: info.release_notes.clone(),
+                            is_mandatory: info.is_mandatory,
+                        },
+                    );
+                };
+
                 // Check for updates silently on startup
                 let use_case = application::use_cases::CheckForUpdateUseCase::new();
+                let mut startup_succeeded = false;
                 match use_case.execute(&app_handle).await {
                     Ok(result) => {
+                        startup_succeeded = true;
                         if let Some(ref info) = result.update_info {
                             tracing::info!("Update available on startup: {}", info.version);
-
-                            // Emit event for frontend to show update notification
-                            let _ = app_handle.emit(
-                                "update:available",
-                                update_commands::UpdateAvailableEvent {
-                                    version: info.version.clone(),
-                                    release_notes: info.release_notes.clone(),
-                                    is_mandatory: info.is_mandatory,
-                                },
-                            );
+                            emit_update(&app_handle, info);
                         } else {
                             tracing::debug!("No update available on startup");
                         }
                     }
                     Err(e) => {
-                        // Silently log errors - don't bother the user on startup
                         tracing::debug!("Startup update check failed (silent): {}", e);
+                    }
+                }
+
+                // Retry with exponential backoff if startup check failed (AC6)
+                if !startup_succeeded {
+                    let backoff_delays = [5u64, 15, 45, 120];
+                    for delay in &backoff_delays {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(*delay)).await;
+                        tracing::debug!("Retrying update check (backoff: {}s)...", delay);
+                        let use_case = application::use_cases::CheckForUpdateUseCase::new();
+                        match use_case.execute(&app_handle).await {
+                            Ok(result) => {
+                                if let Some(ref info) = result.update_info {
+                                    tracing::info!("Update found on retry: {}", info.version);
+                                    emit_update(&app_handle, info);
+                                }
+                                break; // Success, stop retrying
+                            }
+                            Err(e) => {
+                                tracing::debug!("Update retry failed ({}s backoff): {}", delay, e);
+                            }
+                        }
                     }
                 }
 
@@ -75,19 +106,23 @@ async fn main() {
                 loop {
                     tokio::time::sleep(tokio::time::Duration::from_secs(6 * 60 * 60)).await;
 
+                    // Skip if app is busy: active transcription, export, or segmentation (AC7)
+                    {
+                        let is_transcribing = !transcription_flags.lock().unwrap().is_empty();
+                        let is_exporting = !export_flags.lock().unwrap().is_empty();
+                        let is_segmenting = !segmentation_flags.lock().unwrap().is_empty();
+                        if is_transcribing || is_exporting || is_segmenting {
+                            tracing::debug!("Skipping periodic update check: app is busy");
+                            continue;
+                        }
+                    }
+
                     tracing::debug!("Performing periodic update check...");
                     let use_case = application::use_cases::CheckForUpdateUseCase::new();
                     if let Ok(result) = use_case.execute(&periodic_app_handle).await {
                         if let Some(ref info) = result.update_info {
                             tracing::info!("Periodic update check found: {}", info.version);
-                            let _ = periodic_app_handle.emit(
-                                "update:available",
-                                update_commands::UpdateAvailableEvent {
-                                    version: info.version.clone(),
-                                    release_notes: info.release_notes.clone(),
-                                    is_mandatory: info.is_mandatory,
-                                },
-                            );
+                            emit_update(&periodic_app_handle, info);
                         }
                     }
                 }

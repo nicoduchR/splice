@@ -13,7 +13,10 @@
       "endpoints": [
         "https://api.splice.app/api/v1/updates/latest?platform={{target}}&version={{current_version}}"
       ],
-      "pubkey": "PLACEHOLDER_PUBKEY_GENERATE_WITH_pnpm_tauri_signer_generate"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4RkRBNzI1RjM5OUNCNzkKUldSNXk1bnpKYWY5eU94YXdzNjdIYmRoZHBoR254cTRHc254QVVZbXlXUU44MEt6NVpkVVdtbisK",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {
