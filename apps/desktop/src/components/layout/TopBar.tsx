@@ -38,7 +38,7 @@ export function TopBar({ currentProject, currentScreen, onGenerateCuts, hasSelec
         {(currentScreen === 'editor' || currentScreen === 'preview') && currentProject && (
           <>
             <div className="w-px h-5 bg-border-dark" />
-            <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={currentProject.file_name}>
+            <span className="text-sm text-muted-foreground truncate max-w-[12.5rem]" title={currentProject.file_name}>
               {currentProject.file_name}
             </span>
           </>

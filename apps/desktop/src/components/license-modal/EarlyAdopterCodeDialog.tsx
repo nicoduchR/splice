@@ -164,7 +164,7 @@ export function EarlyAdopterCodeDialog({
           <AlertDialogAction
             onClick={handleActivate}
             disabled={isButtonDisabled}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[140px] disabled:opacity-50"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[8.75rem] disabled:opacity-50"
           >
             {isActivating ? (
               <>

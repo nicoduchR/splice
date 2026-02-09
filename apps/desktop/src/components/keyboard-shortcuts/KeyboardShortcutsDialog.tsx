@@ -110,7 +110,7 @@ export const KeyboardShortcutsDialog = React.memo(function KeyboardShortcutsDial
                       {shortcut.keys.map((key, kidx) => (
                         <kbd
                           key={kidx}
-                          className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono"
+                          className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono"
                         >
                           {key}
                         </kbd>

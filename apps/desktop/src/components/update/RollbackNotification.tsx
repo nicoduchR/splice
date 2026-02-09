@@ -40,7 +40,7 @@ export function RollbackNotification() {
 
   return (
     <AlertDialog open={!!rollbackCompleted} onOpenChange={(open) => { if (!open) handleClose(); }}>
-      <AlertDialogContent className="max-w-[520px] p-0 gap-0 border-white/5 bg-card-dark">
+      <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
         <AlertDialogHeader className="p-6 pb-4">
           <AlertDialogTitle>Version précédente restaurée</AlertDialogTitle>
           <AlertDialogDescription>

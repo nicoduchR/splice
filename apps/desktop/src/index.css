@@ -58,6 +58,10 @@
     border-color: hsl(var(--border));
   }
 
+  html {
+    font-size: 100%; /* 16px base — guarantees 1rem = 16px for accessibility scaling */
+  }
+
   html,
   body {
     margin: 0;
@@ -66,6 +70,7 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.5; /* WCAG AA minimum for body text */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -117,6 +122,16 @@
   /* Timeline segments: reinforced border */
   [data-segment-id] {
     border: 2px solid hsl(160 84% 60%) !important;
+  }
+}
+
+/* Reduced motion support — disables non-essential animations */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

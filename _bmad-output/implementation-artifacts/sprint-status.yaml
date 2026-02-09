@@ -119,7 +119,7 @@ development_status:
   10-1-keyboard-navigation-implementation: done  # Code review: 7 issues fixed (3 HIGH, 4 MEDIUM). H1/H2 scoped transcript keyboard nav (no more global conflict), H3 dep array fix, M1 focus-visible PreviewPlayer, M3 deps comment, M2 File List. 685 tests passing.
   10-2-screen-reader-support-with-aria: done  # Code review: 7 issues fixed (3 HIGH, 4 MEDIUM). H1 aria-label on TranscriptWord, H2/H3 aria-label on toolbar icon-only buttons, M1 search input label, M2 EarlyAdopterCodeDialog htmlFor, M3 Highlighter aria-hidden, M4 PreviewPlayer boundary markers a11y. 44/44 tests passing.
   10-3-high-contrast-color-independence: done  # Code review: 8 issues fixed (5 HIGH, 3 MEDIUM). H1 CRITICAL .dark --muted-foreground not synced, H2 test wrong color, H3 placeholder test, H4/H5 fragile CSS selectors → data-* attributes. M2 data-testid in prod CSS, M3 semi-transparent border. 27 tests passing.
-  10-4-responsive-text-scalability: backlog
+  10-4-responsive-text-scalability: done  # Code review: 6 issues found (2 HIGH, 2 MEDIUM, 2 LOW). 4 fixed: H1 leading-tight → leading-relaxed on continuous text (AC #3), H2 zoom tests upgraded with real assertions, M3 aria-hidden on 4 decorative icons, story/tests updated. 13/13 tests passing.
   tech-debt-code-cleanup: backlog  # P2: Remove #[allow(dead_code)], fix tests, real checksums, clean logs, improve error handling
   epic-10-retrospective: optional
   # Tech Debt / Code Quality

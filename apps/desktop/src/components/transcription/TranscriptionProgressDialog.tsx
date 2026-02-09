@@ -138,7 +138,7 @@ export function TranscriptionProgressDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel?.()}>
-      <AlertDialogContent className="max-w-[580px] p-0 gap-0 border-white/5 bg-card-dark">
+      <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
         {/* Accessible title for screen readers */}
         <AlertDialogTitle className="sr-only">
           Progression de la transcription - {videoInfo.file_name}
@@ -241,7 +241,7 @@ export function TranscriptionProgressDialog({
               <p className="text-xs text-gray-300 font-medium">
                 Transcription locale et sécurisée
               </p>
-              <p className="text-[11px] text-gray-400 leading-tight">
+              <p className="text-xs text-gray-400 leading-relaxed">
                 Aucune donnée ne quitte votre appareil. Le traitement est effectué entièrement hors ligne.
               </p>
             </div>
@@ -253,7 +253,7 @@ export function TranscriptionProgressDialog({
               <Button
                 variant="ghost"
                 onClick={onCancel}
-                className="min-w-[84px]"
+                className="min-w-[5.25rem]"
               >
                 Annuler
               </Button>

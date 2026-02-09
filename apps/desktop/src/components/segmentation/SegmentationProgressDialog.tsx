@@ -143,7 +143,7 @@ export function SegmentationProgressDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent className="max-w-[580px] p-0 gap-0 border-white/5 bg-[#222229] shadow-2xl rounded-2xl overflow-hidden">
+      <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-[#222229] shadow-2xl rounded-2xl overflow-hidden">
         <AlertDialogTitle className="sr-only">
           G&eacute;n&eacute;ration des cuts vid&eacute;o
         </AlertDialogTitle>

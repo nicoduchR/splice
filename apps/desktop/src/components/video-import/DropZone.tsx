@@ -90,7 +90,7 @@ export const DropZone = React.memo(({
     const fileName = getFileName(validatingFilePath);
 
     return (
-      <div className="w-full max-w-[480px] bg-[#25252D] rounded-xl border border-[#35353F] p-12 flex flex-col items-center shadow-2xl">
+      <div className="w-full max-w-lg bg-[#25252D] rounded-xl border border-[#35353F] p-12 flex flex-col items-center shadow-2xl">
         {/* Spinner */}
         <div className="mb-6">
           <svg className="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -112,7 +112,7 @@ export const DropZone = React.memo(({
         {/* Progress indicator */}
         <div className="flex flex-col items-center gap-3 w-full">
           <span className="text-slate-300 text-sm font-medium">Vérification du format...</span>
-          <div className="h-1 w-[200px] bg-slate-600/30 rounded-full overflow-hidden">
+          <div className="h-1 w-48 bg-slate-600/30 rounded-full overflow-hidden">
             <div className="h-full bg-primary w-2/3 rounded-full animate-pulse"></div>
           </div>
         </div>
@@ -188,7 +188,7 @@ export const DropZone = React.memo(({
           }}
           disabled={isValidating}
           size="lg"
-          className="min-w-[220px]"
+          className="min-w-[13.75rem]"
         >
           <FolderOpen aria-hidden="true" className="w-5 h-5" />
           <span>Parcourir les fichiers</span>

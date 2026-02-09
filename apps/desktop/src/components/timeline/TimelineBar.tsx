@@ -101,7 +101,7 @@ export const TimelineBar = React.memo(function TimelineBar({
                       <div className="text-muted-foreground">
                         Durée : {formatTimecode(segment.endTime - segment.startTime)}
                       </div>
-                      <div className="text-muted-foreground italic max-w-[200px] truncate">
+                      <div className="text-muted-foreground italic max-w-[12.5rem] truncate">
                         {getTextPreview(segment.id)}
                       </div>
                     </div>

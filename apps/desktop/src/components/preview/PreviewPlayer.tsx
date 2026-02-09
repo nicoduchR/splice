@@ -286,7 +286,7 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
               >
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-full bg-gray-400/50" />
                 {hoveredBoundary === i && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap pointer-events-none">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-900 text-white text-xs rounded whitespace-nowrap pointer-events-none">
                     Segment {boundary.index + 1} — {formatTimecode(boundary.start_time)}
                   </div>
                 )}

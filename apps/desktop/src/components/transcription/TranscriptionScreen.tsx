@@ -135,7 +135,7 @@ export function TranscriptionScreen({
 
   return (
     <div className="min-h-screen bg-background-dark flex items-center justify-center p-6">
-      <div className="w-full max-w-[680px] flex flex-col gap-8">
+      <div className="w-full max-w-2xl flex flex-col gap-8">
         {/* Video Thumbnail Card */}
         <div className="bg-card-dark rounded-xl border border-white/5 overflow-hidden shadow-2xl">
           {/* Video Preview Section */}
@@ -182,7 +182,7 @@ export function TranscriptionScreen({
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Film className="w-5 h-5 text-primary" />
+                <Film aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <div className="flex flex-col overflow-hidden">
                 <h2 className="text-white text-base font-semibold truncate">
@@ -198,7 +198,7 @@ export function TranscriptionScreen({
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2 text-primary animate-pulse-slow">
-                  <Brain className="w-5 h-5" />
+                  <Brain aria-hidden="true" className="w-5 h-5" />
                   <span className="text-sm font-medium tracking-wide">
                     {getStageMessage()}
                   </span>
@@ -233,7 +233,7 @@ export function TranscriptionScreen({
                   <span>Parakeet TDT</span>
                   <span className="w-1 h-1 rounded-full bg-gray-500" />
                   <span className="flex items-center gap-1">
-                    <Cpu className="w-3.5 h-3.5" />
+                    <Cpu aria-hidden="true" className="w-3.5 h-3.5" />
                     CPU
                   </span>
                 </div>
@@ -247,12 +247,12 @@ export function TranscriptionScreen({
 
             {/* Privacy Footer Box */}
             <div className="mt-6 bg-[#1f1f25] border border-card-border rounded-lg p-3 flex items-start gap-3">
-              <Lock className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+              <Lock aria-hidden="true" className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
               <div className="flex flex-col">
                 <p className="text-xs text-gray-300 font-medium">
                   Transcription locale et sécurisée
                 </p>
-                <p className="text-[11px] text-gray-400 leading-tight">
+                <p className="text-xs text-gray-400 leading-relaxed">
                   Aucune donnée ne quitte votre appareil. Le traitement est effectué entièrement hors ligne.
                 </p>
               </div>
@@ -264,7 +264,7 @@ export function TranscriptionScreen({
                 <Button
                   variant="ghost"
                   onClick={onCancel}
-                  className="min-w-[120px]"
+                  className="min-w-[7.5rem]"
                 >
                   Annuler
                 </Button>

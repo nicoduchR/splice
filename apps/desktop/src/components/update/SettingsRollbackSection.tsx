@@ -45,7 +45,7 @@ export function SettingsRollbackSection({ isOpen, onClose }: SettingsRollbackSec
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="bg-card-dark border-white/5 sm:max-w-[500px]">
+        <DialogContent className="bg-card-dark border-white/5 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white">Mises à jour</DialogTitle>
             <DialogDescription className="text-gray-500">
@@ -101,7 +101,7 @@ export function SettingsRollbackSection({ isOpen, onClose }: SettingsRollbackSec
       </Dialog>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="max-w-[520px] p-0 gap-0 border-white/5 bg-card-dark">
+        <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
           <AlertDialogHeader className="p-6 pb-4">
             <AlertDialogTitle>Confirmer le rollback</AlertDialogTitle>
             <AlertDialogDescription>

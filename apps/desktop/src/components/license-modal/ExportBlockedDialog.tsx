@@ -69,7 +69,7 @@ export function ExportBlockedDialog({
           <AlertDialogAction
             onClick={onUpgrade}
             disabled={isUpgrading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[140px]"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[8.75rem]"
           >
             {isUpgrading ? (
               <>

@@ -103,7 +103,7 @@ export function ModelDownloadDialog({
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-[520px] p-0 gap-0 border-white/5 bg-card-dark">
+      <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
         <div className="p-8 md:p-10 flex flex-col items-center relative z-50">
           {/* Icon Section */}
           <div className="mb-6 flex items-center justify-center p-4 rounded-full bg-primary/10 dark:bg-primary/20">
@@ -164,7 +164,7 @@ export function ModelDownloadDialog({
                   <Button
                     variant="ghost"
                     onClick={onCancel}
-                    className="min-w-[84px]"
+                    className="min-w-[5.25rem]"
                   >
                     Quitter
                   </Button>
@@ -173,7 +173,7 @@ export function ModelDownloadDialog({
                   <Button
                     variant="default"
                     onClick={onRetry}
-                    className="min-w-[84px]"
+                    className="min-w-[5.25rem]"
                   >
                     Réessayer
                   </Button>
@@ -185,7 +185,7 @@ export function ModelDownloadDialog({
                   variant="ghost"
                   onClick={onCancel}
                   disabled={isDownloading && progress.percentage > 90}
-                  className="min-w-[84px]"
+                  className="min-w-[5.25rem]"
                 >
                   Annuler
                 </Button>

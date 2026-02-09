@@ -503,7 +503,7 @@ function App() {
 
         {/* Screen Router */}
         {currentScreen === 'import' && (
-          <div className="relative w-full max-w-[800px] flex flex-col items-center justify-center">
+          <div className="relative w-full max-w-4xl flex flex-col items-center justify-center">
             <VideoImport />
           </div>
         )}

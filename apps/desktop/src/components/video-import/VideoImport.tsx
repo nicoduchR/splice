@@ -119,7 +119,7 @@ export function VideoImport({ className }: VideoImportProps) {
 
   return (
     <div className={className}>
-      <div className="relative w-full max-w-[800px] flex flex-col items-center justify-center">
+      <div className="relative w-full max-w-4xl flex flex-col items-center justify-center">
         {/* Don't show inline error in DropZone, use ErrorDialog instead */}
         <DropZone
           onFileSelected={handleFileSelected}

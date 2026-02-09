@@ -86,7 +86,7 @@ export function ExportDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isExporting && !exportResult) closeDialog(); }}>
-      <DialogContent className="bg-gray-950 border border-gray-800 sm:max-w-[500px]">
+      <DialogContent className="bg-gray-950 border border-gray-800 sm:max-w-lg">
         {exportResult ? (
           <>
             <DialogHeader>

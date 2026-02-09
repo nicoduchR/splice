@@ -133,7 +133,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="bg-card-dark border-white/5 sm:max-w-[540px]">
+        <DialogContent className="bg-card-dark border-white/5 sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-white">Paramètres</DialogTitle>
             <DialogDescription className="text-gray-500">
@@ -206,7 +206,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-400">Répertoire actuel :</span>
                   <span
-                    className="text-white text-sm truncate max-w-[260px]"
+                    className="text-white text-sm truncate max-w-[16.25rem]"
                     title={tempDirectory || '~/.splice/temp/ (par défaut)'}
                     data-testid="temp-dir-path"
                   >
@@ -284,7 +284,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
       {/* Clear cache confirmation */}
       <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <AlertDialogContent className="max-w-[520px] p-0 gap-0 border-white/5 bg-card-dark">
+        <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
           <AlertDialogHeader className="p-6 pb-4">
             <AlertDialogTitle>Vider le cache</AlertDialogTitle>
             <AlertDialogDescription>
@@ -303,7 +303,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
       {/* Rollback confirmation */}
       <AlertDialog open={showRollbackConfirm} onOpenChange={setShowRollbackConfirm}>
-        <AlertDialogContent className="max-w-[520px] p-0 gap-0 border-white/5 bg-card-dark">
+        <AlertDialogContent className="max-w-xl p-0 gap-0 border-white/5 bg-card-dark">
           <AlertDialogHeader className="p-6 pb-4">
             <AlertDialogTitle>Confirmer le rollback</AlertDialogTitle>
             <AlertDialogDescription>
