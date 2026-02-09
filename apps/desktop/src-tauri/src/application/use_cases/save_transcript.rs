@@ -1,4 +1,4 @@
-use crate::domain::entities::transcription::{TranscriptionResult, Word};
+use crate::domain::entities::transcription::TranscriptionResult;
 use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
 use crate::domain::errors::DomainError;
 use crate::domain::repositories::TranscriptRepository;
@@ -115,6 +115,7 @@ impl SaveTranscriptUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entities::transcription::Word;
     use crate::domain::repositories::TranscriptRepository;
 
     struct MockTranscriptRepository;

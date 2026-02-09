@@ -255,6 +255,7 @@ export const VideoPlayer = React.memo(function VideoPlayer({
       <div className="px-4 pt-3 pb-1 bg-panel-dark">
         <TooltipProvider delayDuration={200}>
           <div
+            id="timeline"
             ref={scrubberRef}
             className="relative w-full bg-muted rounded-full cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={{ height: 8 }}

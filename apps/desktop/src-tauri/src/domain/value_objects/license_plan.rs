@@ -3,17 +3,18 @@ use ts_rs::TS;
 use std::fmt;
 
 /// License plan types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
 pub enum LicensePlan {
+    #[default]
     Free,
     Pro,
 }
 
 impl LicensePlan {
     /// Parse from string (case-insensitive)
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "free" => Some(Self::Free),
             "pro" => Some(Self::Pro),
@@ -24,12 +25,6 @@ impl LicensePlan {
     /// Check if plan allows premium features
     pub fn is_premium(&self) -> bool {
         matches!(self, Self::Pro)
-    }
-}
-
-impl Default for LicensePlan {
-    fn default() -> Self {
-        Self::Free
     }
 }
 
@@ -44,7 +39,7 @@ impl fmt::Display for LicensePlan {
 
 impl From<&str> for LicensePlan {
     fn from(s: &str) -> Self {
-        Self::from_str(s).unwrap_or_default()
+        Self::parse(s).unwrap_or_default()
     }
 }
 
@@ -60,11 +55,11 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        assert_eq!(LicensePlan::from_str("free"), Some(LicensePlan::Free));
-        assert_eq!(LicensePlan::from_str("pro"), Some(LicensePlan::Pro));
-        assert_eq!(LicensePlan::from_str("FREE"), Some(LicensePlan::Free));
-        assert_eq!(LicensePlan::from_str("PRO"), Some(LicensePlan::Pro));
-        assert_eq!(LicensePlan::from_str("invalid"), None);
+        assert_eq!(LicensePlan::parse("free"), Some(LicensePlan::Free));
+        assert_eq!(LicensePlan::parse("pro"), Some(LicensePlan::Pro));
+        assert_eq!(LicensePlan::parse("FREE"), Some(LicensePlan::Free));
+        assert_eq!(LicensePlan::parse("PRO"), Some(LicensePlan::Pro));
+        assert_eq!(LicensePlan::parse("invalid"), None);
     }
 
     #[test]

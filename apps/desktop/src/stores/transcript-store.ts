@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { invoke } from '@tauri-apps/api/core';
-import type { Transcript, TranscriptWord } from '@splice/types';
+import type { Transcript, TranscriptWord, Word } from '@splice/types';
 import { sanitizeErrorForUser } from '../lib/error-messages';
 import { logError, logWarn } from '../lib/logger';
 
@@ -12,10 +12,12 @@ interface TranscriptionProgress {
   message: string;
 }
 
+type IncomingTranscriptWord = Word | TranscriptWord;
+
 interface TranscriptionResult {
   text: string;
-  words: TranscriptWord[];
-  language: string;
+  words: IncomingTranscriptWord[];
+  language: string | null;
   confidence?: number;
 }
 
@@ -404,13 +406,18 @@ export const useTranscriptStore = create<TranscriptStore>()(
             full_text: savedTranscript.full_text,
             language: savedTranscript.language,
             created_at: savedTranscript.created_at,
-            words: result.words.map((w: any, i: number) => ({
-              index: i,
-              text: w.text,
-              start_time: w.start ?? w.start_time ?? 0,
-              end_time: w.end ?? w.end_time ?? 0,
-              confidence: w.confidence ?? 1.0,
-            })),
+            words: result.words.map((w, i) => {
+              const startTime = 'start' in w ? w.start : w.start_time;
+              const endTime = 'end' in w ? w.end : w.end_time;
+
+              return {
+                index: i,
+                text: w.text,
+                start_time: startTime ?? 0,
+                end_time: endTime ?? 0,
+                confidence: w.confidence ?? 1.0,
+              };
+            }),
           };
 
 

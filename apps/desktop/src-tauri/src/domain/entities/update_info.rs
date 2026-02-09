@@ -80,11 +80,12 @@ impl DownloadProgress {
 }
 
 /// UpdateStatus enum - represents the current state of the update process
-#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, TS, PartialEq)]
 #[ts(export, export_to = "../../../../../packages/types/src/generated/")]
 #[serde(rename_all = "snake_case")]
 pub enum UpdateStatus {
     /// No update check has been performed
+    #[default]
     Idle,
     /// Currently checking for updates
     Checking,
@@ -98,12 +99,6 @@ pub enum UpdateStatus {
     UpToDate,
     /// An error occurred during update check or download
     Error,
-}
-
-impl Default for UpdateStatus {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 #[cfg(test)]

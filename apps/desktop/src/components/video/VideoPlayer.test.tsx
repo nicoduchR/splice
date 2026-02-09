@@ -55,4 +55,13 @@ describe('VideoPlayer proxy support', () => {
     expect(video).toBeTruthy();
     expect(video?.getAttribute('src')).toBe('/original/video.mp4');
   });
+
+  it('should expose a timeline anchor target for skip links', () => {
+    const { container } = render(
+      <VideoPlayer filePath="/original/video.mp4" />
+    );
+
+    const scrubber = container.querySelector('#timeline[role="slider"]');
+    expect(scrubber).toBeTruthy();
+  });
 });

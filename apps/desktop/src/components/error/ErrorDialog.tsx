@@ -61,11 +61,14 @@ export function ErrorDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent className="sm:max-w-md" data-testid="error-dialog-content">
+      <AlertDialogContent
+        className="sm:max-w-md border-white/15 bg-[#121a28]"
+        data-testid="error-dialog-content"
+      >
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div
-              className={`w-12 h-12 rounded-full ${bgColorClass} flex items-center justify-center`}
+              className={`w-12 h-12 rounded-full ${bgColorClass} border border-white/10 flex items-center justify-center`}
             >
               <IconComponent
                 className={`w-6 h-6 ${iconColorClass}`}
@@ -74,13 +77,13 @@ export function ErrorDialog({
             </div>
             <AlertDialogTitle className="text-xl">{title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-base text-left pt-2">
+          <AlertDialogDescription className="text-base text-left pt-2 text-slate-200/90">
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {suggestedActions.length > 0 && (
-          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-2">
+          <ul className="list-disc list-inside space-y-1 text-sm text-slate-300 pl-2">
             {suggestedActions.map((action) => (
               <li key={action}>{action}</li>
             ))}

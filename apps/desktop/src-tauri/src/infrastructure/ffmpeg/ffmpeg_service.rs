@@ -42,7 +42,7 @@ impl FfmpegService {
                         message: format!("FFprobe sidecar not available: {}", e),
                     }
                 })?
-                .args(&[
+                .args([
                     "-v",
                     "quiet",
                     "-print_format",
@@ -130,7 +130,7 @@ impl FfmpegService {
         debug!("Detected codec: {}", codec_name);
 
         // Validate codec is supported (H.264 or H.265/HEVC)
-        let supported_codecs = vec!["h264", "hevc", "h265"];
+        let supported_codecs = ["h264", "hevc", "h265"];
         if !supported_codecs.contains(&codec_name.as_str()) {
             error!("Unsupported codec: {}", codec_name);
             return Err(DomainError::UnsupportedVideoCodec {

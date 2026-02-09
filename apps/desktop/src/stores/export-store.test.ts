@@ -32,6 +32,7 @@ const mockListen = vi.mocked(listen);
 
 describe('useExportStore', () => {
   beforeEach(() => {
+    import.meta.env.VITE_BILLING_ENABLED = 'true';
     useExportStore.getState().resetExport();
     useExportStore.getState().closeExportDialog();
     useExportStore.getState().closeExportBlockedDialog();

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// CrashTracker entity - tracks consecutive crashes for rollback detection
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CrashTracker {
     pub consecutive_crashes: u32,
     pub needs_rollback: bool,
@@ -14,20 +14,6 @@ pub struct CrashTracker {
     pub rollback_from_version: Option<String>,
     #[serde(default)]
     pub rollback_to_version: Option<String>,
-}
-
-impl Default for CrashTracker {
-    fn default() -> Self {
-        Self {
-            consecutive_crashes: 0,
-            needs_rollback: false,
-            previous_version: None,
-            last_updated_version: None,
-            rollback_just_completed: false,
-            rollback_from_version: None,
-            rollback_to_version: None,
-        }
-    }
 }
 
 /// Threshold of consecutive crashes before triggering rollback

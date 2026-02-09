@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 import * as matchers from 'vitest-axe/matchers';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 import { DropZone } from './video-import/DropZone';
 import { TranscriptWord } from './transcript/TranscriptWord';
 import type { TranscriptWord as TWord } from '@splice/types';
@@ -22,19 +23,13 @@ globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserv
 describe('Font-size rem compliance — AC #1', () => {
   it('no arbitrary px font-sizes (text-[XXpx]) exist in component source files', () => {
     // Scan all component TSX files for text-[Xpx] patterns
-    const { execSync } = require('node:child_process');
     const srcDir = resolve(process.cwd(), 'src/components');
-    try {
-      // grep for text-[XXpx] patterns in component files
-      const result = execSync(
-        `grep -r "text-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" -l 2>/dev/null || true`,
-        { encoding: 'utf-8' }
-      ).trim();
-      expect(result).toBe('');
-    } catch {
-      // grep returns exit code 1 when no match found — that's success
-      expect(true).toBe(true);
-    }
+    // grep for text-[XXpx] patterns in component files
+    const result = execSync(
+      `grep -r "text-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" -l 2>/dev/null || true`,
+      { encoding: 'utf-8' }
+    ).trim();
+    expect(result).toBe('');
   });
 
   it('index.css defines font-size on html element for rem base', () => {
@@ -73,35 +68,25 @@ describe('Line-height compliance — AC #3', () => {
 // ─── Modal max-width scalability (AC #2) ─────────────────────────────
 describe('Modal max-width scalability — AC #2', () => {
   it('no max-w-[XXXpx] exist in dialog/modal components', () => {
-    const { execSync } = require('node:child_process');
     const srcDir = resolve(process.cwd(), 'src/components');
-    try {
-      const result = execSync(
-        `grep -r "max-w-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" -l 2>/dev/null || true`,
-        { encoding: 'utf-8' }
-      ).trim();
-      expect(result).toBe('');
-    } catch {
-      expect(true).toBe(true);
-    }
+    const result = execSync(
+      `grep -r "max-w-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" -l 2>/dev/null || true`,
+      { encoding: 'utf-8' }
+    ).trim();
+    expect(result).toBe('');
   });
 
   it('no min-w-[XXXpx] exist in components (except 44px touch targets)', () => {
-    const { execSync } = require('node:child_process');
     const srcDir = resolve(process.cwd(), 'src/components');
-    try {
-      const result = execSync(
-        `grep -rn "min-w-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" 2>/dev/null || true`,
-        { encoding: 'utf-8' }
-      ).trim();
-      // Only min-w-[44px] touch targets should remain
-      const nonTouchTargetLines = result
-        .split('\n')
-        .filter((line: string) => line.trim() && !line.includes('min-w-[44px]'));
-      expect(nonTouchTargetLines).toHaveLength(0);
-    } catch {
-      expect(true).toBe(true);
-    }
+    const result = execSync(
+      `grep -rn "min-w-\\[\\d\\+px\\]" "${srcDir}" --include="*.tsx" 2>/dev/null || true`,
+      { encoding: 'utf-8' }
+    ).trim();
+    // Only min-w-[44px] touch targets should remain
+    const nonTouchTargetLines = result
+      .split('\n')
+      .filter((line: string) => line.trim() && !line.includes('min-w-[44px]'));
+    expect(nonTouchTargetLines).toHaveLength(0);
   });
 });
 

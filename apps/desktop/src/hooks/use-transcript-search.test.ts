@@ -54,6 +54,7 @@ describe('useTranscriptSearch', () => {
     await waitFor(() => {
       expect(result.current.matches.length).toBeGreaterThan(0);
     });
+    expect(result.current.currentMatchWordIndex).toBe(0);
 
     act(() => {
       result.current.setSearchQuery('');
@@ -62,6 +63,7 @@ describe('useTranscriptSearch', () => {
     await waitFor(() => {
       expect(result.current.matches).toEqual([]);
     });
+    expect(result.current.currentMatchWordIndex).toBeNull();
   });
 
   it('should navigate between matches', async () => {
@@ -74,18 +76,21 @@ describe('useTranscriptSearch', () => {
     await waitFor(() => {
       expect(result.current.matches).toEqual([0, 4]);
     });
+    expect(result.current.currentMatchWordIndex).toBe(0);
 
     act(() => {
       result.current.nextMatch();
     });
 
     expect(result.current.currentMatchIndex).toBe(1);
+    expect(result.current.currentMatchWordIndex).toBe(4);
 
     act(() => {
       result.current.prevMatch();
     });
 
     expect(result.current.currentMatchIndex).toBe(0);
+    expect(result.current.currentMatchWordIndex).toBe(0);
   });
 
   it('should wrap around when navigating past last match', async () => {
@@ -103,6 +108,7 @@ describe('useTranscriptSearch', () => {
     act(() => {
       result.current.nextMatch();
     });
+    expect(result.current.currentMatchWordIndex).toBe(4);
 
     // Wrap around to first
     act(() => {
@@ -110,6 +116,7 @@ describe('useTranscriptSearch', () => {
     });
 
     expect(result.current.currentMatchIndex).toBe(0);
+    expect(result.current.currentMatchWordIndex).toBe(0);
   });
 
   it('should wrap around when navigating before first match', async () => {
@@ -130,5 +137,6 @@ describe('useTranscriptSearch', () => {
 
     // Should wrap to last match
     expect(result.current.currentMatchIndex).toBe(1);
+    expect(result.current.currentMatchWordIndex).toBe(4);
   });
 });

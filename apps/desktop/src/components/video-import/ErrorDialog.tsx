@@ -26,17 +26,17 @@ export function ErrorDialog({
 }: ErrorDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent className="sm:max-w-md border-white/15 bg-[#121a28]">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 border border-white/10 flex items-center justify-center">
               <AlertTriangle className="w-6 h-6 text-destructive" />
             </div>
             <AlertDialogTitle className="text-xl">
               Erreur d'importation
             </AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-base text-left pt-2">
+          <AlertDialogDescription className="text-base text-left pt-2 text-slate-200/90">
             {errorMessage}
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -49,11 +49,17 @@ export function useTranscriptSearch(words: TranscriptWord[]) {
     setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
   };
 
+  const currentMatchWordIndex = useMemo(() => {
+    if (matches.length === 0) return null;
+    return matches[currentMatchIndex] ?? null;
+  }, [matches, currentMatchIndex]);
+
   return {
     searchQuery,
     setSearchQuery,
     matches,
     currentMatchIndex,
+    currentMatchWordIndex,
     setCurrentMatchIndex,
     nextMatch,
     prevMatch,

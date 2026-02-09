@@ -252,7 +252,6 @@ export function TranscriptionProgressDialog({
             <AlertDialogCancel asChild>
               <Button
                 variant="ghost"
-                onClick={onCancel}
                 className="min-w-[5.25rem]"
               >
                 Annuler

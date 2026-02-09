@@ -44,6 +44,11 @@ export function ModelDownloadDialog({
   useEffect(() => {
     if (!isOpen) return;
 
+    const handleDownloadFailed = (event: { payload: { message: string } }) => {
+      setError(event.payload.message);
+      setIsDownloading(false);
+    };
+
     // Écouter les événements de progression du téléchargement
     const unlistenProgress = listen<DownloadProgress>(
       'model:download_progress',
@@ -54,13 +59,16 @@ export function ModelDownloadDialog({
       }
     );
 
-    // Écouter les événements d'erreur
+    // Écouter les événements d'erreur (backend current event name)
     const unlistenError = listen<{ message: string }>(
+      'model:download-failed',
+      handleDownloadFailed
+    );
+
+    // Legacy compatibility with previous underscore event name.
+    const unlistenLegacyError = listen<{ message: string }>(
       'model:download_failed',
-      (event) => {
-        setError(event.payload.message);
-        setIsDownloading(false);
-      }
+      handleDownloadFailed
     );
 
     // Écouter les événements de succès
@@ -72,6 +80,7 @@ export function ModelDownloadDialog({
     return () => {
       unlistenProgress.then((fn) => fn());
       unlistenError.then((fn) => fn());
+      unlistenLegacyError.then((fn) => fn());
       unlistenSuccess.then((fn) => fn());
     };
   }, [isOpen]);

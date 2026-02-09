@@ -4,6 +4,7 @@ use crate::domain::errors::DomainError;
 use crate::domain::services::DiskSpaceChecker;
 
 /// Cross-platform disk space checker using `fs2::available_space()`.
+#[derive(Default)]
 pub struct Fs2DiskSpaceChecker;
 
 impl Fs2DiskSpaceChecker {

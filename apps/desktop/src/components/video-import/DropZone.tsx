@@ -30,47 +30,35 @@ export const DropZone = React.memo(({
 
   // Listen to Tauri file drop events
   useEffect(() => {
-    console.log('Setting up Tauri file drop listeners...');
-
     const setupListeners = async () => {
       try {
         // Listen for file drop hover
-        const unlistenHover = await listen('tauri://file-drop-hover', (event) => {
-          console.log('🟡 File drag hover detected', event);
+        const unlistenHover = await listen('tauri://file-drop-hover', () => {
           setIsDragOver(true);
         });
 
         // Listen for file drop
         const unlistenDrop = await listen<string[]>('tauri://file-drop', (event) => {
-          console.log('🟢 File dropped!', event.payload);
-          console.time('drop-response');
           setIsDragOver(false);
 
           if (event.payload && event.payload.length > 0) {
             const filePath = event.payload[0];
-            console.log('📁 File path:', filePath);
             onFileSelected(filePath);
           }
-
-          console.timeEnd('drop-response');
         });
 
         // Listen for file drop cancelled
-        const unlistenCancelled = await listen('tauri://file-drop-cancelled', (event) => {
-          console.log('🔴 File drop cancelled', event);
+        const unlistenCancelled = await listen('tauri://file-drop-cancelled', () => {
           setIsDragOver(false);
         });
-
-        console.log('✅ Tauri file drop listeners setup complete');
 
         return () => {
           unlistenHover();
           unlistenDrop();
           unlistenCancelled();
-          console.log('🧹 Tauri file drop listeners cleaned up');
         };
       } catch (error) {
-        console.error('❌ Error setting up Tauri listeners:', error);
+        console.error('Error setting up Tauri listeners:', error);
         toast.error('Impossible d\'initialiser le drag & drop. Utilisez le bouton "Parcourir les fichiers".');
       }
     };

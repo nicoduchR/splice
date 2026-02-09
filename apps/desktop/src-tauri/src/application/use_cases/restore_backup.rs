@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::application::use_cases::backup_current_version::{BackupInfo, copy_dir_recursive};
 
 /// Use case: Restore the application from a backup
+#[derive(Default)]
 pub struct RestoreBackupUseCase;
 
 impl RestoreBackupUseCase {

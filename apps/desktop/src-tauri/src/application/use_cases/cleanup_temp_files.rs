@@ -22,6 +22,7 @@ pub fn calculate_dir_size(path: &Path) -> u64 {
 
 /// Use case: Clean up orphaned temporary files at app startup.
 /// Removes directories and files that are residuals from previous crashed sessions.
+#[derive(Default)]
 pub struct CleanupTempFilesUseCase;
 
 impl CleanupTempFilesUseCase {

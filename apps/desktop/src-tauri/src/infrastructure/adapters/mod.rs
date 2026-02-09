@@ -19,19 +19,14 @@ pub mod sqlite_project_state_repository;
 pub mod disk_space_checker;
 pub mod sqlite_preferences_repository;
 
-// Used in tests
-#[allow(unused_imports)]
-pub use mock_video_repository::MockVideoRepository;
 pub use sqlite_video_repository::SqliteVideoRepository;
 pub use sqlite_transcript_repository::SqliteTranscriptRepository;
 pub use sqlite_selection_repository::SqliteSelectionRepository;
 pub use sqlite_cut_repository::SqliteCutRepository;
-// Used by tauri_commands
-#[allow(unused_imports)]
-pub use model_manager::HuggingFaceModelManager;
 pub use fluidaudio_transcription_service::FluidAudioTranscriptionService;
-pub use audio_extractor::{AudioExtractor, ffmpeg_path};
+pub use audio_extractor::AudioExtractor;
 pub use macos_credential_store::MacOSCredentialStore;
+#[cfg(target_os = "windows")]
 pub use windows_credential_store::WindowsCredentialStore;
 pub use sqlite_license_repository::SqliteLicenseRepository;
 pub use http_license_api_client::HttpLicenseApiClient;

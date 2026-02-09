@@ -94,7 +94,7 @@ func run() async {
             text: result.text,
             words: words,
             duration_seconds: result.duration,
-            language: "en"
+            language: "fr"
         )
 
         // Output JSON to stdout

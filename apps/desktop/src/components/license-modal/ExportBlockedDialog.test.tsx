@@ -182,6 +182,7 @@ describe('ExportBlockedDialog', () => {
 
 describe('ExportBlockedDialog integration with stores', () => {
   beforeEach(() => {
+    import.meta.env.VITE_BILLING_ENABLED = 'true';
     // Reset stores
     useExportStore.setState({
       isExportDialogOpen: false,

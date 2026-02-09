@@ -5,7 +5,7 @@ use tauri::State;
 /// Check model status - FluidAudio handles model download internally via the sidecar,
 /// so this always reports "ready". The sidecar will download the CoreML model on first use.
 #[tauri::command]
-pub async fn check_model_status(state: State<'_, AppState>) -> Result<ModelMetadata, String> {
+pub async fn check_model_status(_state: State<'_, AppState>) -> Result<ModelMetadata, String> {
     Ok(ModelMetadata {
         name: "parakeet-coreml".to_string(),
         version: "v1".to_string(),
@@ -19,7 +19,7 @@ pub async fn check_model_status(state: State<'_, AppState>) -> Result<ModelMetad
 /// Download model - no-op with FluidAudio (sidecar handles model management)
 #[tauri::command]
 pub async fn download_parakeet_model(
-    app_handle: tauri::AppHandle,
+    _app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<ModelMetadata, String> {
     check_model_status(state).await

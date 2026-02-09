@@ -1,6 +1,7 @@
 use std::path::Path;
 
 /// Use case: Clean up old backups, keeping only the most recent one
+#[derive(Default)]
 pub struct CleanupOldBackupsUseCase;
 
 impl CleanupOldBackupsUseCase {

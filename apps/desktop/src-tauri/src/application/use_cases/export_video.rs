@@ -24,6 +24,7 @@ impl ExportVideoUseCase {
     /// - `video_repository`: Repository to fetch project metadata
     /// - `cut_repository`: Repository to fetch cuts
     /// - `temp_dir`: Resolved temp directory (from AppState::resolve_temp_dir)
+    #[allow(clippy::too_many_arguments)]
     pub fn execute(
         project_id: &str,
         quality: &str,

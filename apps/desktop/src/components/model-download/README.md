@@ -139,7 +139,7 @@ app_handle.emit_all("model:download_progress", DownloadProgress {
 })?;
 ```
 
-### `model:download_failed`
+### `model:download-failed`
 
 Émis en cas d'échec du téléchargement.
 
@@ -151,10 +151,12 @@ interface DownloadError {
 
 **Backend Rust :**
 ```rust
-app_handle.emit_all("model:download_failed", {
+app_handle.emit_all("model:download-failed", {
     message: "Échec du téléchargement après 3 tentatives"
 })?;
 ```
+
+Note: le composant écoute aussi `model:download_failed` pour compatibilité legacy.
 
 ### `model:download_completed`
 

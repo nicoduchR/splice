@@ -140,7 +140,7 @@ impl ImportVideoUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::adapters::MockVideoRepository;
+    use crate::infrastructure::adapters::mock_video_repository::MockVideoRepository;
     use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;

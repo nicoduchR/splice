@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ModelDownloadDialog } from './ModelDownloadDialog';
+import { listen } from '@tauri-apps/api/event';
 
 // Mock Tauri API
 vi.mock('@tauri-apps/api/event', () => ({
@@ -33,6 +34,13 @@ describe('ModelDownloadDialog', () => {
     render(<ModelDownloadDialog isOpen={true} />);
 
     expect(screen.getByText('0%')).toBeInTheDocument();
+  });
+
+  it('should register download failure listeners with kebab-case and legacy underscore event names', () => {
+    render(<ModelDownloadDialog isOpen={true} />);
+
+    expect(listen).toHaveBeenCalledWith('model:download-failed', expect.any(Function));
+    expect(listen).toHaveBeenCalledWith('model:download_failed', expect.any(Function));
   });
 
   it('should show cancel button during download', () => {

@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useVideoStore } from './stores/video-store';
 import { useTranscriptStore } from './stores/transcript-store';
-import { VideoImport } from './components/video-import';
-import { TopBar } from './components/layout';
-import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { ComponentsDemo } from './pages/ComponentsDemo';
 import { Button } from './components/ui/button';
+import { Toaster } from './components/ui/sonner';
 import { ModelDownloadDialog } from './components/model-download';
-import { TranscriptionProgressDialog, TranscriptionScreen } from './components/transcription';
 import { ErrorDialog } from './components/error';
-import { TranscriptViewer, TranscriptViewerToolbar } from './components/transcript';
-import { VideoPlayer, KeyboardShortcutsBar } from './components/video';
 import { useModelDownload } from './hooks/use-model-download';
 import { useTimelineSync } from './hooks/use-timeline-sync';
 import { useProjectStateAutosave } from './hooks/use-project-state-autosave';
@@ -23,23 +18,19 @@ import { useUpdateStore } from './stores/update-store';
 import { RollbackNotification } from './components/update';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { Brain } from 'lucide-react';
 import { useSegmentationStore } from './stores/segmentation-store';
 import { getErrorWithGuidance, sanitizeErrorForUser } from './lib/error-messages';
 import { logError } from './lib/logger';
 import { useExportStore } from './stores/export-store';
 import { SegmentationProgressDialog } from './components/segmentation';
 import { ExportDialog } from './components/export';
-import { PreviewPlayer } from './components/preview/PreviewPlayer';
 import { GracePeriodWarning, ExportBlockedDialog, EarlyAdopterCodeDialog } from './components/license-modal';
 import { CrashRecoveryDialog } from './components/recovery';
 import { KeyboardShortcutsDialog } from './components/keyboard-shortcuts';
 import { useGlobalKeyboardShortcuts } from './hooks/use-global-keyboard-shortcuts';
 import { checkDirtyShutdown, loadProjectState } from './services/project-state-service';
-import type { SegmentationProgress } from '@splice/types/generated';
-
-// App screen states
-type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor' | 'preview';
+import type { SegmentationProgress, Word } from '@splice/types/generated';
+import { AppWorkspace, type AppScreen } from './components/app/AppWorkspace';
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
@@ -113,6 +104,7 @@ function App() {
     setSearchQuery,
     matches,
     currentMatchIndex,
+    currentMatchWordIndex,
     nextMatch,
     prevMatch,
   } = useTranscriptSearch(transcript?.words || []);
@@ -124,6 +116,13 @@ function App() {
   const timelineSegments = useTimelineStore(s => s.segments);
   const hasSelections = timelineSegments.length > 0;
   const [scrollToWordIndex, setScrollToWordIndex] = useState<number | null>(null);
+
+  // Auto-scroll transcript to active search match.
+  useEffect(() => {
+    if (currentMatchWordIndex === null) return;
+    setScrollToWordIndex(null);
+    queueMicrotask(() => setScrollToWordIndex(currentMatchWordIndex));
+  }, [currentMatchWordIndex]);
 
   const handleSegmentClick = (wordIndex: number) => {
     setScrollToWordIndex(null);
@@ -274,8 +273,8 @@ function App() {
       // Listen for transcription completion
       unlistenCompleted = await listen<{
         text: string;
-        words: any[];
-        language: string;
+        words: Word[];
+        language: string | null;
         confidence?: number;
       }>('transcription:completed', async (event) => {
         // Use captured project ID to prevent race condition (user might have changed projects)
@@ -449,263 +448,113 @@ function App() {
     );
   }
 
+  const handleBackToEditor = () => {
+    setCurrentScreen('editor');
+  };
+
+  const handleStartTranscription = () => {
+    if (!currentProject) return;
+    startTranscription(currentProject.id, currentProject.file_path, currentProject.id);
+  };
+
+  const handleGenerateCuts = async () => {
+    if (!currentProject || isSegmenting) return;
+
+    // Flush pending selections to DB before generating cuts
+    await useTranscriptStore.getState().saveSelections();
+    useSegmentationStore.getState().startSegmentation(currentProject.id);
+  };
+
+  const handlePreview = () => {
+    if (!currentProject) return;
+    useSegmentationStore.getState().preparePreview(currentProject.id);
+    setCurrentScreen('preview');
+  };
+
+  const transcribingScreenProps = currentProject
+    ? {
+        progress: transcriptionProgress,
+        videoInfo: {
+          id: currentProject.id,
+          file_name: currentProject.file_name,
+          file_path: currentProject.file_path,
+          duration_seconds: currentProject.duration_seconds,
+          file_size_bytes: currentProject.file_size_bytes,
+        },
+        onCancel: cancelTranscription,
+      }
+    : null;
+
+  const projectDetailsProps = currentProject
+    ? {
+        currentProject,
+        isTranscribing,
+        isReady,
+        onStartTranscription: handleStartTranscription,
+      }
+    : null;
+
+  const previewScreenProps = {
+    isPreparingPreview,
+    previewError,
+    previewPath,
+    finalVideoPath,
+    segmentBoundaries,
+    onBackToEditor: handleBackToEditor,
+  };
+
+  const editorScreenProps = transcript && currentProject
+    ? {
+        transcript,
+        currentProject,
+        toolbarProps: {
+          searchQuery,
+          onSearchQueryChange: setSearchQuery,
+          currentMatchIndex,
+          totalMatches: matches.length,
+          onNextMatch: nextMatch,
+          onPrevMatch: prevMatch,
+          onUndo: undo,
+          onRedo: redo,
+          canUndo,
+          canRedo,
+          onClearAll: clearSelection,
+        },
+        viewerProps: {
+          selectedIndices: selectedWordIndices,
+          onWordClick: toggleWordSelection,
+          onSelectionChange: setSelection,
+          onToggleRange: toggleSelectionRange,
+          onSetIndices: setSelectionFromIndices,
+          onClearSelection: clearSelection,
+          onUndo: undo,
+          onRedo: redo,
+          searchQuery,
+          scrollToWordIndex,
+        },
+        onSegmentClick: handleSegmentClick,
+      }
+    : null;
+
   return (
     <>
-      {!showDialog ? (
-        // Normal app content
-        <div className="h-screen flex flex-col overflow-hidden">
-          {/* Skip links for keyboard navigation (AC #1) */}
-          <a
-            href="#transcript"
-            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2 focus:bg-emerald-600 focus:text-white focus:rounded focus:top-2 focus:left-2"
-          >
-            Aller au transcript
-          </a>
-          <a
-            href="#timeline"
-            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2 focus:bg-emerald-600 focus:text-white focus:rounded focus:top-2 focus:left-24"
-          >
-            Aller à la timeline
-          </a>
-          <TopBar
-            currentProject={currentProject}
-            currentScreen={currentScreen}
-            onGenerateCuts={async () => {
-              if (currentProject && !isSegmenting) {
-                // Flush pending selections to DB before generating cuts
-                await useTranscriptStore.getState().saveSelections();
-                useSegmentationStore.getState().startSegmentation(currentProject.id);
-              }
-            }}
-            isSegmenting={isSegmenting}
-            hasSelections={hasSelections}
-            canPreview={!!finalVideoPath}
-            isPreparingPreview={isPreparingPreview}
-            onPreview={() => {
-              if (currentProject) {
-                useSegmentationStore.getState().preparePreview(currentProject.id);
-                setCurrentScreen('preview');
-              }
-            }}
-            onBackToEditor={() => setCurrentScreen('editor')}
-            onExport={() => useExportStore.getState().openExportDialog()}
-          />
-          <Toaster />
-
-      <main className={`flex-1 min-h-0 flex flex-col relative ${currentScreen === 'editor' ? 'overflow-hidden' : 'items-center justify-center p-6 sm:p-10'}`}>
-        {/* Abstract Background Gradient for depth - only for import and project-details */}
-        {currentScreen !== 'transcribing' && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
-            <div className="absolute top-[40%] right-[5%] w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[100px]"></div>
-          </div>
-        )}
-
-        {/* Screen Router */}
-        {currentScreen === 'import' && (
-          <div className="relative w-full max-w-4xl flex flex-col items-center justify-center">
-            <VideoImport />
-          </div>
-        )}
-
-        {currentScreen === 'transcribing' && currentProject && (
-          <TranscriptionScreen
-            progress={transcriptionProgress}
-            videoInfo={{
-              id: currentProject.id,
-              file_name: currentProject.file_name,
-              file_path: currentProject.file_path,
-              duration_seconds: currentProject.duration_seconds,
-              file_size_bytes: currentProject.file_size_bytes,
-            }}
-            onCancel={cancelTranscription}
-          />
-        )}
-
-        {currentScreen === 'project-details' && currentProject && (
-          <div className="text-white relative z-10 w-full max-w-2xl">
-            <h1 className="text-3xl font-bold mb-6 text-center">Projet chargé</h1>
-            <div className="bg-[#25252D] p-8 rounded-xl border border-[#35353F] shadow-2xl">
-              <div className="space-y-4">
-                {/* File name */}
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Fichier</p>
-                  <p className="text-white font-semibold text-lg">{currentProject.file_name}</p>
-                </div>
-
-                {/* Duration */}
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Durée</p>
-                  <p className="text-white font-medium">
-                    {(() => {
-                      const totalSeconds = Math.floor(currentProject.duration_seconds);
-                      const hours = Math.floor(totalSeconds / 3600);
-                      const minutes = Math.floor((totalSeconds % 3600) / 60);
-                      const seconds = totalSeconds % 60;
-                      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                    })()}
-                  </p>
-                </div>
-
-                {/* Resolution */}
-                {currentProject.width && currentProject.height && (
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Résolution</p>
-                    <p className="text-white font-medium">
-                      {currentProject.width} × {currentProject.height}
-                      {currentProject.width === 3840 && currentProject.height === 2160 && (
-                        <span className="ml-2 text-primary text-sm">(4K UHD)</span>
-                      )}
-                      {currentProject.width === 1920 && currentProject.height === 1080 && (
-                        <span className="ml-2 text-primary text-sm">(Full HD)</span>
-                      )}
-                    </p>
-                  </div>
-                )}
-
-                {/* File size */}
-                {currentProject.file_size_bytes && (
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Taille</p>
-                    <p className="text-white font-medium">
-                      {(currentProject.file_size_bytes / (1024 ** 3)).toFixed(2)} GB
-                    </p>
-                  </div>
-                )}
-
-                {/* Codec */}
-                {currentProject.codec && (
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Codec</p>
-                    <p className="text-white font-medium uppercase">{currentProject.codec}</p>
-                  </div>
-                )}
-
-                {/* File path */}
-                <div className="pt-4 border-t border-slate-700">
-                  <p className="text-slate-400 text-sm mb-1">Chemin</p>
-                  <p className="text-slate-300 text-sm break-all">{currentProject.file_path}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Transcription Action Button */}
-            <div className="mt-6 flex flex-col items-center gap-3">
-              <Button
-                size="lg"
-                className="w-full max-w-md"
-                onClick={() => {
-                  if (currentProject) {
-                    startTranscription(
-                      currentProject.id,
-                      currentProject.file_path,
-                      currentProject.id
-                    );
-                  }
-                }}
-                disabled={isTranscribing || !isReady}
-              >
-                {isTranscribing ? (
-                  <>
-                    <div aria-hidden="true" className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                    Transcription en cours...
-                  </>
-                ) : !isReady ? (
-                  'Modèle en préparation...'
-                ) : (
-                  <>
-                    <Brain aria-hidden="true" className="w-5 h-5 mr-2" />
-                    Générer le transcript
-                  </>
-                )}
-              </Button>
-              {!isReady && (
-                <p className="text-slate-400 text-xs">
-                  Le modèle de transcription se télécharge au premier lancement
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentScreen === 'preview' && (
-          <section aria-label="Lecteur vidéo" className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
-              {isPreparingPreview && (
-                <div className="flex flex-col items-center gap-3">
-                  <div aria-hidden="true" className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                  <p className="text-sm text-gray-400">Préparation du preview...</p>
-                </div>
-              )}
-              {previewError && (
-                <div className="flex flex-col items-center gap-3 text-center px-4">
-                  <p className="text-red-400 text-sm">{previewError}</p>
-                  <button
-                    type="button"
-                    className="text-primary text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
-                    onClick={() => setCurrentScreen('editor')}
-                  >
-                    Retour à l'éditeur
-                  </button>
-                </div>
-              )}
-              {!isPreparingPreview && !previewError && (previewPath || finalVideoPath) && (
-                <PreviewPlayer filePath={previewPath || finalVideoPath!} segmentBoundaries={segmentBoundaries} />
-              )}
-          </section>
-        )}
-
-        {currentScreen === 'editor' && transcript && currentProject && (
-          <div className="relative z-10 w-full h-full min-h-0 flex flex-row">
-            {/* Left panel — Transcript (60%) */}
-            <section aria-label="Transcript" className="w-[60%] h-full min-h-0 flex flex-col border-r border-border-dark">
-              <TranscriptViewerToolbar
-                searchQuery={searchQuery}
-                onSearchQueryChange={setSearchQuery}
-                currentMatchIndex={currentMatchIndex}
-                totalMatches={matches.length}
-                onNextMatch={nextMatch}
-                onPrevMatch={prevMatch}
-                onUndo={undo}
-                onRedo={redo}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onClearAll={clearSelection}
-              />
-              <div id="transcript" className="flex-1 min-h-0 overflow-hidden">
-                <TranscriptViewer
-                  words={transcript.words}
-                  selectedIndices={selectedWordIndices}
-                  onWordClick={toggleWordSelection}
-                  onSelectionChange={setSelection}
-                  onToggleRange={toggleSelectionRange}
-                  onSetIndices={setSelectionFromIndices}
-                  onClearSelection={clearSelection}
-                  onUndo={undo}
-                  onRedo={redo}
-                  searchQuery={searchQuery}
-                  scrollToWordIndex={scrollToWordIndex}
-                />
-              </div>
-            </section>
-
-            {/* Right panel — Video (40%) */}
-            <section aria-label="Lecteur vidéo" className="w-[40%] h-full min-h-0 flex flex-col bg-panel-dark">
-              <VideoPlayer
-                filePath={currentProject.file_path}
-                width={currentProject.width ?? undefined}
-                height={currentProject.height ?? undefined}
-                onSegmentClick={handleSegmentClick}
-              />
-              <KeyboardShortcutsBar />
-            </section>
-          </div>
-        )}
-      </main>
-        </div>
-      ) : (
-        // Clean background when model is downloading
-        <div className="min-h-screen bg-background-dark" />
-      )}
+      <AppWorkspace
+        showDialog={showDialog}
+        currentProject={currentProject}
+        currentScreen={currentScreen}
+        isSegmenting={isSegmenting}
+        hasSelections={hasSelections}
+        finalVideoPath={finalVideoPath}
+        isPreparingPreview={isPreparingPreview}
+        onGenerateCuts={handleGenerateCuts}
+        onPreview={handlePreview}
+        onBackToEditor={handleBackToEditor}
+        onExport={() => useExportStore.getState().openExportDialog()}
+        transcribingScreenProps={transcribingScreenProps}
+        projectDetailsProps={projectDetailsProps}
+        previewScreenProps={previewScreenProps}
+        editorScreenProps={editorScreenProps}
+      />
 
       {/* Model Download Dialog - shown automatically if model is missing or corrupted */}
       <ModelDownloadDialog

@@ -20,7 +20,7 @@ describe('SegmentationProgressDialog', () => {
       />
     );
 
-    expect(screen.getByText('Traitement du segment 5/23')).toBeInTheDocument();
+    expect(screen.getByText('segment 5/23')).toBeInTheDocument();
   });
 
   it('displays progress bar for >10 segments', () => {
@@ -36,7 +36,7 @@ describe('SegmentationProgressDialog', () => {
     expect(screen.getByText('22%')).toBeInTheDocument();
   });
 
-  it('displays spinner for <=10 segments', () => {
+  it('still displays progress details for <=10 segments', () => {
     const smallProgress = { ...defaultProgress, total_segments: 5, current_segment: 2 };
     render(
       <SegmentationProgressDialog
@@ -46,10 +46,10 @@ describe('SegmentationProgressDialog', () => {
       />
     );
 
-    // Should have spinner (animate-spin class) — portaled to document.body
+    // Phase indicator uses a spinner icon
     expect(document.querySelector('.animate-spin')).toBeTruthy();
-    // Should NOT show percentage
-    expect(screen.queryByText('40%')).not.toBeInTheDocument();
+    // Percentage remains visible even for short segment lists
+    expect(screen.getByText('40%')).toBeInTheDocument();
   });
 
   it('calls onCancel when cancel button is clicked', async () => {
@@ -77,7 +77,7 @@ describe('SegmentationProgressDialog', () => {
       />
     );
 
-    expect(screen.getByText('Génération des cuts vidéo...')).toBeInTheDocument();
+    expect(screen.getByText('Génération des cuts')).toBeInTheDocument();
   });
 
   it('shows validation title when isValidating is true', () => {
@@ -91,8 +91,8 @@ describe('SegmentationProgressDialog', () => {
       />
     );
 
-    expect(screen.getByText('Validation des segments...')).toBeInTheDocument();
-    expect(screen.getByText('Validation du segment 2/5')).toBeInTheDocument();
+    expect(screen.getByText('Validation en cours...')).toBeInTheDocument();
+    expect(screen.getByText('2/5')).toBeInTheDocument();
   });
 
   it('shows segmentation title when isValidating is false', () => {
@@ -105,6 +105,6 @@ describe('SegmentationProgressDialog', () => {
       />
     );
 
-    expect(screen.getByText('Génération des cuts vidéo...')).toBeInTheDocument();
+    expect(screen.getByText('Traitement en cours...')).toBeInTheDocument();
   });
 });

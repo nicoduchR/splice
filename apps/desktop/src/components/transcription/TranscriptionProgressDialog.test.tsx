@@ -165,8 +165,8 @@ describe('TranscriptionProgressDialog', () => {
       />
     );
 
-    // File size should be formatted as 3.9 GB
-    expect(screen.getByText(/4\.2 GB/i)).toBeInTheDocument();
+    // File size is shown in GiB units (base 1024), so 4_200_000_000 bytes -> 3.9 GB
+    expect(screen.getByText(/3\.9 GB/i)).toBeInTheDocument();
   });
 
   it('should show progress bar for videos longer than 10 minutes', () => {

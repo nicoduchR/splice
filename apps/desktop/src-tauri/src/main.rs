@@ -127,7 +127,7 @@ async fn main() {
             // Update AppState with loaded crash tracker
             {
                 let state = app.state::<AppState>();
-                let mut state_tracker = state.crash_tracker.lock().unwrap();
+                let mut state_tracker = state.crash_tracker.lock().expect("crash_tracker mutex poisoned during setup");
                 *state_tracker = tracker;
             }
 
@@ -137,7 +137,7 @@ async fn main() {
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
                 if let Some(state) = app_handle_healthy.try_state::<AppState>() {
-                    let mut tracker = state.crash_tracker.lock().unwrap();
+                    let mut tracker = state.crash_tracker.lock().expect("crash_tracker mutex poisoned during healthy check");
                     tracker.mark_healthy();
                     if let Err(e) = tracker.save_to_file(&tracker_path_healthy) {
                         tracing::warn!("Failed to save crash tracker after healthy mark: {}", e);
@@ -247,9 +247,9 @@ async fn main() {
 
                     // Skip if app is busy: active transcription, export, or segmentation (AC7)
                     {
-                        let is_transcribing = !transcription_flags.lock().unwrap().is_empty();
-                        let is_exporting = !export_flags.lock().unwrap().is_empty();
-                        let is_segmenting = !segmentation_flags.lock().unwrap().is_empty();
+                        let is_transcribing = !transcription_flags.lock().expect("transcription_cancel_flags mutex poisoned").is_empty();
+                        let is_exporting = !export_flags.lock().expect("export_cancel_flags mutex poisoned").is_empty();
+                        let is_segmenting = !segmentation_flags.lock().expect("segmentation_cancel_flags mutex poisoned").is_empty();
                         if is_transcribing || is_exporting || is_segmenting {
                             tracing::debug!("Skipping periodic update check: app is busy");
                             continue;
@@ -357,7 +357,7 @@ async fn main() {
                                 Ok(_) => {
                                     tracing::info!("Backup created before install-on-quit");
                                     // Update crash tracker with previous version
-                                    let mut tracker = state.crash_tracker.lock().unwrap();
+                                    let mut tracker = state.crash_tracker.lock().expect("crash_tracker mutex poisoned during install-on-quit");
                                     tracker.set_previous_version(current_version);
                                     let tracker_path = app_data_dir.join("crash-tracker.json");
                                     if let Err(e) = tracker.save_to_file(&tracker_path) {

@@ -8,8 +8,6 @@ use backoff::{ExponentialBackoff, Error as BackoffError};
 use backoff::future::retry;
 
 /// Model names for Parakeet TDT 0.6B v3
-#[allow(dead_code)] // Used in tests
-const PARAKEET_MODEL_NAME: &str = "parakeet-tdt-0.6b-v3";
 const PARAKEET_HF_REPO: &str = "istupakov/parakeet-tdt-0.6b-v3-onnx";
 
 /// Required files for Parakeet model with real sizes from HuggingFace
@@ -247,6 +245,8 @@ impl ModelDownloader for HuggingFaceModelManager {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    const PARAKEET_MODEL_NAME: &str = "parakeet-tdt-0.6b-v3";
 
     #[tokio::test]
     async fn test_check_model_exists_when_missing() {

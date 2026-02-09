@@ -11,6 +11,7 @@ pub struct BackupInfo {
 }
 
 /// Use case: Backup the current application version before applying an update
+#[derive(Default)]
 pub struct BackupCurrentVersionUseCase;
 
 impl BackupCurrentVersionUseCase {

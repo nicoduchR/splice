@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::entities::transcription::TranscriptionResult;
 use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
-use crate::domain::repositories::TranscriptRepository;
 use crate::infrastructure::adapters::{AudioExtractor, FluidAudioTranscriptionService};
 use crate::infrastructure::adapters::proxy_generator::ProxyGenerator;
 use crate::infrastructure::config::app_state::AppState;
@@ -398,17 +397,16 @@ pub fn cleanup_temp_directory(temp_dir: &std::path::Path) {
 
     tracing::info!(event = "temp_cleanup_started", temp_dir = %temp_dir.display());
 
-    match std::fs::read_dir(&temp_dir) {
+    match std::fs::read_dir(temp_dir) {
         Ok(entries) => {
             let mut cleaned = 0;
             for entry in entries.flatten() {
                 if let Ok(ft) = entry.file_type() {
-                    if ft.is_file() {
-                        if entry.path().extension().map(|e| e == "wav").unwrap_or(false) {
-                            if std::fs::remove_file(entry.path()).is_ok() {
-                                cleaned += 1;
-                            }
-                        }
+                    if ft.is_file()
+                        && entry.path().extension().map(|e| e == "wav").unwrap_or(false)
+                        && std::fs::remove_file(entry.path()).is_ok()
+                    {
+                        cleaned += 1;
                     }
                 }
             }

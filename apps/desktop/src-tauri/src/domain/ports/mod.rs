@@ -4,4 +4,3 @@ pub mod update_checker;
 
 pub use secure_credential_store::{SecureCredentialStore, CredentialError};
 pub use license_api_client::{LicenseApiClient, LicenseApiError, LicenseVerifyResponse, LicenseData, LicenseErrorData, RedeemEarlyAdopterResponse, RedeemEarlyAdopterData};
-pub use update_checker::{UpdateChecker, UpdateCheckError, AvailableUpdate};
