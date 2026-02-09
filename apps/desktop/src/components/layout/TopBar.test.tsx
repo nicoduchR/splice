@@ -40,4 +40,22 @@ describe('TopBar', () => {
     render(<TopBar currentScreen="editor" />);
     expect(screen.queryByText('Retour à l\'éditeur')).toBeNull();
   });
+
+  it('renders nav landmark for actions', () => {
+    const { container } = render(<TopBar currentScreen="editor" />);
+    const nav = container.querySelector('nav[aria-label="Actions principales"]');
+    expect(nav).toBeTruthy();
+  });
+
+  it('renders header landmark', () => {
+    const { container } = render(<TopBar currentScreen="editor" />);
+    const header = container.querySelector('header');
+    expect(header).toBeTruthy();
+  });
+
+  it('renders logo SVG with aria-hidden', () => {
+    const { container } = render(<TopBar currentScreen="editor" />);
+    const svg = container.querySelector('svg[aria-hidden="true"]');
+    expect(svg).toBeTruthy();
+  });
 });

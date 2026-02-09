@@ -148,7 +148,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               <div className="rounded-md bg-gray-900 p-3 border border-gray-800 space-y-2">
                 {isLoadingCache ? (
                   <div className="flex items-center gap-2 text-gray-400 text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" />
                     Calcul de la taille du cache...
                   </div>
                 ) : cacheSize ? (
@@ -187,12 +187,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               >
                 {isClearingCache ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    <Loader2 aria-hidden="true" className="w-4 h-4 mr-1.5 animate-spin" />
                     Nettoyage...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4 mr-1.5" />
+                    <Trash2 aria-hidden="true" className="w-4 h-4 mr-1.5" />
                     Vider le cache
                   </>
                 )}
@@ -221,7 +221,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   onClick={handleChangeTempDir}
                   data-testid="change-temp-dir-button"
                 >
-                  <FolderOpen className="w-4 h-4 mr-1.5" />
+                  <FolderOpen aria-hidden="true" className="w-4 h-4 mr-1.5" />
                   Changer
                 </Button>
                 {tempDirectory && (

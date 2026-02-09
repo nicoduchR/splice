@@ -16,7 +16,7 @@
     --secondary: 211 32% 20%; /* #21344a */
     --secondary-foreground: 0 0% 100%;
     --muted: 211 32% 20%;
-    --muted-foreground: 220 9% 46%; /* slate-500 */
+    --muted-foreground: 218 11% 56%; /* adjusted for WCAG AA 4.5:1 on dark bg */
     --accent: 211 98% 54%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 65%;
@@ -41,7 +41,7 @@
     --secondary: 211 32% 20%; /* #21344a */
     --secondary-foreground: 0 0% 100%;
     --muted: 211 32% 20%;
-    --muted-foreground: 220 9% 46%;
+    --muted-foreground: 218 11% 56%; /* adjusted for WCAG AA 4.5:1 on dark bg */
     --accent: 211 98% 54%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 65%;
@@ -74,6 +74,49 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --border: 211 40% 40%;
+    --muted-foreground: 220 9% 65%;
+    --ring: 0 0% 100%;
+  }
+
+  .dark {
+    --border: 211 40% 40%;
+    --muted-foreground: 220 9% 65%;
+    --ring: 0 0% 100%;
+  }
+
+  /* Reinforced focus rings */
+  *:focus-visible {
+    outline: 2px solid white !important;
+    outline-offset: 2px;
+  }
+
+  /* Interactive elements get visible borders */
+  button,
+  [role="button"] {
+    border: 1px solid hsl(211 40% 40%);
+  }
+
+  /* Opaque selection backgrounds (replace semi-transparent emerald-500/30) */
+  [data-word-selected="true"] {
+    background-color: hsl(160 60% 25%) !important;
+    border-bottom: 2px solid hsl(160 84% 39%) !important;
+  }
+
+  /* Opaque search highlight (replace semi-transparent yellow-500/30) */
+  [data-word-highlighted="true"] {
+    background-color: hsl(45 60% 25%) !important;
+  }
+
+  /* Timeline segments: reinforced border */
+  [data-segment-id] {
+    border: 2px solid hsl(160 84% 60%) !important;
   }
 }
 

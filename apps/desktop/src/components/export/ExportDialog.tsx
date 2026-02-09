@@ -132,8 +132,8 @@ export function ExportDialog() {
           </div>
 
           {/* Quality selection */}
-          <div>
-            <Label className="text-gray-300 text-sm">Qualité</Label>
+          <fieldset>
+            <legend className="text-gray-300 text-sm">Qualité</legend>
             <RadioGroup
               value={settings.quality}
               onValueChange={(v) => updateSettings({ quality: v as ExportQuality })}
@@ -141,17 +141,22 @@ export function ExportDialog() {
             >
               {QUALITY_OPTIONS.map((opt) => (
                 <div key={opt.value} className="flex items-start space-x-3">
-                  <RadioGroupItem value={opt.value} id={`quality-${opt.value}`} className="mt-0.5" />
+                  <RadioGroupItem
+                    value={opt.value}
+                    id={`quality-${opt.value}`}
+                    className="mt-0.5"
+                    aria-describedby={`quality-desc-${opt.value}`}
+                  />
                   <div>
                     <Label htmlFor={`quality-${opt.value}`} className="text-gray-200 font-medium cursor-pointer">
                       {opt.label}
                     </Label>
-                    <p className="text-gray-500 text-xs">{opt.description}</p>
+                    <p id={`quality-desc-${opt.value}`} className="text-gray-500 text-xs">{opt.description}</p>
                   </div>
                 </div>
               ))}
             </RadioGroup>
-          </div>
+          </fieldset>
 
           {/* Output destination */}
           <div>
@@ -160,6 +165,7 @@ export function ExportDialog() {
               <Input
                 value={settings.outputPath ? `${settings.outputPath}/${settings.fileName}` : ''}
                 readOnly
+                aria-label="Chemin de destination"
                 className="bg-gray-900 border-gray-700 text-gray-300 text-sm flex-1"
                 placeholder="Choisissez un emplacement..."
               />
@@ -171,8 +177,9 @@ export function ExportDialog() {
 
           {/* Filename */}
           <div>
-            <Label className="text-gray-300 text-sm">Nom du fichier</Label>
+            <Label htmlFor="export-filename" className="text-gray-300 text-sm">Nom du fichier</Label>
             <Input
+              id="export-filename"
               value={settings.fileName}
               onChange={(e) => updateSettings({ fileName: e.target.value })}
               className="bg-gray-900 border-gray-700 text-gray-300 text-sm mt-1.5"

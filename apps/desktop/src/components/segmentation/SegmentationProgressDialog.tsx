@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -39,6 +39,10 @@ export function SegmentationProgressDialog({
   const [progressHistory, setProgressHistory] = useState<
     { timestamp: number; progress: number }[]
   >([]);
+
+  // Screen reader: announce percentage every 10%
+  const lastAnnouncedRef = useRef(0);
+  const [srMessage, setSrMessage] = useState('');
 
   // Determine current phase
   const phase: 'segmenting' | 'validating' | 'concatenating' = isConcatenating
@@ -112,6 +116,18 @@ export function SegmentationProgressDialog({
     });
   }, [activeCurrentSegment, activeTotalSegments, isOpen, isConcatenating]);
 
+  // Screen reader: announce percentage every 10%
+  useEffect(() => {
+    const currentTen = Math.floor(progressPercent / 10);
+    if (currentTen > lastAnnouncedRef.current && currentTen > 0) {
+      lastAnnouncedRef.current = currentTen;
+      setSrMessage(`Génération des cuts ${currentTen * 10}% terminée`);
+    }
+    if (progressPercent === 0) {
+      lastAnnouncedRef.current = 0;
+    }
+  }, [progressPercent]);
+
   const formatTimeRemaining = (): string => {
     if (timeRemaining === null || timeRemaining === 0) return '';
     if (timeRemaining < 60) {
@@ -142,7 +158,7 @@ export function SegmentationProgressDialog({
           {/* Header Icon */}
           <div className="mb-6 relative">
             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-50" />
-            <Scissors className="w-12 h-12 text-primary relative z-10 drop-shadow-[0_0_15px_rgba(21,128,249,0.5)]" />
+            <Scissors aria-hidden="true" className="w-12 h-12 text-primary relative z-10 drop-shadow-[0_0_15px_rgba(21,128,249,0.5)]" />
           </div>
 
           {/* Title */}
@@ -187,7 +203,7 @@ export function SegmentationProgressDialog({
                   <span className="text-white text-xl md:text-2xl font-bold">
                     {reductionPercent}%
                   </span>
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <TrendingUp aria-hidden="true" className="w-4 h-4 text-emerald-500" />
                 </div>
               </div>
             </div>
@@ -252,7 +268,7 @@ export function SegmentationProgressDialog({
 
           {/* Footer Info */}
           <div className="w-full pt-6 border-t border-white/10 flex items-start gap-3 text-left">
-            <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <Info aria-hidden="true" className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <p className="text-gray-400 text-sm leading-relaxed">
               Marge automatique de <span className="text-gray-200 font-semibold">0.1s</span> ajout&eacute;e pour des transitions naturelles.
             </p>
@@ -267,6 +283,11 @@ export function SegmentationProgressDialog({
             >
               Annuler
             </Button>
+          </div>
+
+          {/* Screen reader progress announce */}
+          <div aria-live="polite" className="sr-only">
+            {srMessage}
           </div>
         </div>
       </AlertDialogContent>

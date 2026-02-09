@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useTimelineStore } from '../../stores/timeline-store';
 import { useTranscriptStore } from '../../stores/transcript-store';
@@ -202,6 +202,17 @@ export const VideoPlayer = React.memo(function VideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlayback, seek]);
 
+  // Screen reader: announce play/pause state changes
+  const [srPlayState, setSrPlayState] = useState('');
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setSrPlayState(isPlaying ? 'Lecture' : 'Pause');
+  }, [isPlaying]);
+
   const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -263,12 +274,23 @@ export const VideoPlayer = React.memo(function VideoPlayer({
                 <Tooltip key={segment.id}>
                   <TooltipTrigger asChild>
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Segment ${formatTimecode(segment.startTime)} → ${formatTimecode(segment.endTime)}`}
                       className="absolute top-0 h-full bg-emerald-500 rounded-full hover:bg-emerald-400 transition-colors"
                       style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                       onClick={(e) => {
                         e.stopPropagation();
                         const sel = selectionMap.get(segment.id);
                         if (sel && onSegmentClick) onSegmentClick(sel.startWordIndex);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const sel = selectionMap.get(segment.id);
+                          if (sel && onSegmentClick) onSegmentClick(sel.startWordIndex);
+                        }
                       }}
                     />
                   </TooltipTrigger>
@@ -347,9 +369,15 @@ export const VideoPlayer = React.memo(function VideoPlayer({
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
             className="w-20 h-1 accent-primary"
+            aria-label="Volume"
           />
         </div>
       </div>
+
+      {/* Screen reader: announce play/pause */}
+      <span aria-live="polite" className="sr-only">
+        {srPlayState}
+      </span>
     </div>
   );
 });

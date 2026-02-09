@@ -100,7 +100,6 @@ pub fn get_crash_count(
 #[tauri::command]
 pub async fn send_crash_report(
     app: tauri::AppHandle,
-    state: State<'_, AppState>,
     include_logs: bool,
 ) -> Result<(), String> {
     let app_data_dir = app
@@ -108,10 +107,11 @@ pub async fn send_crash_report(
         .app_data_dir()
         .map_err(|e| format!("Impossible d'accéder au répertoire de données: {}", e))?;
 
-    let tracker = state.crash_tracker.lock().unwrap();
-    let crash_count = tracker.consecutive_crashes;
-    let previous_version = tracker.previous_version.clone().unwrap_or_default();
-    drop(tracker);
+    let (crash_count, previous_version) = {
+        let state = app.state::<AppState>();
+        let tracker = state.crash_tracker.lock().unwrap();
+        (tracker.consecutive_crashes, tracker.previous_version.clone().unwrap_or_default())
+    };
 
     let current_version = app.package_info().version.to_string();
     let platform = std::env::consts::OS.to_string();

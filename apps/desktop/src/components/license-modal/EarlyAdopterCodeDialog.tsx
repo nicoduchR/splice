@@ -115,8 +115,9 @@ export function EarlyAdopterCodeDialog({
 
         <div className="py-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Code early adopter</label>
+            <label htmlFor="early-adopter-code" className="text-sm text-gray-400">Code early adopter</label>
             <Input
+              id="early-adopter-code"
               type="text"
               placeholder="SPLICE-XXXX-XXXX-XXXX"
               value={code}
@@ -133,8 +134,9 @@ export function EarlyAdopterCodeDialog({
             )}
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Votre adresse email</label>
+            <label htmlFor="early-adopter-email" className="text-sm text-gray-400">Votre adresse email</label>
             <Input
+              id="early-adopter-email"
               type="email"
               placeholder="vous@exemple.com"
               value={email}
@@ -166,7 +168,7 @@ export function EarlyAdopterCodeDialog({
           >
             {isActivating ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 aria-hidden="true" className="w-4 h-4 mr-2 animate-spin" />
                 Activation...
               </>
             ) : (

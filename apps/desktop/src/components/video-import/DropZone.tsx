@@ -190,7 +190,7 @@ export const DropZone = React.memo(({
           size="lg"
           className="min-w-[220px]"
         >
-          <FolderOpen className="w-5 h-5" />
+          <FolderOpen aria-hidden="true" className="w-5 h-5" />
           <span>Parcourir les fichiers</span>
         </Button>
 

@@ -95,7 +95,7 @@ export function ErrorDialog({
               onClick={handleCopyDetails}
               className="gap-1.5"
             >
-              <Copy className="w-4 h-4" />
+              <Copy aria-hidden="true" className="w-4 h-4" />
               Copier les détails
             </Button>
           )}

@@ -424,7 +424,7 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background-dark">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div aria-hidden="true" className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           <p className="text-sm text-gray-400">
             Vérification du moteur de transcription...
           </p>
@@ -607,14 +607,14 @@ function App() {
               >
                 {isTranscribing ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                    <div aria-hidden="true" className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                     Transcription en cours...
                   </>
                 ) : !isReady ? (
                   'Modèle en préparation...'
                 ) : (
                   <>
-                    <Brain className="w-5 h-5 mr-2" />
+                    <Brain aria-hidden="true" className="w-5 h-5 mr-2" />
                     Générer le transcript
                   </>
                 )}
@@ -629,10 +629,10 @@ function App() {
         )}
 
         {currentScreen === 'preview' && (
-          <div className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
+          <section aria-label="Lecteur vidéo" className="relative z-10 w-full h-full min-h-0 flex items-center justify-center bg-black">
               {isPreparingPreview && (
                 <div className="flex flex-col items-center gap-3">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                  <div aria-hidden="true" className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
                   <p className="text-sm text-gray-400">Préparation du preview...</p>
                 </div>
               )}
@@ -651,13 +651,13 @@ function App() {
               {!isPreparingPreview && !previewError && (previewPath || finalVideoPath) && (
                 <PreviewPlayer filePath={previewPath || finalVideoPath!} segmentBoundaries={segmentBoundaries} />
               )}
-          </div>
+          </section>
         )}
 
         {currentScreen === 'editor' && transcript && currentProject && (
           <div className="relative z-10 w-full h-full min-h-0 flex flex-row">
             {/* Left panel — Transcript (60%) */}
-            <div className="w-[60%] h-full min-h-0 flex flex-col border-r border-border-dark">
+            <section aria-label="Transcript" className="w-[60%] h-full min-h-0 flex flex-col border-r border-border-dark">
               <TranscriptViewerToolbar
                 searchQuery={searchQuery}
                 onSearchQueryChange={setSearchQuery}
@@ -686,10 +686,10 @@ function App() {
                   scrollToWordIndex={scrollToWordIndex}
                 />
               </div>
-            </div>
+            </section>
 
             {/* Right panel — Video (40%) */}
-            <div className="w-[40%] h-full min-h-0 flex flex-col bg-panel-dark">
+            <section aria-label="Lecteur vidéo" className="w-[40%] h-full min-h-0 flex flex-col bg-panel-dark">
               <VideoPlayer
                 filePath={currentProject.file_path}
                 width={currentProject.width ?? undefined}
@@ -697,7 +697,7 @@ function App() {
                 onSegmentClick={handleSegmentClick}
               />
               <KeyboardShortcutsBar />
-            </div>
+            </section>
           </div>
         )}
       </main>

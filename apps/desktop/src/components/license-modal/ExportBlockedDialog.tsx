@@ -48,7 +48,7 @@ export function ExportBlockedDialog({
         <div className="py-4 space-y-3">
           {BENEFITS.map((benefit) => (
             <div key={benefit} className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <Check aria-hidden="true" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
               <span className="text-gray-300 text-sm">{benefit}</span>
             </div>
           ))}
@@ -73,7 +73,7 @@ export function ExportBlockedDialog({
           >
             {isUpgrading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 aria-hidden="true" className="w-4 h-4 mr-2 animate-spin" />
                 Attente...
               </>
             ) : (

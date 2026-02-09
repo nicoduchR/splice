@@ -201,6 +201,17 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
     [handleSeek]
   );
 
+  // Screen reader: announce play/pause state changes
+  const [srPlayState, setSrPlayState] = useState('');
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setSrPlayState(isPlaying ? 'Lecture' : 'Pause');
+  }, [isPlaying]);
+
   const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -254,11 +265,21 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
             return (
               <div
                 key={boundary.index}
+                role="button"
+                tabIndex={0}
+                aria-label={`Segment ${boundary.index + 1} — ${formatTimecode(boundary.start_time)}`}
                 className="absolute top-0 h-full cursor-pointer z-10"
                 style={{ left: `${percent}%`, width: 8, transform: 'translateX(-50%)' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSeek(boundary.start_time);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSeek(boundary.start_time);
+                  }
                 }}
                 onMouseEnter={() => setHoveredBoundary(i)}
                 onMouseLeave={() => setHoveredBoundary(null)}
@@ -332,6 +353,11 @@ export function PreviewPlayer({ filePath, segmentBoundaries = [] }: PreviewPlaye
           </button>
         </div>
       </div>
+
+      {/* Screen reader: announce play/pause */}
+      <span aria-live="polite" className="sr-only">
+        {srPlayState}
+      </span>
     </div>
   );
 }

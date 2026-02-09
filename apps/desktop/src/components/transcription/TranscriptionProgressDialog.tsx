@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -41,6 +41,10 @@ export function TranscriptionProgressDialog({
     { timestamp: number; progress: number }[]
   >([]);
 
+  // Screen reader: announce percentage every 10%
+  const lastAnnouncedRef = useRef(0);
+  const [srMessage, setSrMessage] = useState('');
+
   // Calculer le temps restant basé sur la progression
   useEffect(() => {
     if (!isOpen || progress.progress === 0) {
@@ -74,6 +78,19 @@ export function TranscriptionProgressDialog({
       return newHistory;
     });
   }, [progress.progress, isOpen]);
+
+  // Screen reader: announce percentage every 10%
+  useEffect(() => {
+    const percent = progress.progress * 100;
+    const currentTen = Math.floor(percent / 10);
+    if (currentTen > lastAnnouncedRef.current && currentTen > 0) {
+      lastAnnouncedRef.current = currentTen;
+      setSrMessage(`Transcription ${currentTen * 10}% terminée`);
+    }
+    if (percent === 0) {
+      lastAnnouncedRef.current = 0;
+    }
+  }, [progress.progress]);
 
   // Formater la durée de la vidéo
   const formatDuration = (seconds: number): string => {
@@ -151,7 +168,7 @@ export function TranscriptionProgressDialog({
           {/* File Info */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Film className="w-5 h-5 text-primary" />
+              <Film aria-hidden="true" className="w-5 h-5 text-primary" />
             </div>
             <div className="flex flex-col overflow-hidden">
               <h2 className="text-white text-base font-semibold truncate">
@@ -170,7 +187,7 @@ export function TranscriptionProgressDialog({
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2 text-primary animate-pulse-slow">
-                <Brain className="w-5 h-5" />
+                <Brain aria-hidden="true" className="w-5 h-5" />
                 <span className="text-sm font-medium tracking-wide">
                   {getStageMessage()}
                 </span>
@@ -205,7 +222,7 @@ export function TranscriptionProgressDialog({
                 <span>Parakeet TDT</span>
                 <span className="w-1 h-1 rounded-full bg-gray-500" />
                 <span className="flex items-center gap-1">
-                  <Cpu className="w-3.5 h-3.5" />
+                  <Cpu aria-hidden="true" className="w-3.5 h-3.5" />
                   CPU
                 </span>
               </div>
@@ -219,7 +236,7 @@ export function TranscriptionProgressDialog({
 
           {/* Privacy Footer Box */}
           <div className="mt-2 bg-[#1f1f25] border border-card-border rounded-lg p-3 flex items-start gap-3">
-            <Lock className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+            <Lock aria-hidden="true" className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
             <div className="flex flex-col">
               <p className="text-xs text-gray-300 font-medium">
                 Transcription locale et sécurisée
@@ -241,6 +258,11 @@ export function TranscriptionProgressDialog({
                 Annuler
               </Button>
             </AlertDialogCancel>
+          </div>
+
+          {/* Screen reader progress announce */}
+          <div aria-live="polite" className="sr-only">
+            {srMessage}
           </div>
         </div>
       </AlertDialogContent>

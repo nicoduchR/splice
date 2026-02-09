@@ -36,7 +36,11 @@ export const SelectionStats = React.memo(function SelectionStats() {
   }
 
   return (
-    <span className="text-xs font-medium tabular-nums px-2.5 py-1 bg-muted/20 rounded-full border border-border-dark">
+    <span
+      aria-live="polite"
+      aria-atomic="true"
+      className="text-xs font-medium tabular-nums px-2.5 py-1 bg-muted/20 rounded-full border border-border-dark"
+    >
       {stats.segmentCount} segment{stats.segmentCount > 1 ? 's' : ''} &bull;{' '}
       {formatTimecode(stats.selectedDuration)} / {formatTimecode(duration)} &bull;{' '}
       <span className={getReductionColor(stats.reductionPercent)}>

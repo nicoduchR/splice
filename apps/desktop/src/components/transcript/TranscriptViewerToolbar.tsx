@@ -62,7 +62,7 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
       <div className="flex items-center gap-4 justify-between">
         {/* Left Section - Highlight instruction */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Highlighter className="h-4 w-4" />
+          <Highlighter aria-hidden="true" className="h-4 w-4" />
           <span>Surlignez les passages à conserver</span>
         </div>
 
@@ -79,8 +79,9 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
             disabled={!canUndo}
             onClick={onUndo}
             title="Annuler (⌘Z)"
+            aria-label="Annuler"
           >
-            <Undo2 className="h-4 w-4" />
+            <Undo2 aria-hidden="true" className="h-4 w-4" />
           </Button>
 
           {/* Redo */}
@@ -91,8 +92,9 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
             disabled={!canRedo}
             onClick={onRedo}
             title="Rétablir (⌘⇧Z)"
+            aria-label="Rétablir"
           >
-            <Redo2 className="h-4 w-4" />
+            <Redo2 aria-hidden="true" className="h-4 w-4" />
           </Button>
 
           {/* Clear All with confirmation */}
@@ -103,8 +105,9 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
                 size="sm"
                 className="h-8 w-8 p-0"
                 title="Effacer toutes les sélections"
+                aria-label="Effacer toutes les sélections"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -128,7 +131,7 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search aria-hidden="true" className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               type="text"
@@ -136,6 +139,7 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
               className="pl-9 w-48 h-8 text-sm"
+              aria-label="Rechercher dans le transcript"
             />
           </div>
 
@@ -145,10 +149,10 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {currentMatchIndex + 1}/{totalMatches}
               </span>
-              <Button variant="ghost" size="sm" onClick={onPrevMatch} className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" onClick={onPrevMatch} className="h-8 w-8 p-0" aria-label="Résultat précédent">
                 ↑
               </Button>
-              <Button variant="ghost" size="sm" onClick={onNextMatch} className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" onClick={onNextMatch} className="h-8 w-8 p-0" aria-label="Résultat suivant">
                 ↓
               </Button>
             </div>

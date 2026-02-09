@@ -195,10 +195,8 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
   return (
     <div
       ref={scrollElementRef}
-      role="textbox"
-      aria-label="Transcript viewer"
-      aria-multiline="true"
-      aria-readonly="true"
+      role="document"
+      aria-label="Transcription vidéo"
       tabIndex={0}
       className={`h-full overflow-auto select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset ${className}`}
       style={{ contain: 'content' }}

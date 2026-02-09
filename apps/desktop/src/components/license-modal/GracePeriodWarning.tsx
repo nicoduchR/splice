@@ -83,7 +83,7 @@ export function GracePeriodWarning({ open, onOpenChange, onEarlyAdopterClick }: 
           >
             {isRetrying ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
                 Vérification en cours...
               </>
             ) : (

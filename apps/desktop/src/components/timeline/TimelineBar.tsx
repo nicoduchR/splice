@@ -64,6 +64,7 @@ export const TimelineBar = React.memo(function TimelineBar({
         style={{ height: 48 }}
         role="region"
         aria-label="Timeline"
+        aria-roledescription="timeline vidéo"
         data-testid="timeline-bar"
         tabIndex={0}
         onKeyDown={handleTimelineKeyDown}
@@ -81,7 +82,7 @@ export const TimelineBar = React.memo(function TimelineBar({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="absolute top-0 h-full bg-emerald-600 hover:bg-emerald-500 rounded transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className="absolute top-0 h-full bg-emerald-600 hover:bg-emerald-500 rounded border border-emerald-400 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       style={{
                         left: `${leftPercent}%`,
                         width: `${widthPercent}%`,

@@ -43,11 +43,9 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]');
+    const textbox = container.querySelector('[role="document"]');
     expect(textbox).toBeTruthy();
-    expect(textbox).toHaveAttribute('aria-label', 'Transcript viewer');
-    expect(textbox).toHaveAttribute('aria-multiline', 'true');
-    expect(textbox).toHaveAttribute('aria-readonly', 'true');
+    expect(textbox).toHaveAttribute('aria-label', 'Transcription vidéo');
   });
 
   it('should call onWordClick when word is clicked', () => {
@@ -75,7 +73,7 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]')!;
+    const textbox = container.querySelector('[role="document"]')!;
     fireEvent.keyDown(textbox, { key: 'ArrowRight' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(4, 4);
@@ -91,7 +89,7 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]')!;
+    const textbox = container.querySelector('[role="document"]')!;
     fireEvent.keyDown(textbox, { key: 'ArrowLeft' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(4, 4);
@@ -107,7 +105,7 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]')!;
+    const textbox = container.querySelector('[role="document"]')!;
     fireEvent.keyDown(textbox, { key: 'ArrowRight' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(9, 9); // Stay at 9
@@ -123,7 +121,7 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]')!;
+    const textbox = container.querySelector('[role="document"]')!;
     fireEvent.keyDown(textbox, { key: 'ArrowLeft' });
 
     expect(mockOnSelectionChange).toHaveBeenCalledWith(0, 0); // Stay at 0
@@ -141,7 +139,7 @@ describe('TranscriptViewer', () => {
       />
     );
 
-    const textbox = container.querySelector('[role="textbox"]')!;
+    const textbox = container.querySelector('[role="document"]')!;
     fireEvent.keyDown(textbox, { key: 'Escape' });
 
     expect(mockClearSelection).toHaveBeenCalled();
