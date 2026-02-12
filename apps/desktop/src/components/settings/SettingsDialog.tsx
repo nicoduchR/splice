@@ -17,6 +17,8 @@ import {
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useUpdateStore } from '@/stores/update-store';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -27,6 +29,9 @@ import {
   getPreference,
   setPreference,
   PREF_TEMP_DIRECTORY,
+  PREF_TRANSCRIPTION_LANGUAGE_MODE,
+  PREF_TRANSCRIPTION_WHISPER_PROFILE,
+  PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED,
 } from '@/services/preferences-service';
 
 interface SettingsDialogProps {
@@ -49,6 +54,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   // Temp directory state
   const [tempDirectory, setTempDirectory] = useState<string | null>(null);
+  const [transcriptionLanguageMode, setTranscriptionLanguageMode] = useState<'auto_fr_en' | 'force_fr' | 'force_en'>('auto_fr_en');
+  const [whisperProfile, setWhisperProfile] = useState('fast');
+  const [whisperAutoApply, setWhisperAutoApply] = useState(true);
 
   const fetchCacheSize = useCallback(async () => {
     setIsLoadingCache(true);
@@ -71,13 +79,35 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     }
   }, []);
 
+  const fetchTranscriptionSettings = useCallback(async () => {
+    try {
+      const mode = await getPreference(PREF_TRANSCRIPTION_LANGUAGE_MODE);
+      if (mode === 'force_fr' || mode === 'force_en' || mode === 'auto_fr_en') {
+        setTranscriptionLanguageMode(mode);
+      } else {
+        setTranscriptionLanguageMode('auto_fr_en');
+      }
+
+      const profile = await getPreference(PREF_TRANSCRIPTION_WHISPER_PROFILE);
+      setWhisperProfile(profile === 'fast' ? 'fast' : 'fast');
+
+      const autoApply = await getPreference(PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED);
+      setWhisperAutoApply(autoApply === null || autoApply === '' || autoApply === 'true');
+    } catch {
+      setTranscriptionLanguageMode('auto_fr_en');
+      setWhisperProfile('fast');
+      setWhisperAutoApply(true);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       fetchBackupInfo();
       fetchCacheSize();
       fetchTempDirectory();
+      fetchTranscriptionSettings();
     }
-  }, [isOpen, fetchBackupInfo, fetchCacheSize, fetchTempDirectory]);
+  }, [isOpen, fetchBackupInfo, fetchCacheSize, fetchTempDirectory, fetchTranscriptionSettings]);
 
   const handleRollback = async () => {
     setShowRollbackConfirm(false);
@@ -120,6 +150,31 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       await setPreference(PREF_TEMP_DIRECTORY, '');
       setTempDirectory(null);
       toast.success('Répertoire temporaire réinitialisé (par défaut)');
+    } catch (e) {
+      toast.error('Erreur', { description: String(e) });
+    }
+  };
+
+  const handleLanguageModeChange = async (value: string) => {
+    const mode = (value === 'force_fr' || value === 'force_en' || value === 'auto_fr_en')
+      ? value
+      : 'auto_fr_en';
+
+    try {
+      await setPreference(PREF_TRANSCRIPTION_LANGUAGE_MODE, mode);
+      setTranscriptionLanguageMode(mode);
+      toast.success('Langue de transcription mise à jour');
+    } catch (e) {
+      toast.error('Erreur', { description: String(e) });
+    }
+  };
+
+  const handleToggleAutoApply = async () => {
+    const next = !whisperAutoApply;
+    try {
+      await setPreference(PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED, next ? 'true' : 'false');
+      setWhisperAutoApply(next);
+      toast.success('Préférence de correction mise à jour');
     } catch (e) {
       toast.error('Erreur', { description: String(e) });
     }
@@ -234,6 +289,62 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                     Réinitialiser
                   </Button>
                 )}
+              </div>
+            </div>
+
+            {/* Section: Mises à jour (rollback) */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Transcription</h3>
+              <div className="rounded-md bg-gray-900 p-3 border border-gray-800 space-y-4">
+                <div>
+                  <p className="text-sm text-gray-400 mb-2">Langue (détection / forçage)</p>
+                  <RadioGroup
+                    value={transcriptionLanguageMode}
+                    onValueChange={handleLanguageModeChange}
+                    className="gap-2"
+                    data-testid="transcription-language-mode"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="auto_fr_en" id="lang-auto-fr-en" />
+                      <Label htmlFor="lang-auto-fr-en" className="text-sm text-gray-200">Auto FR/EN</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="force_fr" id="lang-force-fr" />
+                      <Label htmlFor="lang-force-fr" className="text-sm text-gray-200">Forcer Français</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="force_en" id="lang-force-en" />
+                      <Label htmlFor="lang-force-en" className="text-sm text-gray-200">Forcer Anglais</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="pt-3 border-t border-gray-800">
+                  <p className="text-sm text-gray-400">Profil Whisper (passe 2)</p>
+                  <p className="text-sm text-white mt-1" data-testid="whisper-profile">
+                    {whisperProfile === 'fast' ? 'Rapide' : 'Rapide'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Whisper est lancé automatiquement en arrière-plan après Parakeet.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gray-800 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-gray-200">Auto-appliquer si non édité</p>
+                    <p className="text-xs text-gray-500">
+                      Si vous n’avez pas modifié les sélections, la correction s’applique automatiquement.
+                    </p>
+                  </div>
+                  <Button
+                    variant={whisperAutoApply ? 'outline' : 'ghost'}
+                    size="sm"
+                    onClick={handleToggleAutoApply}
+                    data-testid="whisper-auto-apply-toggle"
+                  >
+                    {whisperAutoApply ? 'Activé' : 'Désactivé'}
+                  </Button>
+                </div>
               </div>
             </div>
 

@@ -120,4 +120,17 @@ describe('SelectionStats', () => {
     const { getByText } = render(<SelectionStats />);
     expect(getByText(/final 12:45/)).toBeTruthy();
   });
+
+  it('should compute stats correctly in remove mode', () => {
+    useTimelineStore.setState({
+      duration: 100,
+      segments: [
+        { id: 's1', startTime: 10, endTime: 20, selected: true }, // 10s removed
+      ],
+    });
+    const { getByText } = render(<SelectionStats selectionMode="remove" />);
+    expect(getByText(/à supprimer/)).toBeTruthy();
+    expect(getByText(/10% réduction/)).toBeTruthy();
+    expect(getByText(/final 01:30/)).toBeTruthy();
+  });
 });

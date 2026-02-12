@@ -114,6 +114,11 @@
     border-bottom: 2px solid hsl(160 84% 39%) !important;
   }
 
+  [data-word-selected="true"][data-selection-mode="remove"] {
+    background-color: hsl(355 65% 24%) !important;
+    border-bottom: 2px solid hsl(355 82% 55%) !important;
+  }
+
   /* Opaque search highlight (replace semi-transparent yellow-500/30) */
   [data-word-highlighted="true"] {
     background-color: hsl(45 60% 25%) !important;
@@ -175,4 +180,3 @@
     animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
-

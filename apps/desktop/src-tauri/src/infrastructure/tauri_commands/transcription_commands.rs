@@ -3,9 +3,10 @@ use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
 use crate::domain::entities::transcription::TranscriptionResult;
 use crate::domain::entities::transcript_stored::{TranscriptStored, TranscriptWordStored};
-use crate::infrastructure::adapters::{AudioExtractor, FluidAudioTranscriptionService};
+use crate::infrastructure::adapters::{AudioExtractor, FluidAudioTranscriptionService, WhisperTranscriptionService};
 use crate::infrastructure::adapters::proxy_generator::ProxyGenerator;
 use crate::infrastructure::config::app_state::AppState;
 use crate::application::ports::transcription_service::TranscriptionService;
@@ -16,6 +17,16 @@ use super::proxy_commands::{ProxyCompleted, ProxyFailed};
 const PROGRESS_EXTRACTION: f64 = 0.2;
 const PROGRESS_TRANSCRIBING: f64 = 0.4;
 const PROGRESS_COMPLETED: f64 = 1.0;
+const CORRECTION_PROGRESS_QUEUED: f64 = 0.1;
+const CORRECTION_PROGRESS_RUNNING: f64 = 0.55;
+const CORRECTION_PROGRESS_COMPLETED: f64 = 1.0;
+
+const PREF_TRANSCRIPTION_LANGUAGE_MODE: &str = "transcription.language_mode";
+const PREF_TRANSCRIPTION_WHISPER_PROFILE: &str = "transcription.whisper_profile";
+const PREF_TRANSCRIPTION_LANGUAGE_MODE_DEFAULT: &str = "auto_fr_en";
+const PREF_TRANSCRIPTION_WHISPER_PROFILE_DEFAULT: &str = "fast";
+const LANGUAGE_DETECTION_MIN_CONFIDENCE: f64 = 0.65;
+const LANGUAGE_DETECTION_MIN_HITS: usize = 3;
 
 /// Progress event payload for transcription
 #[derive(Clone, Serialize)]
@@ -29,6 +40,35 @@ struct TranscriptionProgress {
 /// Error event payload for transcription
 #[derive(Clone, Serialize)]
 struct TranscriptionError {
+    message: String,
+}
+
+/// Progress event payload for background correction
+#[derive(Clone, Serialize)]
+struct CorrectionProgress {
+    project_id: String,
+    job_id: String,
+    stage: String,
+    progress: f64,
+    message: String,
+}
+
+/// Completion event payload for background correction
+#[derive(Clone, Serialize)]
+struct CorrectionReady {
+    project_id: String,
+    job_id: String,
+    detected_language: String,
+    forced_language: String,
+    profile: String,
+    result: TranscriptionResult,
+}
+
+/// Error event payload for background correction
+#[derive(Clone, Serialize)]
+struct CorrectionFailed {
+    project_id: String,
+    job_id: String,
     message: String,
 }
 
@@ -150,6 +190,7 @@ pub async fn transcribe_video<R: tauri::Runtime>(
     }
 
     let service = FluidAudioTranscriptionService;
+    let parakeet_start = Instant::now();
     let result = match service.transcribe_file(&audio_path, video_id.clone()).await {
         Ok(r) => r,
         Err(e) => {
@@ -185,6 +226,14 @@ pub async fn transcribe_video<R: tauri::Runtime>(
             return Err(user_message);
         }
     };
+    let parakeet_elapsed = parakeet_start.elapsed().as_secs_f64();
+    tracing::info!(
+        event = "parakeet_first_pass_completed",
+        video_id = %video_id,
+        duration_seconds = parakeet_elapsed,
+        word_count = result.words.len(),
+        transcript_language = result.language.as_deref().unwrap_or("unknown"),
+    );
 
     if cancel_flag.load(Ordering::Relaxed) {
         let _ = tokio::fs::remove_file(&audio_path).await;
@@ -208,6 +257,163 @@ pub async fn transcribe_video<R: tauri::Runtime>(
 
     app_handle.emit("transcription:completed", &result)
         .map_err(|e| format!("Erreur d'émission d'événement de complétion: {}", e))?;
+
+    // Start Whisper correction in background (always-on, non-blocking).
+    // If cancelled right after completion, skip correction and cleanup immediately.
+    let should_run_correction = !cancel_flag.load(Ordering::Relaxed);
+    if should_run_correction {
+        let language_mode_raw = app_state
+            .preferences_repository
+            .get(PREF_TRANSCRIPTION_LANGUAGE_MODE)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| PREF_TRANSCRIPTION_LANGUAGE_MODE_DEFAULT.to_string());
+        let language_mode = match language_mode_raw.as_str() {
+            "auto_fr_en" | "force_fr" | "force_en" => language_mode_raw,
+            _ => PREF_TRANSCRIPTION_LANGUAGE_MODE_DEFAULT.to_string(),
+        };
+
+        let whisper_profile_raw = app_state
+            .preferences_repository
+            .get(PREF_TRANSCRIPTION_WHISPER_PROFILE)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| PREF_TRANSCRIPTION_WHISPER_PROFILE_DEFAULT.to_string());
+        let whisper_profile = if whisper_profile_raw == "fast" {
+            whisper_profile_raw
+        } else {
+            PREF_TRANSCRIPTION_WHISPER_PROFILE_DEFAULT.to_string()
+        };
+
+        let (detected_language, detected_confidence) = detect_majority_language(&result.text);
+        let forced_language = determine_forced_language(
+            &language_mode,
+            &detected_language,
+            detected_confidence,
+        );
+        let correction_job_id = uuid::Uuid::new_v4().to_string();
+
+        tracing::info!(
+            event = "correction_job_scheduled",
+            project_id = %video_id,
+            job_id = %correction_job_id,
+            detected_language = %detected_language,
+            detected_confidence = detected_confidence,
+            forced_language = %forced_language,
+            language_mode = %language_mode,
+            profile = %whisper_profile,
+        );
+
+        let app_handle_for_correction = app_handle.clone();
+        let project_id_for_correction = video_id.clone();
+        let video_id_for_correction = video_id.clone();
+        let audio_path_for_correction = audio_path.clone();
+        let correction_job_id_for_task = correction_job_id.clone();
+        let detected_language_for_task = detected_language.clone();
+        let forced_language_for_task = forced_language.clone();
+        let whisper_profile_for_task = whisper_profile.clone();
+
+        tokio::spawn(async move {
+            let _ = emit_correction_progress(
+                &app_handle_for_correction,
+                &project_id_for_correction,
+                &correction_job_id_for_task,
+                "queued",
+                CORRECTION_PROGRESS_QUEUED,
+                "Correction Whisper en attente...",
+            );
+            let _ = emit_correction_progress(
+                &app_handle_for_correction,
+                &project_id_for_correction,
+                &correction_job_id_for_task,
+                "transcribing",
+                CORRECTION_PROGRESS_RUNNING,
+                "Correction Whisper en cours...",
+            );
+
+            let whisper_start = Instant::now();
+            let whisper_service = WhisperTranscriptionService;
+            match whisper_service
+                .transcribe_file_with_options(
+                    &audio_path_for_correction,
+                    video_id_for_correction.clone(),
+                    &forced_language_for_task,
+                    &whisper_profile_for_task,
+                )
+                .await
+            {
+                Ok(corrected_result) => {
+                    let whisper_elapsed = whisper_start.elapsed().as_secs_f64();
+                    let _ = emit_correction_progress(
+                        &app_handle_for_correction,
+                        &project_id_for_correction,
+                        &correction_job_id_for_task,
+                        "completed",
+                        CORRECTION_PROGRESS_COMPLETED,
+                        "Correction Whisper terminée",
+                    );
+
+                    let _ = app_handle_for_correction.emit(
+                        "transcription:correction_ready",
+                        CorrectionReady {
+                            project_id: project_id_for_correction.clone(),
+                            job_id: correction_job_id_for_task.clone(),
+                            detected_language: detected_language_for_task.clone(),
+                            forced_language: forced_language_for_task.clone(),
+                            profile: whisper_profile_for_task.clone(),
+                            result: corrected_result,
+                        },
+                    );
+
+                    tracing::info!(
+                        event = "correction_job_completed",
+                        project_id = %project_id_for_correction,
+                        job_id = %correction_job_id_for_task,
+                        detected_language = %detected_language_for_task,
+                        forced_language = %forced_language_for_task,
+                        profile = %whisper_profile_for_task,
+                        duration_seconds = whisper_elapsed,
+                        issue = "manual_or_auto_apply_frontend",
+                    );
+                }
+                Err(e) => {
+                    let message = sanitize_correction_error(&e.to_string());
+                    let _ = app_handle_for_correction.emit(
+                        "transcription:correction_failed",
+                        CorrectionFailed {
+                            project_id: project_id_for_correction.clone(),
+                            job_id: correction_job_id_for_task.clone(),
+                            message: message.clone(),
+                        },
+                    );
+                    tracing::warn!(
+                        event = "correction_job_failed",
+                        project_id = %project_id_for_correction,
+                        job_id = %correction_job_id_for_task,
+                        detected_language = %detected_language_for_task,
+                        forced_language = %forced_language_for_task,
+                        profile = %whisper_profile_for_task,
+                        issue = "failed",
+                        error = %message,
+                    );
+                }
+            }
+
+            if let Err(e) = tokio::fs::remove_file(&audio_path_for_correction).await {
+                tracing::warn!(
+                    event = "correction_cleanup_failed",
+                    audio_path = %audio_path_for_correction.display(),
+                    error = %e,
+                );
+            }
+        });
+    } else if let Err(e) = tokio::fs::remove_file(&audio_path).await {
+        tracing::warn!(
+            event = "cleanup_failed",
+            audio_path = %audio_path.display(),
+            error = %e,
+        );
+    }
 
     // Await proxy generation result (non-blocking - it ran in parallel)
     match proxy_handle.await {
@@ -243,15 +449,6 @@ pub async fn transcribe_video<R: tauri::Runtime>(
         }
     }
 
-    // Cleanup temporary WAV file
-    if let Err(e) = tokio::fs::remove_file(&audio_path).await {
-        tracing::warn!(
-            event = "cleanup_failed",
-            audio_path = %audio_path.display(),
-            error = %e,
-        );
-    }
-
     app_state.remove_cancel_flag(&video_id);
 
     Ok(result)
@@ -284,6 +481,126 @@ fn emit_progress<R: tauri::Runtime>(
     );
 
     Ok(())
+}
+
+/// Helper function to emit correction progress events
+fn emit_correction_progress<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+    project_id: &str,
+    job_id: &str,
+    stage: &str,
+    progress: f64,
+    message: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    app_handle.emit(
+        "transcription:correction_progress",
+        CorrectionProgress {
+            project_id: project_id.to_string(),
+            job_id: job_id.to_string(),
+            stage: stage.to_string(),
+            progress,
+            message: message.to_string(),
+        },
+    )?;
+
+    tracing::debug!(
+        event = "transcription_correction_progress",
+        project_id = %project_id,
+        job_id = %job_id,
+        stage = %stage,
+        progress = progress,
+        message = %message,
+    );
+
+    Ok(())
+}
+
+fn sanitize_correction_error(raw_error: &str) -> String {
+    let first_line = raw_error
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or(raw_error)
+        .trim();
+
+    if first_line.len() > 220 {
+        first_line[..220].to_string()
+    } else {
+        first_line.to_string()
+    }
+}
+
+/// Detect language majority from transcript text (FR/EN/unknown) with a confidence score.
+fn detect_majority_language(text: &str) -> (String, f64) {
+    const FR_STOPWORDS: &[&str] = &[
+        "le", "la", "les", "de", "des", "du", "un", "une", "et", "en",
+        "que", "qui", "dans", "pour", "pas", "est", "je", "tu", "il", "elle",
+        "on", "nous", "vous", "ils", "elles", "au", "aux", "ce", "cette",
+        "sur", "avec", "mais", "donc", "ou", "car",
+    ];
+    const EN_STOPWORDS: &[&str] = &[
+        "the", "a", "an", "and", "or", "to", "of", "in", "on", "for",
+        "is", "are", "was", "were", "be", "been", "this", "that", "these",
+        "those", "with", "but", "so", "because", "as", "if", "i", "you",
+        "he", "she", "we", "they", "it", "do", "does", "did", "not",
+    ];
+
+    let mut fr_hits = 0usize;
+    let mut en_hits = 0usize;
+
+    for raw_token in text.split_whitespace() {
+        let token = raw_token
+            .trim_matches(|c: char| !c.is_alphabetic() && c != '\'' && c != '’')
+            .to_lowercase();
+
+        if token.is_empty() {
+            continue;
+        }
+
+        if FR_STOPWORDS.contains(&token.as_str()) {
+            fr_hits += 1;
+        }
+        if EN_STOPWORDS.contains(&token.as_str()) {
+            en_hits += 1;
+        }
+    }
+
+    let total_hits = fr_hits + en_hits;
+    if total_hits < LANGUAGE_DETECTION_MIN_HITS {
+        return ("unknown".to_string(), 0.0);
+    }
+
+    let (lang, score) = if fr_hits >= en_hits {
+        ("fr", fr_hits as f64 / total_hits as f64)
+    } else {
+        ("en", en_hits as f64 / total_hits as f64)
+    };
+
+    if score < LANGUAGE_DETECTION_MIN_CONFIDENCE {
+        ("unknown".to_string(), score)
+    } else {
+        (lang.to_string(), score)
+    }
+}
+
+fn determine_forced_language(
+    language_mode: &str,
+    detected_language: &str,
+    detected_confidence: f64,
+) -> String {
+    match language_mode {
+        "force_fr" => "fr".to_string(),
+        "force_en" => "en".to_string(),
+        "auto_fr_en" => {
+            if detected_confidence >= LANGUAGE_DETECTION_MIN_CONFIDENCE
+                && (detected_language == "fr" || detected_language == "en")
+            {
+                detected_language.to_string()
+            } else {
+                "auto".to_string()
+            }
+        }
+        _ => "auto".to_string(),
+    }
 }
 
 /// Save a transcription result to database
@@ -415,5 +732,41 @@ pub fn cleanup_temp_directory(temp_dir: &std::path::Path) {
         Err(e) => {
             tracing::error!(event = "temp_cleanup_failed", error = %e);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_majority_language_detects_french() {
+        let text = "je suis dans la maison et je parle avec vous";
+        let (lang, confidence) = detect_majority_language(text);
+        assert_eq!(lang, "fr");
+        assert!(confidence >= LANGUAGE_DETECTION_MIN_CONFIDENCE);
+    }
+
+    #[test]
+    fn detect_majority_language_detects_english() {
+        let text = "the project is in the editor and we are ready to go";
+        let (lang, confidence) = detect_majority_language(text);
+        assert_eq!(lang, "en");
+        assert!(confidence >= LANGUAGE_DETECTION_MIN_CONFIDENCE);
+    }
+
+    #[test]
+    fn detect_majority_language_returns_unknown_on_ambiguous_text() {
+        let text = "the et in dans and avec";
+        let (lang, _) = detect_majority_language(text);
+        assert_eq!(lang, "unknown");
+    }
+
+    #[test]
+    fn determine_forced_language_respects_mode() {
+        assert_eq!(determine_forced_language("force_fr", "en", 0.9), "fr");
+        assert_eq!(determine_forced_language("force_en", "fr", 0.9), "en");
+        assert_eq!(determine_forced_language("auto_fr_en", "fr", 0.8), "fr");
+        assert_eq!(determine_forced_language("auto_fr_en", "unknown", 0.4), "auto");
     }
 }

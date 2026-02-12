@@ -14,6 +14,7 @@ interface Paragraph {
 export interface TranscriptViewerProps {
   words: TWord[];
   selectedIndices: number[];
+  selectionMode?: 'keep' | 'remove';
   onWordClick: (index: number) => void;
   onSelectionChange: (startIndex: number, endIndex: number) => void;
   onToggleRange?: (startIndex: number, endIndex: number) => void;
@@ -29,6 +30,7 @@ export interface TranscriptViewerProps {
 export const TranscriptViewer = React.memo(function TranscriptViewer({
   words,
   selectedIndices,
+  selectionMode = 'keep',
   onWordClick,
   onSelectionChange,
   onToggleRange,
@@ -245,6 +247,7 @@ export const TranscriptViewer = React.memo(function TranscriptViewer({
                       <TranscriptWord
                         word={word}
                         isSelected={selectedSet.has(word.index)}
+                        selectionMode={selectionMode}
                         isHighlighted={isWordHighlighted(word)}
                         onClick={() => handleWordClick(word.index, false)}
                         onShiftClick={() => handleWordClick(word.index, true)}

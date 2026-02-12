@@ -49,7 +49,8 @@ impl TranscriptRepository for SqliteTranscriptRepository {
                      VALUES (?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                          full_text = excluded.full_text,
-                         language = excluded.language"
+                         language = excluded.language,
+                         created_at = excluded.created_at"
                 )
                 .bind(&transcript.id)
                 .bind(&transcript.project_id)
@@ -124,7 +125,9 @@ impl TranscriptRepository for SqliteTranscriptRepository {
                 let row = sqlx::query(
                     "SELECT id, project_id, full_text, language, created_at
                      FROM transcripts
-                     WHERE project_id = ?"
+                     WHERE project_id = ?
+                     ORDER BY created_at DESC
+                     LIMIT 1"
                 )
                 .bind(&project_id)
                 .fetch_optional(&pool)

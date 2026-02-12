@@ -11,6 +11,7 @@ import { TranscriptViewer, TranscriptViewerToolbar } from '../transcript';
 import { PreviewPlayer } from '../preview/PreviewPlayer';
 import { VideoPlayer, KeyboardShortcutsBar } from '../video';
 import type { SegmentBoundary } from '../../stores/segmentation-store';
+import type { CorrectionCandidate, CorrectionState } from '../../stores/transcript-store';
 
 export type AppScreen = 'import' | 'project-details' | 'transcribing' | 'editor' | 'preview';
 
@@ -36,6 +37,12 @@ interface EditorScreenProps {
   toolbarProps: ComponentProps<typeof TranscriptViewerToolbar>;
   viewerProps: Omit<ComponentProps<typeof TranscriptViewer>, 'words'>;
   onSegmentClick: (wordIndex: number) => void;
+  correctionState: CorrectionState;
+  correctionError: string | null;
+  pendingCorrection: CorrectionCandidate | null;
+  hasUserEditedSinceTranscription: boolean;
+  onApplyCorrection: () => void;
+  onDismissCorrection: () => void;
 }
 
 interface AppWorkspaceProps {
@@ -193,10 +200,60 @@ function EditorScreen({
   toolbarProps,
   viewerProps,
   onSegmentClick,
+  correctionState,
+  correctionError,
+  pendingCorrection,
+  hasUserEditedSinceTranscription,
+  onApplyCorrection,
+  onDismissCorrection,
 }: EditorScreenProps) {
   return (
     <div className="relative z-10 w-full h-full min-h-0 flex flex-row">
       <section aria-label="Transcript" className="w-[60%] h-full min-h-0 flex flex-col border-r border-border-dark">
+        {correctionState === 'running' && (
+          <div className="px-4 py-2 border-b border-blue-500/20 bg-blue-500/10 text-blue-200 text-xs">
+            Correction Whisper en arrière-plan...
+          </div>
+        )}
+
+        {correctionState === 'applying' && (
+          <div className="px-4 py-2 border-b border-emerald-500/20 bg-emerald-500/10 text-emerald-200 text-xs">
+            Application de la correction Whisper...
+          </div>
+        )}
+
+        {correctionState === 'available' && pendingCorrection && (
+          <div className="px-4 py-3 border-b border-emerald-500/20 bg-emerald-500/10">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-emerald-100 text-xs">
+                Correction prête ({pendingCorrection.detectedLanguage.toUpperCase()} {'->'} {pendingCorrection.forcedLanguage.toUpperCase()}).
+              </p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={onApplyCorrection} data-testid="apply-correction-button">
+                  Appliquer
+                </Button>
+                <Button variant="ghost" size="sm" onClick={onDismissCorrection} data-testid="dismiss-correction-button">
+                  Ignorer
+                </Button>
+              </div>
+            </div>
+            {hasUserEditedSinceTranscription && (
+              <p className="mt-2 text-[11px] text-emerald-200/80">
+                Des sélections ont été modifiées depuis la transcription initiale.
+              </p>
+            )}
+          </div>
+        )}
+
+        {correctionState === 'failed' && correctionError && (
+          <div className="px-4 py-2 border-b border-amber-500/20 bg-amber-500/10 flex items-center justify-between gap-3">
+            <p className="text-amber-100 text-xs truncate">{correctionError}</p>
+            <Button variant="ghost" size="sm" onClick={onDismissCorrection}>
+              Fermer
+            </Button>
+          </div>
+        )}
+
         <TranscriptViewerToolbar {...toolbarProps} />
         <div id="transcript" className="flex-1 min-h-0 overflow-hidden">
           <TranscriptViewer {...viewerProps} words={transcript.words} />

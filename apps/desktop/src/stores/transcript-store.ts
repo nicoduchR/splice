@@ -21,6 +21,19 @@ interface TranscriptionResult {
   confidence?: number;
 }
 
+export type CorrectionState = 'idle' | 'running' | 'available' | 'failed' | 'applying';
+
+export interface CorrectionCandidate {
+  projectId: string;
+  jobId: string;
+  detectedLanguage: string;
+  forcedLanguage: string;
+  profile: string;
+  result: TranscriptionResult;
+}
+
+export type SelectionMode = 'keep' | 'remove';
+
 /** Selection range persisted to SQLite */
 export interface SelectionRange {
   id: string;
@@ -51,6 +64,12 @@ interface TranscriptStore {
   error: string | null;
   currentVideoId: string | null;
   currentProjectId: string | null;
+  correctionState: CorrectionState;
+  pendingCorrection: CorrectionCandidate | null;
+  activeCorrectionJobId: string | null;
+  correctionError: string | null;
+  hasUserEditedSinceTranscription: boolean;
+  selectionMode: SelectionMode;
   _autoSaveIntervalId: ReturnType<typeof setInterval> | null;
   _selectionsDirty: boolean;
   _undoStack: UndoState[];
@@ -73,6 +92,12 @@ interface TranscriptStore {
   saveSelections: () => Promise<void>;
   startAutoSave: () => void;
   stopAutoSave: () => void;
+  setSelectionMode: (mode: SelectionMode) => void;
+  setCorrectionRunning: (jobId: string, projectId: string) => void;
+  setCorrectionCandidate: (candidate: CorrectionCandidate) => void;
+  setCorrectionFailed: (message: string, jobId: string) => void;
+  dismissCorrection: () => void;
+  applyCorrection: (projectId: string, clearSelections?: boolean) => Promise<boolean>;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -173,6 +198,12 @@ export const useTranscriptStore = create<TranscriptStore>()(
       error: null,
       currentVideoId: null,
       currentProjectId: null,
+      correctionState: 'idle',
+      pendingCorrection: null,
+      activeCorrectionJobId: null,
+      correctionError: null,
+      hasUserEditedSinceTranscription: false,
+      selectionMode: 'keep',
 
       setTranscript: (transcript) => {
         set({ transcript, error: null });
@@ -198,6 +229,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           canUndo: newUndoStack.length > 0,
           canRedo: true,
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
@@ -221,6 +253,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           canUndo: true,
           canRedo: newRedoStack.length > 0,
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
@@ -238,6 +271,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           selectedWordIndices: newIndices,
           selections: indicesToSelections(newIndices, get().transcript, get().currentProjectId),
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
@@ -257,12 +291,18 @@ export const useTranscriptStore = create<TranscriptStore>()(
           selectedWordIndices: indices,
           selections: indicesToSelections(indices, get().transcript, get().currentProjectId),
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
       clearSelection: () => {
         pushUndo();
-        set({ selectedWordIndices: [], selections: [], _selectionsDirty: true });
+        set({
+          selectedWordIndices: [],
+          selections: [],
+          _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
+        });
       },
 
       // Toggle a range: add if not fully selected, remove if fully selected
@@ -296,6 +336,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           selectedWordIndices: newIndices,
           selections: indicesToSelections(newIndices, transcript, currentProjectId),
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
@@ -324,6 +365,11 @@ export const useTranscriptStore = create<TranscriptStore>()(
             message: 'Démarrage de la transcription...',
           },
           error: null,
+          correctionState: 'idle',
+          pendingCorrection: null,
+          activeCorrectionJobId: null,
+          correctionError: null,
+          hasUserEditedSinceTranscription: false,
         });
 
         try {
@@ -433,6 +479,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
               message: 'Transcription terminée!',
             },
             error: null,
+            hasUserEditedSinceTranscription: false,
           });
         } catch (error) {
           logError('TranscriptStore.completeTranscription', error);
@@ -472,7 +519,12 @@ export const useTranscriptStore = create<TranscriptStore>()(
 
           if (!result) {
 
-            set({ transcript: null, isLoading: false, error: null });
+            set({
+              transcript: null,
+              isLoading: false,
+              error: null,
+              hasUserEditedSinceTranscription: false,
+            });
             return;
           }
 
@@ -495,7 +547,12 @@ export const useTranscriptStore = create<TranscriptStore>()(
           };
 
 
-          set({ transcript, isLoading: false, error: null });
+          set({
+            transcript,
+            isLoading: false,
+            error: null,
+            hasUserEditedSinceTranscription: false,
+          });
         } catch (error) {
 
           set({ error: sanitizeErrorForUser(String(error)), isLoading: false, transcript: null });
@@ -510,6 +567,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           selectedWordIndices: indices,
           selections: indicesToSelections(indices, transcript, currentProjectId),
           _selectionsDirty: true,
+          hasUserEditedSinceTranscription: true,
         });
       },
 
@@ -576,6 +634,101 @@ export const useTranscriptStore = create<TranscriptStore>()(
         }
       },
 
+      setCorrectionRunning: (jobId: string, projectId: string) => {
+        const { currentProjectId } = get();
+        if (!currentProjectId || currentProjectId !== projectId) return;
+        set({
+          correctionState: 'running',
+          pendingCorrection: null,
+          activeCorrectionJobId: jobId,
+          correctionError: null,
+        });
+      },
+
+      setCorrectionCandidate: (candidate: CorrectionCandidate) => {
+        const { currentProjectId, activeCorrectionJobId } = get();
+        if (!currentProjectId || currentProjectId !== candidate.projectId) return;
+        // Candidate must belong to the active correction job to avoid stale job races.
+        if (!activeCorrectionJobId || activeCorrectionJobId !== candidate.jobId) return;
+
+        set({
+          correctionState: 'available',
+          pendingCorrection: candidate,
+          activeCorrectionJobId: candidate.jobId,
+          correctionError: null,
+        });
+      },
+
+      setCorrectionFailed: (message: string, jobId: string) => {
+        const { activeCorrectionJobId } = get();
+        if (!activeCorrectionJobId || activeCorrectionJobId !== jobId) return;
+
+        set({
+          correctionState: 'failed',
+          pendingCorrection: null,
+          activeCorrectionJobId: jobId,
+          correctionError: sanitizeErrorForUser(message),
+        });
+      },
+
+      dismissCorrection: () => {
+        set({
+          correctionState: 'idle',
+          pendingCorrection: null,
+          activeCorrectionJobId: null,
+          correctionError: null,
+        });
+      },
+
+      applyCorrection: async (projectId: string, clearSelections = false) => {
+        const { pendingCorrection, currentProjectId } = get();
+        if (!pendingCorrection || !currentProjectId) return false;
+        if (currentProjectId !== projectId || pendingCorrection.projectId !== projectId) return false;
+
+        set({
+          correctionState: 'applying',
+          correctionError: null,
+        });
+
+        try {
+          await invoke('save_transcript', {
+            transcriptResult: pendingCorrection.result,
+            projectId,
+          });
+
+          if (clearSelections) {
+            await invoke('clear_selections', { projectId });
+            set({
+              selectedWordIndices: [],
+              selections: [],
+              _selectionsDirty: false,
+              _undoStack: [],
+              _redoStack: [],
+              canUndo: false,
+              canRedo: false,
+            });
+          }
+
+          await get().loadTranscript(projectId);
+
+          set({
+            correctionState: 'idle',
+            pendingCorrection: null,
+            activeCorrectionJobId: null,
+            correctionError: null,
+            hasUserEditedSinceTranscription: false,
+          });
+          return true;
+        } catch (error) {
+          logError('TranscriptStore.applyCorrection', error);
+          set({
+            correctionState: 'failed',
+            correctionError: sanitizeErrorForUser(String(error)),
+          });
+          return false;
+        }
+      },
+
       // Démarrer l'auto-save toutes les 30 secondes
       startAutoSave: () => {
         const { _autoSaveIntervalId } = get();
@@ -595,6 +748,11 @@ export const useTranscriptStore = create<TranscriptStore>()(
           clearInterval(_autoSaveIntervalId);
           set({ _autoSaveIntervalId: null });
         }
+      },
+
+      setSelectionMode: (mode) => {
+        if (mode !== 'keep' && mode !== 'remove') return;
+        set({ selectionMode: mode });
       },
     });},
     { name: 'TranscriptStore' }

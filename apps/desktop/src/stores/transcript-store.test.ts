@@ -25,6 +25,12 @@ function setupStore() {
     currentProjectId: 'test-project',
     selectedWordIndices: [],
     selections: [],
+    correctionState: 'idle',
+    pendingCorrection: null,
+    activeCorrectionJobId: null,
+    correctionError: null,
+    hasUserEditedSinceTranscription: false,
+    selectionMode: 'keep',
     _undoStack: [],
     _redoStack: [],
     canUndo: false,
@@ -209,6 +215,13 @@ describe('transcript-store undo/redo', () => {
     expect(useTranscriptStore.getState()._selectionsDirty).toBe(true);
   });
 
+  it('should mark hasUserEditedSinceTranscription true on selection changes', () => {
+    const store = useTranscriptStore.getState();
+    expect(useTranscriptStore.getState().hasUserEditedSinceTranscription).toBe(false);
+    store.toggleWordSelection(0);
+    expect(useTranscriptStore.getState().hasUserEditedSinceTranscription).toBe(true);
+  });
+
   it('should clear undo/redo stacks when state is reset (simulating loadSelections)', () => {
     const store = useTranscriptStore.getState();
     // Build up some undo history
@@ -232,5 +245,16 @@ describe('transcript-store undo/redo', () => {
     expect(state._redoStack).toEqual([]);
     expect(state.canUndo).toBe(false);
     expect(state.canRedo).toBe(false);
+  });
+
+  it('should switch between keep and remove selection modes', () => {
+    const store = useTranscriptStore.getState();
+    expect(store.selectionMode).toBe('keep');
+
+    store.setSelectionMode('remove');
+    expect(useTranscriptStore.getState().selectionMode).toBe('remove');
+
+    store.setSelectionMode('keep');
+    expect(useTranscriptStore.getState().selectionMode).toBe('keep');
   });
 });

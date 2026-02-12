@@ -22,6 +22,8 @@ export interface TranscriptViewerToolbarProps {
   totalMatches: number;
   onNextMatch: () => void;
   onPrevMatch: () => void;
+  selectionMode?: 'keep' | 'remove';
+  onSelectionModeChange?: (mode: 'keep' | 'remove') => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -36,6 +38,8 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
   totalMatches,
   onNextMatch,
   onPrevMatch,
+  selectionMode = 'keep',
+  onSelectionModeChange,
   onUndo,
   onRedo,
   canUndo = false,
@@ -63,13 +67,41 @@ export const TranscriptViewerToolbar = React.memo(function TranscriptViewerToolb
         {/* Left Section - Highlight instruction */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
           <Highlighter aria-hidden="true" className="h-4 w-4" />
-          <span>Surlignez les passages à conserver</span>
+          <span>
+            {selectionMode === 'remove'
+              ? 'Surlignez les passages à supprimer'
+              : 'Surlignez les passages à conserver'}
+          </span>
+          <div className="ml-3 inline-flex items-center rounded-md border border-border-dark overflow-hidden">
+            <Button
+              type="button"
+              variant={selectionMode === 'keep' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-none px-2.5"
+              onClick={() => onSelectionModeChange?.('keep')}
+              data-testid="selection-mode-keep"
+              aria-pressed={selectionMode === 'keep'}
+            >
+              Conserver
+            </Button>
+            <Button
+              type="button"
+              variant={selectionMode === 'remove' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-none px-2.5"
+              onClick={() => onSelectionModeChange?.('remove')}
+              data-testid="selection-mode-remove"
+              aria-pressed={selectionMode === 'remove'}
+            >
+              Supprimer
+            </Button>
+          </div>
         </div>
 
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2">
           {/* Selection stats */}
-          <SelectionStats />
+          <SelectionStats selectionMode={selectionMode} />
 
           {/* Undo */}
           <Button

@@ -34,6 +34,12 @@ describe('TranscriptStore - Selections', () => {
       selectedWordIndices: [],
       selections: [],
       currentProjectId: 'project-1',
+      correctionState: 'idle',
+      pendingCorrection: null,
+      activeCorrectionJobId: null,
+      correctionError: null,
+      hasUserEditedSinceTranscription: false,
+      selectionMode: 'keep',
       _selectionsDirty: false,
       _autoSaveIntervalId: null,
     });
@@ -197,5 +203,80 @@ describe('TranscriptStore - Selections', () => {
 
     const duration = performance.now() - start;
     expect(duration).toBeLessThan(100);
+  });
+
+  it('should apply correction and refresh transcript', async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'save_transcript') {
+        return {
+          id: 'transcript-1',
+          project_id: 'project-1',
+          full_text: 'Bonjour tout le monde',
+          language: 'fr',
+          created_at: 1706745601,
+        };
+      }
+      if (cmd === 'clear_selections') {
+        return undefined;
+      }
+      if (cmd === 'get_transcript') {
+        return {
+          transcript: {
+            id: 'transcript-1',
+            project_id: 'project-1',
+            full_text: 'Bonjour tout le monde',
+            language: 'fr',
+            created_at: 1706745601,
+          },
+          words: [
+            {
+              id: 'w1',
+              transcript_id: 'transcript-1',
+              word: 'Bonjour',
+              start_time: 0,
+              end_time: 0.4,
+              confidence: 0.9,
+              word_index: 0,
+            },
+            {
+              id: 'w2',
+              transcript_id: 'transcript-1',
+              word: 'tout',
+              start_time: 0.4,
+              end_time: 0.7,
+              confidence: 0.9,
+              word_index: 1,
+            },
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    const store = useTranscriptStore.getState();
+    store.setCorrectionRunning('job-1', 'project-1');
+    store.setCorrectionCandidate({
+      projectId: 'project-1',
+      jobId: 'job-1',
+      detectedLanguage: 'fr',
+      forcedLanguage: 'fr',
+      profile: 'fast',
+      result: {
+        text: 'Bonjour tout le monde',
+        words: [
+          { text: 'Bonjour', start: 0, end: 0.4, confidence: 0.9 },
+          { text: 'tout', start: 0.4, end: 0.7, confidence: 0.9 },
+        ],
+        language: 'fr',
+      },
+    });
+
+    const applied = await useTranscriptStore.getState().applyCorrection('project-1', true);
+
+    expect(applied).toBe(true);
+    expect(mockInvoke).toHaveBeenCalledWith('save_transcript', expect.any(Object));
+    expect(mockInvoke).toHaveBeenCalledWith('clear_selections', { projectId: 'project-1' });
+    expect(useTranscriptStore.getState().correctionState).toBe('idle');
+    expect(useTranscriptStore.getState().pendingCorrection).toBeNull();
   });
 });

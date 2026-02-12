@@ -55,3 +55,6 @@ export async function getAllPreferences(): Promise<PreferenceEntry[]> {
 
 // Well-known preference keys
 export const PREF_TEMP_DIRECTORY = 'temp_directory';
+export const PREF_TRANSCRIPTION_LANGUAGE_MODE = 'transcription.language_mode';
+export const PREF_TRANSCRIPTION_WHISPER_PROFILE = 'transcription.whisper_profile';
+export const PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED = 'transcription.whisper_auto_apply_if_unedited';

@@ -23,6 +23,9 @@ vi.mock('@/services/preferences-service', () => ({
   getPreference: vi.fn(),
   setPreference: vi.fn(),
   PREF_TEMP_DIRECTORY: 'temp_directory',
+  PREF_TRANSCRIPTION_LANGUAGE_MODE: 'transcription.language_mode',
+  PREF_TRANSCRIPTION_WHISPER_PROFILE: 'transcription.whisper_profile',
+  PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED: 'transcription.whisper_auto_apply_if_unedited',
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -197,6 +200,35 @@ describe('SettingsDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('reset-temp-dir-button')).toBeTruthy();
+    });
+  });
+
+  // --- Transcription section ---
+
+  it('affiche les réglages de transcription', async () => {
+    render(<SettingsDialog isOpen={true} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Transcription')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('whisper-profile').textContent).toBe('Rapide');
+    expect(screen.getByTestId('whisper-auto-apply-toggle')).toBeTruthy();
+  });
+
+  it('met à jour la langue de transcription', async () => {
+    mockSetPreference.mockResolvedValue(undefined);
+
+    render(<SettingsDialog isOpen={true} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Forcer Français')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText('Forcer Français'));
+
+    await waitFor(() => {
+      expect(mockSetPreference).toHaveBeenCalledWith('transcription.language_mode', 'force_fr');
     });
   });
 

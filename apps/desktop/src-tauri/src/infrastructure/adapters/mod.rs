@@ -4,6 +4,7 @@ pub mod sqlite_transcript_repository;
 pub mod sqlite_selection_repository;
 pub mod model_manager;
 pub mod fluidaudio_transcription_service;
+pub mod whisper_transcription_service;
 pub mod audio_extractor;
 pub mod proxy_generator;
 pub mod sqlite_cut_repository;
@@ -24,6 +25,7 @@ pub use sqlite_transcript_repository::SqliteTranscriptRepository;
 pub use sqlite_selection_repository::SqliteSelectionRepository;
 pub use sqlite_cut_repository::SqliteCutRepository;
 pub use fluidaudio_transcription_service::FluidAudioTranscriptionService;
+pub use whisper_transcription_service::WhisperTranscriptionService;
 pub use audio_extractor::AudioExtractor;
 pub use macos_credential_store::MacOSCredentialStore;
 #[cfg(target_os = "windows")]

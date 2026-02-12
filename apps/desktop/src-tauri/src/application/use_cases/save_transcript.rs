@@ -49,8 +49,12 @@ impl SaveTranscriptUseCase {
             "Converting and saving transcription result"
         );
 
-        // Generate unique transcript ID
-        let transcript_id = uuid::Uuid::new_v4().to_string();
+        // Upsert by project: reuse existing transcript ID if present
+        let transcript_id = self
+            .transcript_repository
+            .find_by_project_id(&project_id)?
+            .map(|existing| existing.id)
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
         // Get current timestamp
         let created_at = SystemTime::now()
@@ -205,5 +209,63 @@ mod tests {
         assert!(result.is_ok());
         let transcript = result.unwrap();
         assert_eq!(transcript.language, "fr"); // Default to French
+    }
+
+    #[test]
+    fn test_save_transcript_reuses_existing_id() {
+        struct ExistingTranscriptRepo {
+            existing_id: String,
+        }
+
+        impl TranscriptRepository for ExistingTranscriptRepo {
+            fn save_transcript(
+                &self,
+                transcript: TranscriptStored,
+                _words: Vec<TranscriptWordStored>,
+            ) -> Result<(), DomainError> {
+                assert_eq!(transcript.id, self.existing_id);
+                Ok(())
+            }
+
+            fn find_by_project_id(&self, project_id: &str) -> Result<Option<TranscriptStored>, DomainError> {
+                Ok(Some(TranscriptStored {
+                    id: self.existing_id.clone(),
+                    project_id: project_id.to_string(),
+                    full_text: "Ancien".to_string(),
+                    language: "fr".to_string(),
+                    created_at: 1700000000,
+                }))
+            }
+
+            fn find_words_by_transcript_id(
+                &self,
+                _transcript_id: &str,
+            ) -> Result<Vec<TranscriptWordStored>, DomainError> {
+                Ok(vec![])
+            }
+
+            fn delete_by_project_id(&self, _project_id: &str) -> Result<(), DomainError> {
+                Ok(())
+            }
+        }
+
+        let repo = Arc::new(ExistingTranscriptRepo {
+            existing_id: "existing-transcript-id".to_string(),
+        });
+        let use_case = SaveTranscriptUseCase::new(repo);
+
+        let transcription_result = TranscriptionResult {
+            video_id: "video-123".to_string(),
+            text: "Nouveau texte".to_string(),
+            words: vec![],
+            duration_seconds: 1.0,
+            language: Some("fr".to_string()),
+        };
+
+        let result = use_case.execute(transcription_result, "project-456".to_string());
+
+        assert!(result.is_ok());
+        let transcript = result.unwrap();
+        assert_eq!(transcript.id, "existing-transcript-id");
     }
 }

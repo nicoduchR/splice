@@ -32,7 +32,8 @@
     "externalBin": [
       "binaries/ffmpeg",
       "binaries/ffprobe",
-      "binaries/fluidaudio-sidecar"
+      "binaries/fluidaudio-sidecar",
+      "binaries/whisper-sidecar"
     ],
     "macOS": {
       "minimumSystemVersion": "14.0",

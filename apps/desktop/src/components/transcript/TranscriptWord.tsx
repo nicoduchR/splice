@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 export interface TranscriptWordProps {
   word: TWord;
   isSelected: boolean;
+  selectionMode?: 'keep' | 'remove';
   isHighlighted: boolean;
   onClick: () => void;
   onShiftClick: () => void;
@@ -15,6 +16,7 @@ export interface TranscriptWordProps {
 export const TranscriptWord = React.memo(function TranscriptWord({
   word,
   isSelected,
+  selectionMode = 'keep',
   isHighlighted,
   onClick,
   onShiftClick,
@@ -38,6 +40,7 @@ export const TranscriptWord = React.memo(function TranscriptWord({
       aria-roledescription="mot"
       data-word-index={word.index}
       data-word-selected={isSelected ? "true" : undefined}
+      data-selection-mode={isSelected ? selectionMode : undefined}
       data-word-highlighted={isHighlighted && !isSelected ? "true" : undefined}
       onClick={handleClick}
       onMouseDown={onMouseDown}
@@ -45,7 +48,8 @@ export const TranscriptWord = React.memo(function TranscriptWord({
       className={cn(
         'cursor-pointer transition-colors duration-150 rounded px-0.5',
         'hover:bg-primary/10',
-        isSelected && 'bg-emerald-500/30 text-white border-b-2 border-emerald-500',
+        isSelected && selectionMode === 'keep' && 'bg-emerald-500/30 text-white border-b-2 border-emerald-500',
+        isSelected && selectionMode === 'remove' && 'bg-rose-500/30 text-white border-b-2 border-rose-500',
         isHighlighted && !isSelected && 'bg-yellow-500/30 text-white ring-2 ring-yellow-400/70 rounded-sm',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-dark'
       )}

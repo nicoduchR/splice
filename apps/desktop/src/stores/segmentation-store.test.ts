@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSegmentationStore } from './segmentation-store';
+import { useTranscriptStore } from './transcript-store';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
@@ -17,6 +18,26 @@ const mockInvoke = vi.mocked(invoke);
 describe('useSegmentationStore', () => {
   beforeEach(() => {
     useSegmentationStore.getState().resetSegmentation();
+    useTranscriptStore.setState({
+      selectionMode: 'keep',
+      currentProjectId: 'project-1',
+      transcript: {
+        id: 'transcript-1',
+        project_id: 'project-1',
+        full_text: 'a b c d e',
+        language: 'fr',
+        created_at: 1706745600,
+        words: [
+          { index: 0, text: 'a', start_time: 0, end_time: 1, confidence: 0.9 },
+          { index: 1, text: 'b', start_time: 1, end_time: 2, confidence: 0.9 },
+          { index: 2, text: 'c', start_time: 2, end_time: 3, confidence: 0.9 },
+          { index: 3, text: 'd', start_time: 3, end_time: 4, confidence: 0.9 },
+          { index: 4, text: 'e', start_time: 4, end_time: 5, confidence: 0.9 },
+        ],
+      },
+      selectedWordIndices: [],
+      selections: [],
+    });
     vi.clearAllMocks();
   });
 
@@ -68,6 +89,72 @@ describe('useSegmentationStore', () => {
     const state = useSegmentationStore.getState();
     expect(state.isSegmenting).toBe(false);
     expect(state.error).toBe('FFmpeg error');
+  });
+
+  it('startSegmentation converts remove-mode selections to keep-mode cuts', async () => {
+    useTranscriptStore.setState({
+      selectionMode: 'remove',
+      selectedWordIndices: [1, 2], // remove b, c => keep a and d,e
+      selections: [
+        {
+          id: 'remove-1',
+          projectId: 'project-1',
+          startWordIndex: 1,
+          endWordIndex: 2,
+          startTime: 1,
+          endTime: 3,
+          createdAt: 1706745600,
+        },
+      ],
+    });
+
+    mockInvoke
+      .mockResolvedValueOnce(undefined) // save_selections (converted keep)
+      .mockResolvedValueOnce([]) // generate_cuts
+      .mockResolvedValueOnce(undefined) // save_selections (restore original remove)
+      .mockResolvedValueOnce([]); // segment_video
+
+    await useSegmentationStore.getState().startSegmentation('project-1');
+
+    expect(mockInvoke).toHaveBeenNthCalledWith(
+      1,
+      'save_selections',
+      expect.objectContaining({
+        projectId: 'project-1',
+        selections: expect.arrayContaining([
+          expect.objectContaining({
+            start_word_index: 0,
+            end_word_index: 0,
+            start_time: 0,
+            end_time: 1,
+          }),
+          expect.objectContaining({
+            start_word_index: 3,
+            end_word_index: 4,
+            start_time: 3,
+            end_time: 5,
+          }),
+        ]),
+      })
+    );
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, 'generate_cuts', { projectId: 'project-1' });
+    expect(mockInvoke).toHaveBeenNthCalledWith(
+      3,
+      'save_selections',
+      expect.objectContaining({
+        projectId: 'project-1',
+        selections: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'remove-1',
+            start_word_index: 1,
+            end_word_index: 2,
+            start_time: 1,
+            end_time: 3,
+          }),
+        ]),
+      })
+    );
+    expect(mockInvoke).toHaveBeenNthCalledWith(4, 'segment_video', { projectId: 'project-1' });
   });
 
   it('cancelSegmentation resets state on success', async () => {

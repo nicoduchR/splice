@@ -12,6 +12,25 @@ const defaultProps = {
 };
 
 describe('TranscriptViewerToolbar', () => {
+  it('should render keep/remove mode toggle', () => {
+    render(<TranscriptViewerToolbar {...defaultProps} />);
+    expect(screen.getByTestId('selection-mode-keep')).toBeInTheDocument();
+    expect(screen.getByTestId('selection-mode-remove')).toBeInTheDocument();
+  });
+
+  it('should switch to remove mode when toggle is clicked', () => {
+    const onSelectionModeChange = vi.fn();
+    render(
+      <TranscriptViewerToolbar
+        {...defaultProps}
+        onSelectionModeChange={onSelectionModeChange}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('selection-mode-remove'));
+    expect(onSelectionModeChange).toHaveBeenCalledWith('remove');
+  });
+
   it('should render clear all button', () => {
     render(<TranscriptViewerToolbar {...defaultProps} />);
     expect(screen.getByTitle('Effacer toutes les sélections')).toBeInTheDocument();

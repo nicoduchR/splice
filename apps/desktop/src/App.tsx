@@ -31,6 +31,14 @@ import { useGlobalKeyboardShortcuts } from './hooks/use-global-keyboard-shortcut
 import { checkDirtyShutdown, loadProjectState } from './services/project-state-service';
 import type { SegmentationProgress, Word } from '@splice/types/generated';
 import { AppWorkspace, type AppScreen } from './components/app/AppWorkspace';
+import {
+  getPreference,
+  PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED,
+} from './services/preferences-service';
+
+function tracingLogCorrection(issue: 'auto_applied' | 'manual_required' | 'failed', projectId: string, jobId: string) {
+  console.debug(`[transcription-correction] issue=${issue} project_id=${projectId} job_id=${jobId}`);
+}
 
 function App() {
   const currentProject = useVideoStore(s => s.currentProject);
@@ -52,9 +60,20 @@ function App() {
   const completeTranscription = useTranscriptStore(s => s.completeTranscription);
   const cancelTranscription = useTranscriptStore(s => s.cancelTranscription);
   const startTranscription = useTranscriptStore(s => s.startTranscription);
+  const correctionState = useTranscriptStore(s => s.correctionState);
+  const pendingCorrection = useTranscriptStore(s => s.pendingCorrection);
+  const correctionError = useTranscriptStore(s => s.correctionError);
+  const hasUserEditedSinceTranscription = useTranscriptStore(s => s.hasUserEditedSinceTranscription);
+  const setCorrectionRunning = useTranscriptStore(s => s.setCorrectionRunning);
+  const setCorrectionCandidate = useTranscriptStore(s => s.setCorrectionCandidate);
+  const setCorrectionFailed = useTranscriptStore(s => s.setCorrectionFailed);
+  const dismissCorrection = useTranscriptStore(s => s.dismissCorrection);
+  const applyCorrection = useTranscriptStore(s => s.applyCorrection);
 
   // Transcript viewer state
   const transcript = useTranscriptStore(s => s.transcript);
+  const selectionMode = useTranscriptStore(s => s.selectionMode);
+  const setSelectionMode = useTranscriptStore(s => s.setSelectionMode);
   const loadTranscript = useTranscriptStore(s => s.loadTranscript);
   const selectedWordIndices = useTranscriptStore(s => s.selectedWordIndices);
   const toggleWordSelection = useTranscriptStore(s => s.toggleWordSelection);
@@ -115,6 +134,9 @@ function App() {
   useProjectStateAutosave(currentProject?.id ?? null);
   const timelineSegments = useTimelineStore(s => s.segments);
   const hasSelections = timelineSegments.length > 0;
+  const canGenerateCuts = selectionMode === 'remove'
+    ? Boolean(transcript?.words?.length)
+    : hasSelections;
   const [scrollToWordIndex, setScrollToWordIndex] = useState<number | null>(null);
 
   // Auto-scroll transcript to active search match.
@@ -256,6 +278,9 @@ function App() {
     let unlistenProgress: (() => void) | undefined;
     let unlistenCompleted: (() => void) | undefined;
     let unlistenError: (() => void) | undefined;
+    let unlistenCorrectionProgress: (() => void) | undefined;
+    let unlistenCorrectionReady: (() => void) | undefined;
+    let unlistenCorrectionFailed: (() => void) | undefined;
 
     // Setup listeners
     const setupListeners = async () => {
@@ -307,6 +332,91 @@ function App() {
           setTranscriptionError(event.payload.message);
         }
       );
+
+      // Listen for background correction progress
+      unlistenCorrectionProgress = await listen<{
+        project_id: string;
+        job_id: string;
+        stage: string;
+        progress: number;
+        message: string;
+      }>('transcription:correction_progress', (event) => {
+        const state = useTranscriptStore.getState();
+        if (state.isTranscribing) return;
+        setCorrectionRunning(event.payload.job_id, event.payload.project_id);
+      });
+
+      // Listen for correction ready and auto-apply when no user edits happened
+      unlistenCorrectionReady = await listen<{
+        project_id: string;
+        job_id: string;
+        detected_language: string;
+        forced_language: string;
+        profile: string;
+        result: {
+          text: string;
+          words: Word[];
+          language: string | null;
+          confidence?: number;
+        };
+      }>('transcription:correction_ready', async (event) => {
+        const payload = event.payload;
+        const latestState = useTranscriptStore.getState();
+        if (latestState.isTranscribing) return;
+
+        setCorrectionCandidate({
+          projectId: payload.project_id,
+          jobId: payload.job_id,
+          detectedLanguage: payload.detected_language,
+          forcedLanguage: payload.forced_language,
+          profile: payload.profile,
+          result: payload.result,
+        });
+
+        const autoApplyRaw = await getPreference(PREF_TRANSCRIPTION_WHISPER_AUTO_APPLY_IF_UNEDITED);
+        const autoApplyEnabled = autoApplyRaw === null || autoApplyRaw === '' || autoApplyRaw === 'true';
+
+        const state = useTranscriptStore.getState();
+        const shouldAutoApply =
+          autoApplyEnabled &&
+          state.currentProjectId === payload.project_id &&
+          state.activeCorrectionJobId === payload.job_id &&
+          !state.hasUserEditedSinceTranscription;
+
+        if (!shouldAutoApply) {
+          tracingLogCorrection('manual_required', payload.project_id, payload.job_id);
+          toast.info('Correction Whisper disponible', {
+            description: 'Applique-la depuis la bannière dans l’éditeur.',
+            duration: 5000,
+          });
+          return;
+        }
+
+        const applied = await state.applyCorrection(payload.project_id, false);
+        if (applied) {
+          tracingLogCorrection('auto_applied', payload.project_id, payload.job_id);
+          toast.success('Correction Whisper appliquée', {
+            description: 'Le transcript a été amélioré automatiquement.',
+            duration: 4000,
+          });
+        }
+      });
+
+      // Listen for correction failures (non-blocking)
+      unlistenCorrectionFailed = await listen<{
+        project_id: string;
+        job_id: string;
+        message: string;
+      }>('transcription:correction_failed', (event) => {
+        const state = useTranscriptStore.getState();
+        if (state.isTranscribing) return;
+        setCorrectionFailed(event.payload.message, event.payload.job_id);
+        tracingLogCorrection('failed', event.payload.project_id, event.payload.job_id);
+        toast.error('Correction Whisper indisponible', {
+          description: sanitizeErrorForUser(event.payload.message),
+          duration: 5000,
+        });
+      });
     };
 
     setupListeners();
@@ -315,8 +425,18 @@ function App() {
       if (unlistenProgress) unlistenProgress();
       if (unlistenCompleted) unlistenCompleted();
       if (unlistenError) unlistenError();
+      if (unlistenCorrectionProgress) unlistenCorrectionProgress();
+      if (unlistenCorrectionReady) unlistenCorrectionReady();
+      if (unlistenCorrectionFailed) unlistenCorrectionFailed();
     };
-  }, [updateTranscriptionProgress, completeTranscription, transcribingProjectId]);
+  }, [
+    updateTranscriptionProgress,
+    completeTranscription,
+    transcribingProjectId,
+    setCorrectionRunning,
+    setCorrectionCandidate,
+    setCorrectionFailed,
+  ]);
 
   // Listen to segmentation events
   useEffect(() => {
@@ -471,6 +591,30 @@ function App() {
     setCurrentScreen('preview');
   };
 
+  const handleApplyCorrection = async () => {
+    if (!currentProject || !pendingCorrection) return;
+    if (pendingCorrection.projectId !== currentProject.id) return;
+
+    let clearSelections = false;
+    if (selectedWordIndices.length > 0) {
+      const confirmed = window.confirm(
+        'Appliquer la correction va réinitialiser les sélections actuelles. Continuer ?'
+      );
+      if (!confirmed) return;
+      clearSelections = true;
+    }
+
+    const applied = await applyCorrection(currentProject.id, clearSelections);
+    if (applied) {
+      toast.success('Correction Whisper appliquée', {
+        description: 'Le transcript corrigé est maintenant actif.',
+        duration: 4000,
+      });
+    } else {
+      toast.error('Impossible d’appliquer la correction');
+    }
+  };
+
   const transcribingScreenProps = currentProject
     ? {
         progress: transcriptionProgress,
@@ -514,6 +658,8 @@ function App() {
           totalMatches: matches.length,
           onNextMatch: nextMatch,
           onPrevMatch: prevMatch,
+          selectionMode,
+          onSelectionModeChange: setSelectionMode,
           onUndo: undo,
           onRedo: redo,
           canUndo,
@@ -522,6 +668,7 @@ function App() {
         },
         viewerProps: {
           selectedIndices: selectedWordIndices,
+          selectionMode,
           onWordClick: toggleWordSelection,
           onSelectionChange: setSelection,
           onToggleRange: toggleSelectionRange,
@@ -533,6 +680,12 @@ function App() {
           scrollToWordIndex,
         },
         onSegmentClick: handleSegmentClick,
+        correctionState,
+        correctionError,
+        pendingCorrection,
+        hasUserEditedSinceTranscription,
+        onApplyCorrection: handleApplyCorrection,
+        onDismissCorrection: dismissCorrection,
       }
     : null;
 
@@ -543,7 +696,7 @@ function App() {
         currentProject={currentProject}
         currentScreen={currentScreen}
         isSegmenting={isSegmenting}
-        hasSelections={hasSelections}
+        hasSelections={canGenerateCuts}
         finalVideoPath={finalVideoPath}
         isPreparingPreview={isPreparingPreview}
         onGenerateCuts={handleGenerateCuts}
